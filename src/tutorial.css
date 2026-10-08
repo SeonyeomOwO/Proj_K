@@ -1,0 +1,41 @@
+/* 공통 튜토리얼 카드: 승인된 밝은 크림색 시안. 모든 단계와 상황별 안내에 함께 적용한다. */
+#viewport:has(#tutorial:not([hidden])){overflow:clip}
+#tutorial{position:absolute;inset:0;z-index:110;pointer-events:none;font-family:inherit}
+#tutorial[hidden],#tutorial [hidden]{display:none!important}
+#tutorial .tut-block{position:absolute;background:#0b0603d4;pointer-events:auto}
+#tutorial .tut-block.clear{background:transparent}
+#tutorial .tut-ring{position:absolute;border:7px solid #ffd043;border-radius:26px;box-shadow:0 0 0 4px #482919,0 0 30px 8px #ffd04399;pointer-events:none;animation:tut-pulse 1.1s ease-in-out infinite}
+#tutorial .tut-bubble{position:absolute;box-sizing:border-box;display:grid;grid-template-columns:200px minmax(0,1fr);grid-template-areas:'face text' 'actions actions';gap:18px 28px;align-items:center;padding:42px 38px 30px;background:#fff1d8;border:4px solid #573018;border-radius:28px;box-shadow:0 7px 0 #26170e,inset 0 0 0 3px #d29a59,inset 0 0 0 7px #ffe7b9;pointer-events:auto;color:#452512;animation:tut-pop .3s cubic-bezier(.2,.9,.25,1) both}
+#tutorial .tut-portrait{grid-area:face;position:relative;isolation:isolate;width:200px;height:200px;display:grid;place-items:center;pointer-events:none}
+#tutorial .tut-portrait::before{content:"";position:absolute;width:108%;height:85%;border-radius:50%;background:#fbe3bc;z-index:-1;bottom:4%}
+#tutorial .tut-face{display:block;width:100%;height:100%;object-fit:contain;object-position:center;background:none;border:0;border-radius:0}
+#tutorial .tut-sparkle{position:absolute;width:23px;height:29px;fill:#ffe7af;stroke:#e8b55e;stroke-width:2;stroke-linejoin:round}
+#tutorial .tut-sparkle.left{left:-8%;top:37%;transform:rotate(-9deg)}
+#tutorial .tut-sparkle.right{right:-9%;top:12%;transform:rotate(8deg)}
+#tutorial .tut-copy{grid-area:text;min-width:0}
+#tutorial .tut-title{margin:0;font-size:40px;line-height:1.42;font-weight:900;letter-spacing:-1px;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-line;text-wrap:balance}
+#tutorial .tut-detail{margin:14px 0 0;font-size:32px;line-height:1.5;font-weight:850;letter-spacing:-.6px;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-line}
+#tutorial .tut-pin{position:absolute;top:13px;width:17px;height:17px;border-radius:50%;background:#efb14e;border:3px solid #9d5f22;box-shadow:inset 0 2px #ffdd83;pointer-events:none}
+#tutorial .tut-pin::after{content:"";position:absolute;inset:3px;border-radius:50%;background:#ba792c}
+#tutorial .tut-pin.left{left:13px}
+#tutorial .tut-pin.right{right:13px}
+#tutorial button{font-family:inherit;font-weight:900;cursor:pointer}
+#tutorial .tut-skip{position:absolute;right:30px;top:-29px;width:224px;height:68px;display:flex;align-items:center;justify-content:center;padding:0;border:3px solid #623819;border-radius:35px;background:linear-gradient(#cd9454,#c68a49);box-shadow:inset 0 3px #e7b36e,0 4px 0 #482711;color:#fff0cd;z-index:1}
+#tutorial .tut-skip::before,#tutorial .tut-skip::after{content:"";position:absolute;top:50%;transform:translateY(-50%);width:7px;height:7px;border:2px solid #8d572b;border-radius:50%;background:#b0783d}
+#tutorial .tut-skip::before{left:11px}
+#tutorial .tut-skip::after{right:11px}
+#tutorial .tut-skip-content{display:flex;align-items:center;justify-content:center;gap:8px;width:max-content}
+#tutorial .tut-pickaxe{display:block;width:32px;height:32px;flex:none;fill:currentColor}
+#tutorial .tut-skip-label{display:block;font-size:31px;line-height:1;letter-spacing:-1px;padding-bottom:1px;white-space:nowrap}
+#tutorial .tut-skip[data-armed=true]{width:330px}
+#tutorial .tut-skip[data-armed=true] .tut-skip-label{font-size:28px}
+#tutorial .tut-skip:active{translate:0 2px}
+#tutorial .tut-actions{grid-area:actions;display:flex;justify-content:flex-end;align-items:center;padding-right:8px}
+#tutorial .tut-next{min-width:196px;height:76px;padding:0 30px;border:4px solid #653719;border-radius:18px;background:linear-gradient(#ffdc62,#ffc22b 55%,#f5aa28);box-shadow:inset 0 3px #ffec9a,0 4px 0 #482711;color:#fff4d9;font-size:36px;-webkit-text-stroke:5px #653719;paint-order:stroke fill;text-shadow:0 2px #653719}
+#tutorial .tut-next:active{translate:0 3px}
+#tutorial button:focus-visible{outline:4px solid #fff6cf;outline-offset:4px}
+#tutorial .tut-corner{position:absolute;right:16px;bottom:16px;width:27px;height:25px;fill:#ebc183;opacity:.8;pointer-events:none}
+#tutorial .tut-bubble[data-kind=info] .tut-corner{right:auto;left:20px}
+@keyframes tut-pulse{50%{box-shadow:0 0 0 4px #482919,0 0 44px 16px #ffd043cc;transform:scale(1.03)}}
+@keyframes tut-pop{from{opacity:0;transform:translateY(24px) scale(.94)}}
+@media(prefers-reduced-motion:reduce){#tutorial .tut-ring,#tutorial .tut-bubble{animation:none}}

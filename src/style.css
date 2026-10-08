@@ -1,0 +1,1261 @@
+@font-face {
+  font-family: HamsterKR;
+  /* 쓰는 글자만 남긴 woff2(약 340KB). 원본 전체 글꼴은 NotoSansKR-VF.ttf, 다시 만들기: tools/subset-font.py */
+  src: url('../assets/fonts/NotoSansKR-game.woff2') format('woff2');
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+:root {
+  --brown: #48291d;
+  --cream: #fff0d6;
+  --ink: #381d14;
+  --gold: #ffca38;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #151719;
+  color: #fff;
+  font-family: HamsterKR,'Malgun Gothic',sans-serif;
+  font-weight: 900;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+  touch-action: manipulation;
+}
+
+button:focus-visible, a:focus-visible {
+  outline: 5px solid #fff;
+  outline-offset: 4px;
+}
+
+button:disabled {
+  filter: grayscale(.75);
+  opacity: .6;
+  cursor: default;
+}
+
+#viewport {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#game {
+  position: relative;
+  width: 941px;
+  height: 1672px;
+  flex-shrink: 0;
+  transform-origin: center center;
+  overflow: hidden;
+  background: #596263;
+}
+
+#world {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#hud button {
+  pointer-events: auto;
+}
+
+.stroke {
+  -webkit-text-stroke: 6px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0 4px 0 var(--ink);
+}
+
+.icon {
+  display: inline-block;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.brown {
+  background: linear-gradient(#785240,#513326);
+  border: 7px solid #2f1a13;
+  border-radius: 30px;
+  box-shadow: inset 0 0 0 5px #9a705b,0 5px 0 #291912;
+}
+
+.moneybar {
+  position: absolute;
+  left: 147px;
+  top: 19px;
+  width: 667px;
+  height: 89px;
+  padding: 7px 14px;
+  display: flex;
+  gap: 13px;
+  align-items: center;
+}
+
+.money {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #392117;
+  border-radius: 45px;
+  padding: 0 10px;
+  font-size: 38px;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.money .icon {
+  width: 51px;
+  height: 51px;
+}
+
+.avatar {
+  position: absolute;
+  left: 25px;
+  top: 18px;
+  width: 111px;
+  height: 93px;
+  padding: 3px;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 60%;
+}
+
+.gear {
+  position: absolute;
+  right: 25px;
+  top: 18px;
+  width: 99px;
+  height: 93px;
+  padding: 8px;
+}
+
+.side-tools {
+  position: absolute;
+  right: 25px;
+  top: 126px;
+  display: flex;
+  gap: 12px;
+}
+
+.side-tools button {
+  width: 101px;
+  height: 126px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.depth {
+  position: absolute;
+  left: 30px;
+  top: 250px;
+  width: 63px;
+  height: 339px;
+  text-align: center;
+  padding: 25px 0;
+  background: #36271f;
+  border: 6px solid #211914;
+  border-radius: 32px;
+  box-shadow: inset 0 0 0 4px #695043;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 29px;
+}
+
+.depth .current {
+  background: #ffc240;
+  color: #2e1d14;
+  border-radius: 15px;
+  border: 5px solid #3c2517;
+  padding: 3px 15px;
+}
+
+.auto {
+  position: absolute;
+  left: 313px;
+  top: 1120px;
+  width: 317px;
+  height: 75px;
+  font-size: 33px;
+}
+
+.toggle {
+  display: inline-block;
+  width: 80px;
+  height: 45px;
+  border-radius: 25px;
+  background: #8a7770;
+  border: 4px solid #291b14;
+  vertical-align: middle;
+  margin-left: 12px;
+  position: relative;
+}
+
+.auto-lock-overlay,.auto-lock-hint{display:none}
+.auto.locked{background:linear-gradient(#725a49,#4b382d)}
+.auto.locked .toggle{opacity:.28;filter:grayscale(1)}
+.auto.locked .auto-label{position:absolute;left:68px;right:68px;top:-23px;font-size:27px;z-index:2;background:#4b3325;border:3px solid #281c15;border-radius:12px;line-height:1.15;padding:2px 5px}
+/* 사슬 그림(2073×758, 가로:세로 2.73)은 원래 비율 그대로 버튼 가운데에 얹는다. 예전엔 버튼 크기(4.3:1)에 맞춰 object-fit:fill로 늘려 납작하게 찌그러졌다. 높이를 버튼보다 조금 크게 잡아 사슬이 버튼을 감은 느낌을 낸다. */
+.auto.locked .auto-lock-overlay{display:block;position:absolute;left:50%;top:50%;width:auto;height:98px;max-width:none;transform:translate(-50%,-50%);object-fit:contain;pointer-events:none}
+
+.toggle:after {
+  content: '';
+  display: block;
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  background: #fff;
+  position: absolute;
+  left: 4px;
+  top: 3px;
+}
+
+.toggle.on {
+  background: #65e73a;
+}
+
+.toggle.on:after {
+  left: 38px;
+}
+
+.upgrades {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  top: 1205px;
+  display: flex;
+  gap: 13px;
+}
+
+.upgrade {
+  width: calc((100% - 26px)/3);
+  height: 230px;
+  border: 7px solid #3c2418;
+  border-radius: 32px;
+  padding: 17px 12px;
+  background: #ffce3c;
+  box-shadow: inset 0 0 0 5px #ffe89b,inset 0 -10px 0 #e68b00;
+  display: grid;
+  grid-template-columns: 103px 1fr;
+  align-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: 33px;
+  line-height: 1.16;
+  word-break: keep-all;
+}
+
+.upgrade.blue {
+  background: #27b8ff;
+  box-shadow: inset 0 0 0 5px #9fe5ff,inset 0 -10px 0 #078adb;
+}
+
+.upgrade.green {
+  background: #56df35;
+  box-shadow: inset 0 0 0 5px #b8ff89,inset 0 -10px 0 #25a31a;
+}
+
+.upgrade.red {
+  background: #ed775e;
+  box-shadow: inset 0 0 0 5px #ffc0a4,inset 0 -10px 0 #b54830;
+}
+
+.upgrade .icon {
+  width: 103px;
+  height: 103px;
+  background: #13364e;
+  border: 5px solid #30241b;
+  border-radius: 50%;
+  padding: 6px;
+}
+
+.upgrade small {
+  display: block;
+  font-size: 30px;
+}
+
+.cost {
+  grid-column: 1/-1;
+  background: #6b422c;
+  border: 4px solid #3b2218;
+  border-radius: 38px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 66px;
+  gap: 20px;
+  font-size: 36px;
+}
+
+.cost .icon {
+  width: 52px;
+  height: 52px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.nav {
+  position: absolute;
+  left: 17px;
+  right: 17px;
+  top: 1466px;
+  height: 161px;
+  display: flex;
+  padding: 11px 5px;
+}
+
+.nav button {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  border-right: 3px solid #a37857;
+  font-size: 31px;
+  line-height: 1.1;
+  padding: 0;
+}
+
+.nav button:last-child {
+  border: 0;
+}
+
+.nav .icon {
+  width: 88px;
+  height: 88px;
+  display: block;
+  margin: 0 auto 5px;
+}
+
+.nav .icon[data-sprite="hamster_face"] {
+  transform: scale(1.1);
+}
+
+.shade {
+  position: absolute;
+  inset: 0;
+  background: #0009;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+}
+
+.modal {
+  width: 790px;
+  max-height: 1320px;
+  display: flex;
+  flex-direction: column;
+  border: 7px solid #2e1a12;
+  border-radius: 40px;
+  overflow: hidden;
+  background: var(--cream);
+  box-shadow: 0 8px 0 #24170fcc;
+  color: var(--ink);
+}
+
+.modal-header {
+  position: relative;
+  background: linear-gradient(#79533e,#573221);
+  border-bottom: 5px solid #362115;
+  min-height: 113px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 82px;
+  color: white;
+  font-size: 49px;
+}
+
+/* 테두리 7px 안쪽(59px)의 정가운데에 X를 둔다. 예전에는 안쪽 여백까지 더해 41px 칸에 48px 아이콘이 들어가 오른쪽 아래로 밀렸다. */
+.close {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 73px;
+  height: 73px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 45px;
+}
+
+.close .icon {
+  width: 40px;
+  height: 40px;
+}
+
+.modal-body {
+  overflow: auto;
+  padding: 25px 24px 24px;
+  max-height: 1170px;
+  font-size: 28px;
+  scrollbar-width: thin;
+}
+
+.modal-body p {
+  margin: 12px 0;
+  line-height: 1.5;
+}
+
+.modal-body small {
+  font-size: 23px;
+}
+
+.tabs {
+  display: flex;
+  margin: -25px -24px 20px;
+  background: #644331;
+}
+
+.tabs button {
+  flex: 1;
+  border: 4px solid #3c2519;
+  border-radius: 25px 25px 0 0;
+  background: #73513c;
+  padding: 15px;
+  color: white;
+  font-size: 35px;
+}
+
+.tabs .active {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.cream-box {
+  background: #fff6e6;
+  border: 3px solid #dfc5a3;
+  border-radius: 27px;
+  padding: 17px;
+  margin: 15px 0;
+}
+
+.equipped {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.equipped .icon {
+  width: 100px;
+  height: 100px;
+}
+
+.equipped small {
+  display: block;
+  color: #957355;
+}
+
+.inventory {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 14px;
+  max-height: 475px;
+  overflow: auto;
+  margin: 17px 0;
+}
+
+.slot {
+  position: relative;
+  background: linear-gradient(#b4a595,#8e7764);
+  border: 5px solid #442b1e;
+  border-radius: 19px;
+  min-height: 146px;
+  padding: 12px;
+  color: #fff;
+}
+
+.slot .icon {
+  width: 105px;
+  height: 105px;
+}
+
+.slot.selected {
+  outline: 7px solid #ffd731;
+  outline-offset: 2px;
+}
+
+.tier {
+  position: absolute;
+  left: 7px;
+  top: 2px;
+  font-size: 29px;
+  -webkit-text-stroke: 5px #311d14;
+  paint-order: stroke fill;
+}
+
+.equipped-tag {
+  position: absolute;
+  bottom: 3px;
+  right: 7px;
+  font-size: 18px;
+  background: #384b68;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.merge-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  font-size: 35px;
+}
+
+.merge-preview .icon {
+  width: 94px;
+  height: 94px;
+}
+
+.enhance-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  font-size: 35px;
+}
+
+.enhance-preview>.icon {
+  width: 120px;
+  height: 120px;
+  flex: none;
+}
+
+.enhance-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.enhance-info small {
+  font-size: 26px;
+  color: #6b4b36;
+}
+
+.cost-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 34px;
+}
+
+.cost-line .icon {
+  width: 44px;
+  height: 44px;
+}
+
+.cost-line .short {
+  color: #d2342c;
+}
+
+.enh-tag {
+  position: absolute;
+  right: 7px;
+  top: 4px;
+  font-size: 27px;
+  color: #ffe36b;
+  -webkit-text-stroke: 5px #311d14;
+  paint-order: stroke fill;
+}
+
+.cta {
+  display: block;
+  min-height: 89px;
+  padding: 12px 30px;
+  border: 6px solid #3a2116;
+  border-radius: 25px;
+  background: linear-gradient(#ffdc54,#ffc32f);
+  box-shadow: inset 0 0 0 4px #ffe790,0 6px 0 #a96822;
+  color: #26170e;
+  font-size: 35px;
+  font-weight: 900;
+  text-align: center;
+  margin: 21px auto 10px;
+  min-width: 350px;
+}
+
+.cta.secondary {
+  background: #dbc5a7;
+  box-shadow: inset 0 0 0 3px #f7e5cc,0 5px 0 #876649;
+}
+
+.footnote {
+  text-align: center;
+  color: #916744;
+  font-size: 23px;
+  margin: 12px 0 0;
+}
+
+.build-progress {
+  text-align: center;
+  background: #6e4b34;
+  border: 4px solid #432b1e;
+  color: #fff;
+  border-radius: 20px;
+  width: max-content;
+  margin: 0 auto 20px;
+  padding: 7px 24px;
+  font-size: 32px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 12px;
+}
+
+.skill-card {
+  border: 5px solid #b99650;
+  border-radius: 27px;
+  background: #fff2d9;
+  padding: 0;
+  overflow: hidden;
+  color: #2e1b11;
+  min-height: 361px;
+}
+
+.skill-card.chosen {
+  outline: 7px solid #ffda31;
+  outline-offset: 2px;
+}
+
+.card-top {
+  background: #463221;
+  color: white;
+  min-height: 240px;
+  padding: 19px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 29px;
+  line-height: 1.15;
+}
+
+.card-top .icon {
+  width: 159px;
+  height: 140px;
+  margin-bottom: 12px;
+}
+
+.skill-card.red .card-top {
+  background: #703932;
+}
+
+.skill-card.blue .card-top {
+  background: #253d5b;
+}
+
+.skill-card.green .card-top {
+  background: #2b583c;
+}
+
+.skill-card p {
+  font-size: 24px;
+  padding: 8px 7px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.selected-build {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.mini-skill {
+  width: 139px;
+  text-align: center;
+  border: 4px solid #3c291e;
+  border-radius: 20px;
+  background: #58bfff;
+  padding: 12px 6px;
+  color: white;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.mini-skill .icon {
+  width: 79px;
+  height: 79px;
+  display: block;
+  margin: auto;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 28px;
+  margin: 18px 0 10px;
+}
+
+.synergy {
+  color: #194769;
+  background: #c4e5ff;
+  border: 3px solid #75bbf0;
+  border-radius: 19px;
+  text-align: center;
+  margin-top: 16px;
+  padding: 12px;
+  font-size: 30px;
+}
+
+.row-action {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.row-action .icon {
+  width: 85px;
+  height: 85px;
+}
+
+.row-action>div {
+  flex: 1;
+}
+
+.row-action .cta {
+  font-size: 27px;
+  min-width: 210px;
+  margin: 8px 0;
+  padding: 10px;
+}
+
+.muted {
+  color: #8d725e;
+}
+
+.amount {
+  color: #ae6a20;
+  font-size: 42px;
+}
+
+.mastery-map {
+  position: relative;
+  height: 565px;
+  background: radial-gradient(#9887b750 2px,transparent 3px) 0 0/23px 23px,#d9cee9;
+  border-radius: 24px;
+  overflow: auto;
+}
+
+.mastery-map .node {
+  position: absolute;
+  transform: translate(-50%,-50%);
+  width: 103px;
+  height: 103px;
+  min-width: 0;
+  border: 5px solid #503321;
+  border-radius: 23px;
+  background: #fff1d6;
+  color: #472819;
+  padding: 8px;
+  font-size: 20px;
+  z-index: 1;
+}
+
+.node.owned {
+  background: #66b2f4;
+}
+
+.node.active {
+  outline: 7px solid #ffd145;
+}
+
+.node .icon {
+  width: 60px;
+  height: 60px;
+}
+
+.node-label {
+  display: block;
+  position: absolute;
+  top: 103px;
+  width: 140px;
+  left: -22px;
+  font-size: 17px;
+  color: #513928;
+}
+
+.mastery-line {
+  position: absolute;
+  background: #a78037;
+  height: 7px;
+  transform-origin: left center;
+}
+
+.outfits {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 12px;
+}
+
+.outfit {
+  padding: 9px;
+  border: 4px solid #c9ac80;
+  border-radius: 21px;
+  background: #fff5dd;
+  color: #43291c;
+  position: relative;
+}
+
+.outfit .icon {
+  width: 130px;
+  height: 130px;
+}
+
+/* 아직 뽑지 못한 햄찌: 실루엣처럼 어둡게 */
+.outfit.locked .icon {
+  filter: brightness(.25) saturate(0);
+  opacity: .55;
+}
+
+.outfit.locked small {
+  color: #a88d73;
+}
+
+.crew-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.crew-summary span {
+  font-size: 24px;
+  color: #8d5a2b;
+}
+
+.team-slots {
+  display: grid;
+  grid-template-columns: repeat(6,1fr);
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.slot.team-slot {
+  min-height: 108px;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+}
+
+.slot.team-slot .icon {
+  width: 84px;
+  height: 84px;
+}
+
+.slot.team-slot .gear-ico {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 46px;
+  height: 46px;
+}
+
+.slot.team-slot .gear-ico .icon {
+  width: 46px;
+  height: 46px;
+}
+
+.slot.team-slot .enh-tag {
+  right: 4px;
+  top: 2px;
+  font-size: 21px;
+  -webkit-text-stroke: 4px #311d14;
+}
+
+.slot.team-slot .tier {
+  font-size: 21px;
+  -webkit-text-stroke: 4px #311d14;
+}
+
+.ruby-chance {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.ruby-chance .icon {
+  width: 70px;
+  height: 70px;
+}
+
+.ruby-chance b {
+  color: #c4304e;
+}
+
+.outfit.active {
+  outline: 6px solid #ffce3b;
+}
+
+.outfit small {
+  display: block;
+  font-size: 23px;
+}
+
+.costume-preview .icon {
+  display: block;
+  width: 190px;
+  height: 175px;
+  margin: auto;
+}
+
+/* 햄찌 레벨업 루비 비용 줄(위 .icon 크기가 따라오지 않게 다시 지정) */
+.costume-preview .cost-line {
+  justify-content: center;
+  margin: 8px 0 4px;
+}
+
+.costume-preview .cost-line .icon {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}
+
+.costume-preview .section-title small {
+  font-size: 24px;
+  color: #8d725e;
+}
+
+.daily-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 14px;
+}
+
+.daily-card {
+  text-align: center;
+  border: 4px solid #70513b;
+  border-radius: 20px;
+  background: #fff7e7;
+  padding: 15px;
+  font-size: 28px;
+}
+
+.daily-card:last-child {
+  grid-column: 1/-1;
+}
+
+.daily-card.claimed {
+  background: #aed78c;
+}
+
+.daily-card .icon {
+  width: 60px;
+  height: 60px;
+  display: block;
+  margin: 5px auto;
+}
+
+#toast {
+  position: absolute;
+  left: 80px;
+  right: 80px;
+  top: 980px;
+  text-align: center;
+  padding: 16px;
+  background: #21180fde;
+  border: 3px solid #ecd3a9;
+  border-radius: 20px;
+  font-size: 29px;
+  z-index: 100;
+  display: none;
+  pointer-events: none;
+}
+
+#loading {
+  position: absolute;
+  inset: 0;
+  background: #d8c483;
+  display: grid;
+  place-items: center;
+  font-size: 39px;
+  color: #4b3020;
+  z-index: 200;
+}
+
+#dev-tools {
+  position: fixed;
+  bottom: 7px;
+  left: 12px;
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  background: #111a;
+  padding: 6px;
+  border-radius: 7px;
+  z-index: 300;
+}
+
+#dev-tools a {
+  color: #ead8ab;
+}
+
+#dev-tools label {
+  cursor: pointer;
+}
+
+#reference-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 150;
+  pointer-events: none;
+  opacity: .5;
+}
+
+input[type=checkbox] {
+  accent-color: #ffc83f;
+}
+
+.warning {
+  color: #aa3627;
+}
+
+.popup-empty {
+  padding: 40px;
+  text-align: center;
+}
+
+.two-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.two-buttons .cta {
+  min-width: 0;
+  flex: 1;
+  font-size: 27px;
+}
+
+.equipment-summary {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.equipment-summary .icon {
+  width: 130px;
+  height: 130px;
+}
+
+.rate-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 25px;
+}
+
+.rate-table td {
+  padding: 8px;
+  border-bottom: 1px solid #d5b995;
+}
+
+@media(max-width:600px) {
+  #dev-tools {
+    font-size: 9px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    justify-content: center;
+    padding: 3px;
+    gap: 7px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  * {
+    scroll-behavior: auto!important;
+  }
+}
+
+/* The navigation uses compact controls, independent of popup primary buttons. */
+.nav button {
+  min-width: 0;
+  margin: 0;
+  box-shadow: none;
+  border-radius: 0;
+  color: #fff;
+}
+
+.nav button:hover {
+  background: #90633b55;
+}
+
+.slot.empty {
+  background: #f3e1c6;
+  border: 4px dashed #cbb18e;
+  display: grid;
+  place-items: center;
+}
+
+.slot.empty .icon {
+  opacity: .35;
+  width: 62px;
+  height: 62px;
+}
+
+.avatar {
+  overflow: hidden;
+}
+
+/* 시안처럼 헬멧 쓴 얼굴만 크게: 원화의 얼굴 중심(약 65%, 57%)이 칸 가운데 조금 아래로 오도록 */
+.avatar img {
+  transform: scale(2.9);
+  transform-origin: 68.5% 56%;
+}
+
+.modal-body {
+  word-break: keep-all;
+}
+
+.skill-card p {
+  word-break: keep-all;
+}
+
+.card-top strong {
+  word-break: keep-all;
+}
+
+/* 뽑기 10연 결과: 한 줄에 5개 */
+.multi-grid {
+  display: grid;
+  grid-template-columns: repeat(5,1fr);
+  gap: 10px;
+  margin: 6px 0;
+}
+
+.multi-cell {
+  background: linear-gradient(#b4a595,#8e7764);
+  border: 4px solid #442b1e;
+  border-radius: 16px;
+  padding: 6px 2px 4px;
+  display: grid;
+  justify-items: center;
+  color: #fff;
+  position: relative;
+}
+
+.multi-cell .icon {
+  width: 84px;
+  height: 84px;
+}
+
+.multi-cell small {
+  font-size: 20px;
+  margin-top: -4px;
+}
+
+.multi-cell b {
+  font-size: 24px;
+  -webkit-text-stroke: 4px #311d14;
+  paint-order: stroke fill;
+}
+
+.multi-cell.new,
+.multi-cell.best {
+  outline: 5px solid #ffd731;
+  outline-offset: 1px;
+}
+
+/* 열려 있는 창의 메뉴 버튼 표시 */
+.nav button.open {
+  background: linear-gradient(#b27a43aa,#6e4526aa);
+  box-shadow: inset 0 0 0 3px #f5c36a;
+  border-radius: 18px;
+}
+
+/* 곡괭이 일괄 합성 팝업(곡괭이 창 위에 겹쳐 뜬다) */
+.bulk-shade { position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; padding: 28px; background: #000a; border-radius: 30px; }
+.bulk-popup { width: 100%; max-height: 100%; overflow: auto; padding: 26px 24px 24px; border: 6px solid #442b1e; border-radius: 28px; background: var(--cream, #fff0d6); box-shadow: 0 8px 0 #24170f; text-align: center; }
+.bulk-popup h3 { margin: 0 0 4px; font-size: 40px; }
+.bulk-ask { margin: 6px 0 16px; font-size: 30px; line-height: 1.3; font-weight: 900; }
+.bulk-ask small { display: block; margin-top: 4px; font-size: 22px; color: #8d5a2b; font-weight: 700; }
+.bulk-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.bulk-chip { display: grid; justify-items: center; gap: 0; padding: 8px 2px 6px; border: 5px solid #442b1e; border-radius: 18px; background: linear-gradient(#b4a595,#8e7764); color: #fff; cursor: pointer; }
+.bulk-chip .icon { width: 70px; height: 70px; }
+.bulk-chip b { font-size: 32px; line-height: 1.1; -webkit-text-stroke: 5px #311d14; paint-order: stroke fill; }
+.bulk-chip small { font-size: 20px; color: #fff3dc; text-shadow: 0 2px #311d14; }
+.bulk-chip.on { background: linear-gradient(#ffe36b,#ffc02d); outline: 6px solid #ffd731; outline-offset: 1px; }
+.bulk-chip.on small { color: #4a2d17; text-shadow: none; }
+.bulk-result { margin: 16px 0 6px; padding: 12px 16px; border: 4px solid #e2cba6; border-radius: 18px; background: #fff7e6; font-size: 26px; line-height: 1.35; }
+.bulk-result.none { color: #8d5a2b; font-weight: 900; }
+.bulk-sum b { color: #c4631a; }
+.bulk-result ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.bulk-result li { display: flex; justify-content: space-between; align-items: center; font-size: 26px; }
+.bulk-result li span { display: inline-flex; align-items: center; gap: 6px; font-weight: 900; }
+.bulk-result li .icon { width: 40px; height: 40px; }
+.bulk-skip { margin: 4px 0 0; font-size: 21px; color: #8d5a2b; }
+.bulk-popup .cta { display: block; width: 100%; min-width: 0; margin: 14px 0 0; }
+.bulk-popup .cta.secondary { margin-top: 10px; }
+/* 창이 뜨고 닫힐 때의 움직임(app.js shell / dismissShades): 처음 열릴 때만 덮개가 어두워지며 창이 아래에서 통통 튀어 오르고,
+   닫을 때는 살짝 작아지며 사라진다. 창을 다시 그릴 때(탭·선택 변경)는 움직이지 않는다. 모션을 줄인 설정이면 JS가 클래스를 붙이지 않는다. */
+.shade.enter-shade{animation:shade-in .2s ease-out both}
+.shade.enter .modal{animation:modal-in .38s cubic-bezier(.2,.9,.25,1) both}
+.shade.leaving{animation:shade-out .17s ease-in both;pointer-events:none}
+.shade.leaving .modal{animation:modal-out .17s ease-in both}
+.fade-in{animation:shade-in .18s ease-out both}
+.pop-in{animation:modal-in .34s cubic-bezier(.2,.9,.25,1) both}
+@keyframes shade-in{from{opacity:0}}
+@keyframes shade-out{to{opacity:0}}
+@keyframes modal-in{0%{opacity:0;transform:translateY(46px) scale(.88)}55%{opacity:1;transform:translateY(-7px) scale(1.025)}78%{transform:translateY(2px) scale(.994)}}
+@keyframes modal-out{to{opacity:0;transform:translateY(18px) scale(.94)}}
+@media(prefers-reduced-motion:reduce){.shade.enter-shade,.shade.enter .modal,.shade.leaving,.shade.leaving .modal,.fade-in,.pop-in{animation:none}}
+
+/* 설정 창의 켜고 끄는 줄: 이름은 왼쪽, 스위치는 오른쪽 */
+.cta.setting-row{display:flex;align-items:center;justify-content:space-between;width:100%;min-width:0;padding:12px 34px}
+.cta.setting-row .toggle{margin-left:0;flex:none}
+
+/* 아직 고르지 않은 스킬 칸: 점선 틀에 + (누르면 빌드 선택 창이 다시 열린다) */
+.upgrade.empty{display:grid;grid-template-columns:1fr;place-items:center;background:#2c1f17b3;border:7px dashed #c9ac7e;box-shadow:none;color:#e9d3ab;cursor:pointer}
+.upgrade.empty .icon{width:84px;height:84px;opacity:.65}
+.upgrade.empty:active{background:#3b2a1f}
+
+/* 빌드 선택 창의 비어 있는 칸: + 를 칸 정중앙에 둔다 */
+.mini-skill.empty{display:flex;align-items:center;justify-content:center;padding:12px 6px}
+.mini-skill.empty .icon{margin:0}
+
+/* 스킬 강화 카드의 누름 피드백: 누르는 동안 꾹 들어가고, 성공하면 통통 튀며 Lv.UP!이 떠오르고, 실패하면 좌우로 떨린다(app.js upgradeFx) */
+.upgrade{position:relative;cursor:pointer;transition:transform .06s ease-out,filter .06s;-webkit-tap-highlight-color:transparent}
+.upgrade:not(.empty):active{transform:translateY(6px) scale(.95);filter:brightness(.9)}
+.upgrade.level-up{animation:up-pop .5s cubic-bezier(.2,.9,.3,1.2)}
+.upgrade.deny{animation:up-deny .32s ease-in-out}
+.lvup-float{position:absolute;left:50%;top:-8px;z-index:3;pointer-events:none;font-size:36px;font-weight:900;color:#fff7c2;-webkit-text-stroke:7px #4a2a0f;paint-order:stroke fill;text-shadow:0 3px #4a2a0f;white-space:nowrap;animation:up-float .85s ease-out both}
+@keyframes up-pop{0%{transform:translateY(6px) scale(.95);filter:brightness(1.5)}35%{transform:translateY(-8px) scale(1.09);filter:brightness(1.35)}65%{transform:scale(.98);filter:brightness(1.1)}100%{transform:none;filter:none}}
+@keyframes up-deny{0%,100%{transform:none}20%{transform:translateX(-9px)}45%{transform:translateX(8px)}70%{transform:translateX(-5px)}}
+@keyframes up-float{0%{opacity:0;transform:translate(-50%,16px) scale(.7)}18%{opacity:1;transform:translate(-50%,-4px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-70px) scale(1)}}
+@media(prefers-reduced-motion:reduce){.upgrade.level-up,.upgrade.deny,.lvup-float{animation:none}.lvup-float{display:none}}

@@ -1,0 +1,126 @@
+/* 뽑기 연출 장면(src/gacha-scene.js). 게임 화면(#game) 안 디자인 좌표(941×1672)로 배치된다. */
+.gc{position:absolute;inset:0;z-index:80;overflow:hidden;opacity:0;transition:opacity .25s ease;color:#fff;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.gc.show{opacity:1}
+.gc.leaving{opacity:0;pointer-events:none}
+.gc[hidden],.gc [hidden]{display:none!important}
+.gc-bg{position:absolute;inset:-14px;background:center/cover no-repeat}
+.gc-stage{position:absolute;inset:0}
+.gc.shaking .gc-bg,.gc.shaking .gc-stage{animation:gc-shake .5s ease-out}
+.gc-flash{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 62%,var(--fc,#fff) 0,#fff0 72%)}
+.gc.flash .gc-flash{animation:gc-flash .75s ease-out}
+
+.gc-title{position:absolute;left:50%;top:64px;z-index:3;width:660px;height:108px;margin-left:-330px;display:grid;place-items:center;background:url('../assets/shop/parts/header-wood.svg') center/100% 100% no-repeat;pointer-events:none}
+.gc-title span{font-size:54px;font-weight:900;color:#fff4dc;-webkit-text-stroke:9px #3b2113;paint-order:stroke fill;text-shadow:0 4px #3b2113;letter-spacing:1px;padding-bottom:6px}
+
+/* 상자 칸: 상자 바닥 기준점이 칸의 (0,0)이다 */
+.gc-cell{position:absolute;width:0;height:0;cursor:pointer}
+.gc-shadow{position:absolute;border-radius:50%;background:radial-gradient(ellipse,#0007 0,#0000 72%);opacity:0;transition:opacity .25s .45s}
+.gc .gc-shadow{width:560px;height:90px;left:-280px;top:-44px}
+.gc-cell.dropped .gc-shadow{opacity:1}
+.gc-crate{position:absolute;left:0;top:0;z-index:2}
+.gc-crate-in{position:absolute;left:0;top:0;transform-origin:0 0;visibility:hidden;transform:translateY(-1700px);will-change:transform}
+.gc-crate-img{position:absolute;display:block;max-width:none;pointer-events:none}
+.gc-cell.dropped .gc-crate-in{visibility:visible;animation:gc-drop 1.55s both}
+.gc-cell.wobble .gc-crate-in{animation:gc-wobble .9s both}
+.gc-cell.nudge .gc-crate-in{visibility:visible;animation:gc-nudge 2.6s ease-in-out infinite}
+.gc-cell.rumble .gc-crate-in{visibility:visible;animation:gc-rumble .33s linear both}
+.gc-cell.opened .gc-crate-in{visibility:visible;animation:gc-open-pop .4s ease-out both}
+
+.gc-cell.swap .gc-item{animation:gc-item-out .24s ease-in both}
+.gc-cell.swap .gc-plate{animation:gc-fade-out .2s ease-in both}
+.gc-cell.swap .gc-light{opacity:0;transition:opacity .2s}
+.gc-cell.gone{opacity:0;transition:opacity .3s;pointer-events:none}
+.gc-count{position:absolute;left:50%;top:186px;z-index:4;margin-left:-90px;width:180px;text-align:center;font-size:38px;font-weight:900;color:#fff7c2;-webkit-text-stroke:8px #3b2113;paint-order:stroke fill;text-shadow:0 3px #3b2113;pointer-events:none}
+.gc-skip{position:absolute;right:34px;top:190px;z-index:6;height:62px;padding:0 24px 4px;border:5px solid #482919;border-radius:20px;background:#ffedce;box-shadow:0 4px 0 #291d16;color:#5a3920;font:inherit;font-weight:900;font-size:28px;cursor:pointer}
+.gc-skip:active{translate:0 3px}
+.gc-sum{position:absolute;left:40px;right:40px;top:230px;z-index:3;display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.gc-card{position:relative;height:300px;border:5px solid #482919;border-radius:24px;background:radial-gradient(circle at 50% 36%,var(--g1),var(--g2) 58%,#3a2618 135%);box-shadow:0 5px 0 #291d16;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;animation:gc-card-in .5s calc(var(--i)*70ms) cubic-bezier(.2,.9,.3,1.2) both}
+.gc-card .icon{width:138px;height:138px;object-fit:contain;filter:drop-shadow(0 6px 5px #0007)}
+.gc-card .gc-new{font-size:20px;border-width:3px;padding:0 8px 2px;right:-6px;top:-8px}
+.gc-card-foot{display:flex;justify-content:center;align-items:center;gap:6px;width:100%;min-height:58px;position:relative;top:16px;padding-right:8px}
+.gc .gc-card-foot .gc-badge{position:static;width:56px;height:56px}
+.gc-card-foot span{font-size:25px;font-weight:900;color:#fff4d4;-webkit-text-stroke:6px #2b1a10;paint-order:stroke fill;white-space:nowrap}
+.gc-card.g-SS,.gc-card.g-S{box-shadow:0 5px 0 #291d16,0 0 26px 4px var(--g2)}
+.gc.shaking .gc-sum{animation:gc-shake .5s ease-out}
+
+/* 등급 빛: 둥근 빛 + 도는 빛줄기 + 위로 솟는 빛기둥(색은 --g1/--g2) */
+.gc-light{position:absolute;left:0;top:var(--ly);width:0;height:0;z-index:1;pointer-events:none}
+.gc-light>i{position:absolute;display:block;opacity:0}
+.gc-halo{left:calc(var(--lw)/-2);top:calc(var(--lw)/-2);width:var(--lw);height:var(--lw);border-radius:50%;background:radial-gradient(circle,var(--g1) 0,var(--g2) 24%,transparent 62%)}
+.gc-rays{left:calc(var(--lw)/-2);top:calc(var(--lw)/-2);width:var(--lw);height:var(--lw);background:repeating-conic-gradient(from 0deg,var(--g1) 0 6deg,transparent 6deg 20deg);-webkit-mask-image:radial-gradient(circle,#000 0,#000 18%,transparent 66%);mask-image:radial-gradient(circle,#000 0,#000 18%,transparent 66%)}
+.gc-beam{left:calc(var(--lw)*-.15);top:calc(var(--lw)*-.78);width:calc(var(--lw)*.3);height:calc(var(--lw)*.86);transform-origin:50% 100%;background:linear-gradient(to top,var(--g1),var(--g2) 40%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 32%,#000 68%,transparent);mask-image:linear-gradient(90deg,transparent,#000 32%,#000 68%,transparent)}
+.gc-cell.opened .gc-halo{animation:gc-halo-in .7s ease-out both,gc-breathe 2.4s ease-in-out .7s infinite}
+.gc-cell.opened .gc-rays{animation:gc-rays-in .8s ease-out both,gc-spin 10s linear infinite}
+.gc-cell.opened .gc-beam{animation:gc-beam-in .7s ease-out both}
+.gc-cell.g-SS .gc-beam{background:linear-gradient(to top,#ffe27a,var(--g2) 45%,transparent)}
+.gc-cell.g-SS .gc-halo{background:radial-gradient(circle,#fff 0,var(--g1) 12%,var(--g2) 30%,transparent 64%)}
+
+.gc-spark{position:absolute;left:0;top:0;width:var(--sz);height:var(--sz);margin:calc(var(--sz)/-2) 0 0 calc(var(--sz)/-2);border-radius:50%;background:radial-gradient(circle,#fff 0,var(--g1) 38%,transparent 72%);opacity:0;animation:gc-spark 1.2s var(--sd) ease-out forwards}
+.gc-dust{position:absolute;top:-34px;width:84px;height:60px;margin-left:-42px;border-radius:50%;background:#e7d5ad;opacity:0;animation:gc-dust .8s ease-out forwards}
+
+/* 보상(기존 곡괭이·햄찌 그림 그대로) */
+.gc-item{position:absolute;left:calc(var(--is)/-2);top:calc(var(--iy) - var(--is)/2);width:var(--is);height:var(--is);z-index:3;display:grid;place-items:center;opacity:0;pointer-events:none}
+.gc-item .icon{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 10px 8px #0009)}
+.gc-cell.opened .gc-item{animation:gc-item-in .85s .08s both}
+.gc-cell.opened .gc-item .icon{animation:gc-bob 2.2s ease-in-out .95s infinite}
+.gc-new{position:absolute;right:-6px;top:2px;font-style:normal;font-size:30px;font-weight:900;color:#fff;background:#e0454f;border:4px solid #4b1218;border-radius:14px;padding:2px 12px 4px;transform:rotate(8deg)}
+
+/* 이름표(한 번 뽑기)·등급 문양+작은 글씨(10회) */
+.gc-plate{position:absolute;left:0;top:var(--py);z-index:3;opacity:0;pointer-events:none;text-align:center}
+.gc-cell.opened .gc-plate{animation:gc-plate-in .55s .55s cubic-bezier(.2,.9,.3,1.2) both}
+.gc .gc-plate{width:0}
+.gc-plate-in{position:absolute;left:-330px;top:0;width:660px;height:146px;display:flex;align-items:center;justify-content:center;padding:0 52px 20px 156px;background:url('../assets/gacha/nameplate-blank-v1.svg') center/100% 100% no-repeat}
+.gc-plate-in b{font-size:48px;color:#4a2b17;letter-spacing:-1px;font-weight:900;white-space:nowrap}
+/* 문양마다 오른쪽 끝이 달라(C 156 ~ SS 172px) 왼쪽 여백을 문양별로 맞춘다 */
+.gc-cell.g-D .gc-plate-in{padding-left:164px}.gc-cell.g-B .gc-plate-in{padding-left:166px}.gc-cell.g-A .gc-plate-in,.gc-cell.g-S .gc-plate-in{padding-left:165px}.gc-cell.g-SS .gc-plate-in{padding-left:172px}.gc.kind-hamster .gc-cell .gc-plate-in{padding-left:166px}
+/* 등급 문양은 이름표 왼쪽 끝에 걸쳐 두고, 이름 글자는 "문양 오른쪽 끝 ~ 오른쪽 못" 사이 빈 칸의 정가운데에 둔다(좌우 여백 같게) */
+.gc .gc-plate-in .gc-badge{position:absolute;left:-26px;top:-30px;width:200px;height:200px}
+.gc .gc-plate small{position:absolute;left:-330px;width:660px;top:166px;font-size:32px;font-weight:900;color:#fff4d4;-webkit-text-stroke:7px #2b1a10;paint-order:stroke fill;text-shadow:0 3px #2b1a10}
+
+.gc-hint{position:absolute;left:0;right:0;top:1330px;z-index:4;text-align:center;font-size:58px;font-weight:900;color:#fff7c2;-webkit-text-stroke:11px #3b2113;paint-order:stroke fill;text-shadow:0 5px #3b2113;pointer-events:none;animation:gc-hint 1.1s ease-in-out infinite}
+.gc-note{position:absolute;left:70px;right:70px;top:1010px;z-index:4;text-align:center;font-size:33px;line-height:1.4;font-weight:900;color:#4a2b17;background:#ffedceee;border:5px solid #482919;border-radius:24px;padding:16px 22px 18px;box-shadow:0 5px 0 #291d16}
+.gc-actions{position:absolute;left:0;right:0;bottom:96px;z-index:6;display:flex;justify-content:center;gap:26px}
+.gc-btn{min-width:380px;height:112px;padding:0 40px 8px;border:6px solid #482919;border-radius:24px;background:linear-gradient(#ffdc62,#ffc22b 55%,#f59e17);box-shadow:0 6px 0 #291d16;color:#fff4d9;font:inherit;font-weight:900;font-size:50px;-webkit-text-stroke:8px #653719;paint-order:stroke fill;text-shadow:0 3px #653719;cursor:pointer}
+.gc-btn.blue{background:linear-gradient(#38d5ff,#009de1);-webkit-text-stroke-color:#0b4a6d;text-shadow:0 3px #0b4a6d}
+.gc-btn:active{translate:0 4px}
+.gc-btn:focus-visible{outline:5px solid #fff1a0;outline-offset:3px}
+
+@keyframes gc-drop{
+ 0%{transform:translateY(-1700px) rotate(-6deg);animation-timing-function:cubic-bezier(.5,0,1,.62)}
+ 34%{transform:translateY(0) rotate(0) scale(1.1,.88);animation-timing-function:ease-out}
+ 40%{transform:translateY(0) scale(.97,1.05);animation-timing-function:ease-out}
+ 52%{transform:translateY(-120px) rotate(2.5deg);animation-timing-function:ease-in}
+ 63%{transform:translateY(0) scale(1.06,.93);animation-timing-function:ease-out}
+ 69%{transform:translateY(0) scale(1)}
+ 78%{transform:translateY(-46px) rotate(-1.8deg);animation-timing-function:ease-in}
+ 86%{transform:translateY(0) scale(1.03,.97);animation-timing-function:ease-out}
+ 92%{transform:translateY(-14px);animation-timing-function:ease-in}
+ 100%{transform:none}}
+@keyframes gc-wobble{0%{transform:none}14%{transform:rotate(-6deg) translateX(-10px)}32%{transform:rotate(5deg) translateX(9px)}50%{transform:rotate(-3.5deg) translateX(-6px)}68%{transform:rotate(2deg) translateX(3px)}84%{transform:rotate(-1deg)}100%{transform:none}}
+/* 가만히 두면 한 번씩 덜컹: 대부분은 멈춰 있다가 끝에서 짧게 좌우로 흔들린다 */
+@keyframes gc-nudge{0%,62%{transform:none}66%{transform:rotate(-4deg) translate(-9px,-4px)}70%{transform:rotate(4deg) translate(9px,0)}74%{transform:rotate(-3.2deg) translate(-6px,-3px)}78%{transform:rotate(2.4deg) translate(4px,0)}83%{transform:rotate(-1.2deg)}88%,100%{transform:none}}
+@keyframes gc-rumble{0%,100%{transform:none}12%{transform:rotate(-3.4deg) translateX(-7px)}28%{transform:rotate(3.4deg) translateX(7px)}44%{transform:rotate(-3deg) translateX(-6px)}60%{transform:rotate(3deg) translateX(6px)}78%{transform:rotate(-1.8deg) scale(1.03)}}
+@keyframes gc-open-pop{0%{transform:scale(1.07,.92)}45%{transform:scale(.97,1.06)}100%{transform:none}}
+@keyframes gc-halo-in{0%{transform:scale(.15);opacity:0}45%{opacity:1}100%{transform:scale(1);opacity:min(1,calc(.55 + var(--pw)*.3))}}
+@keyframes gc-breathe{50%{filter:brightness(1.18)}}
+@keyframes gc-rays-in{0%{transform:scale(.2) rotate(0);opacity:0}100%{transform:scale(1) rotate(30deg);opacity:min(.9,calc(.28 + var(--pw)*.3))}}
+@keyframes gc-spin{to{transform:scale(1) rotate(390deg)}}
+@keyframes gc-beam-in{0%{transform:scaleY(0);opacity:0}40%{opacity:1}100%{transform:scaleY(1);opacity:min(.95,calc(.35 + var(--pw)*.3))}}
+@keyframes gc-item-in{0%{opacity:0;transform:translateY(190px) scale(.15)}50%{opacity:1;transform:translateY(-36px) scale(1.2)}75%{transform:translateY(10px) scale(.95)}100%{opacity:1;transform:none}}
+@keyframes gc-bob{50%{transform:translateY(-12px)}}
+@keyframes gc-plate-in{0%{opacity:0;transform:translateY(50px) scale(.7)}100%{opacity:1;transform:none}}
+@keyframes gc-spark{0%{opacity:0;transform:translate(0,0) scale(.3)}15%{opacity:1}100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(1.1)}}
+@keyframes gc-dust{0%{opacity:.85;transform:translate(0,0) scale(.3)}100%{opacity:0;transform:translate(var(--dx),-40px) scale(calc(var(--s)*1.6))}}
+@keyframes gc-flash{0%{opacity:0}12%{opacity:var(--fp,.6)}100%{opacity:0}}
+@keyframes gc-shake{0%,100%{transform:none}12%{transform:translate(calc(-14px*var(--shake,1)),calc(8px*var(--shake,1)))}28%{transform:translate(calc(12px*var(--shake,1)),calc(-7px*var(--shake,1)))}44%{transform:translate(calc(-8px*var(--shake,1)),calc(5px*var(--shake,1)))}62%{transform:translate(calc(5px*var(--shake,1)),calc(-3px*var(--shake,1)))}}
+@keyframes gc-hint{50%{transform:scale(1.07)}}
+@keyframes gc-item-out{to{opacity:0;transform:translateY(-120px) scale(.6)}}
+@keyframes gc-fade-out{to{opacity:0}}
+@keyframes gc-card-in{0%{opacity:0;transform:translateY(40px) scale(.7)}100%{opacity:1;transform:none}}
+
+/* 모션을 줄인 설정: 상자는 곧바로 자리에 놓이고, 열면 결과가 바로 보인다 */
+.gc.still .gc-cell.dropped .gc-crate-in,.gc.still .gc-cell.nudge .gc-crate-in,.gc.still .gc-cell.wobble .gc-crate-in{transform:none;animation:none}
+.gc.still .gc-cell.opened .gc-crate-in{animation:none}
+.gc.still *{animation:none!important}
+.gc.still .gc-cell.opened .gc-item,.gc.still .gc-cell.opened .gc-plate{opacity:1}
+.gc.still .gc-cell.opened .gc-halo{opacity:.8}.gc.still .gc-cell.opened .gc-beam{opacity:.6}.gc.still .gc-cell.opened .gc-rays{opacity:.4}

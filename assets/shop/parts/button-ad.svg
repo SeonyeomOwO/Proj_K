@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="90" viewBox="0 0 420 90" preserveAspectRatio="none">
+  <defs><linearGradient id="ad-gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffe84d"/><stop offset=".55" stop-color="#ffcf2d"/><stop offset="1" stop-color="#f5ac16"/></linearGradient></defs>
+  <rect x="3" y="5" width="414" height="82" rx="18" fill="#291d16"/>
+  <rect x="5" y="3" width="410" height="77" rx="18" fill="url(#ad-gold)" stroke="#482919" stroke-width="7"/>
+  
+</svg>

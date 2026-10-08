@@ -1,0 +1,56 @@
+{
+  "format": "svg",
+  "iconSource": "assets/manifest.json",
+  "font": "assets/fonts/NotoSansKR-VF.ttf",
+  "resources": [
+    {
+      "id": "node-available",
+      "path": "assets/mastery/node-available.svg",
+      "width": 128,
+      "height": 128,
+      "usage": "노드 상태 프레임 · 아이콘과 텍스트는 분리"
+    },
+    {
+      "id": "node-owned",
+      "path": "assets/mastery/node-owned.svg",
+      "width": 128,
+      "height": 128,
+      "usage": "노드 상태 프레임 · 아이콘과 텍스트는 분리"
+    },
+    {
+      "id": "node-max",
+      "path": "assets/mastery/node-max.svg",
+      "width": 128,
+      "height": 128,
+      "usage": "노드 상태 프레임 · 아이콘과 텍스트는 분리"
+    },
+    {
+      "id": "node-locked",
+      "path": "assets/mastery/node-locked.svg",
+      "width": 128,
+      "height": 128,
+      "usage": "노드 상태 프레임 · 아이콘과 텍스트는 분리"
+    },
+    {
+      "id": "node-unlock",
+      "path": "assets/mastery/node-unlock.svg",
+      "width": 128,
+      "height": 128,
+      "usage": "노드 상태 프레임 · 아이콘과 텍스트는 분리"
+    },
+    {
+      "id": "seal-frame",
+      "path": "assets/mastery/seal-frame.svg",
+      "width": 224,
+      "height": 224,
+      "usage": "모든 노드 완료 후 최종 노드"
+    },
+    {
+      "id": "map-texture",
+      "path": "assets/mastery/map-texture.svg",
+      "width": 96,
+      "height": 96,
+      "usage": "반복 배경 패턴"
+    }
+  ]
+}
