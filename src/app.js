@@ -15,6 +15,8 @@ import { CONFIG as C, SKILLS, TIERS, DRAW_WEIGHTS, HAMSTERS, CREW_PER_TEAM, MAST
 import * as E from './engine.js';
 import { Assets } from './assets.js';
 import { World } from './world.js';
+import { IrisOverlay, PROLOGUE_IRIS } from './intro/iris-transition.js';
+import { playPrologue } from './intro/prologue.js';
 const $ = id => document.getElementById(id), root = $('modal-root'), hud = $('hud'), game = $('game');
 const fmt = n => n >= 1e9 ? (n / 1e9).toFixed(1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : Math.floor(n).toLocaleString('en-US');
 const I = id => '<span class="icon" data-icon="' + id + '"></span>';
@@ -48,6 +50,10 @@ const dungeonPreview=fixture && new URLSearchParams(location.search).get('dungeo
 const gachaPreview=fixture && new URLSearchParams(location.search).get('gacha');
 // ?fixture=approved&tutorial=1: 새 게임 상태로 튜토리얼을 확인하는 주소(저장하지 않는다). 일반 실행은 항상 튜토리얼이 켜져 있다.
 const tutorialPreview = fixture && new URLSearchParams(location.search).has('tutorial');
+const introHandoff = tutorialPreview && new URLSearchParams(location.search).get('intro') === 'handoff';
+const prologuePreview = tutorialPreview && new URLSearchParams(location.search).get('intro') === 'play';
+let prologueActive = introHandoff;
+const entryIris = introHandoff ? new IrisOverlay(game, { shape: PROLOGUE_IRIS, openness: 0 }) : null;
 let tutorial = null;
 let mapOverview=false, absorption=null, mapFx={}, previewBoot=false;
 const mineralPreview = fixture ? new URLSearchParams(location.search).get('mineral') : null;
@@ -465,7 +471,7 @@ function renderModal() {
       break;
     case 'settings':
       title = '설정';
-      body = '<p class="muted">웹 시제품 · 로컬 저장</p>' + [['sfx', '효과음'], ['bgm', '배경음'], ['haptic', '진동']].map(([key, label]) => B('toggle-setting', '<span>' + label + '</span><span class="toggle' + (s.settings[key] ? ' on' : '') + '" role="presentation"></span>', 'cta secondary setting-row', 'data-id="' + key + '" role="switch" aria-checked="' + s.settings[key] + '" aria-label="' + label + '"')).join('') + B('tutorial-replay', '튜토리얼 다시 보기', 'cta secondary') + B('export', '저장 파일 내보내기', 'cta secondary') + B('reset-confirm', '처음부터 새 게임', 'cta secondary') + '<p class="footnote">새 게임은 1층에서 빌드를 선택합니다.</p>';
+      body = '<p class="muted">웹 시제품 · 로컬 저장</p>' + [['sfx', '효과음'], ['bgm', '배경음'], ['haptic', '진동']].map(([key, label]) => B('toggle-setting', '<span>' + label + '</span><span class="toggle' + (s.settings[key] ? ' on' : '') + '" role="presentation"></span>', 'cta secondary setting-row', 'data-id="' + key + '" role="switch" aria-checked="' + s.settings[key] + '" aria-label="' + label + '"')).join('') + B('prologue-replay', '프롤로그 다시 보기', 'cta secondary') + B('tutorial-replay', '튜토리얼 다시 보기', 'cta secondary') + B('export', '저장 파일 내보내기', 'cta secondary') + B('reset-confirm', '처음부터 새 게임', 'cta secondary') + '<p class="footnote">새 게임은 프롤로그 후 1층에서 시작합니다.</p>';
       break;
     case 'reset-confirm':
       title = '새 게임 시작';
@@ -845,12 +851,21 @@ function handle(e) {
         notify(r.kind === 'mine' ? '채굴을 마쳤어요 · 다이아 +' + r.diamond : '광산탑 도전 종료 · ' + (r.cleared ? r.floor + '층까지 돌파! ' : '') + '다이아 +' + r.diamond + ' · 루비 +' + r.ruby);
       break;
     }
-    // 설정의 소리·진동 켜고 끄기(효과음·배경음 소리 자체는 아직 없다: 켜고 끈 값만 저장해 두었다가 소리가 들어오면 쓴다)
+    case 'prologue-replay':
+      if (prologueActive) return;
+      close(true);
+      beginPrologue().catch(error => {
+        prologueActive = false;
+        console.error(error);
+        notify('프롤로그를 재생하지 못했어요. 다시 시도해 주세요.');
+      });
+      return;
     case 'tutorial-replay':
       close(true);
       tutorial?.restart();
       return;
     case 'toggle-setting':
+      // 소리·진동 설정을 저장한다. 실제 효과음 연결 시 이 값을 사용한다.
       if (['sfx', 'bgm', 'haptic'].includes(id))
         s.settings[id] = !s.settings[id];
       break;
@@ -863,7 +878,7 @@ function handle(e) {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       return;
     }
-    // 처음부터 새 게임: 진짜 첫 실행과 똑같이 시작한다(튜토리얼의 환영 말풍선이 먼저 뜨고, 스킬 고르기 창은 그 뒤에 열린다)
+    // 첫 실행과 같이 프롤로그 → 중앙 햄스터 전환 → 튜토리얼 → 스킬 선택 순으로 시작한다.
     case 'reset':
       close(true);
       s = E.createState(Date.now(), false);
@@ -871,6 +886,8 @@ function handle(e) {
       dungeonHold = false;
       world.clear();
       tutorial?.reset();
+      prologueActive = !fixture || tutorialPreview;
+      if (prologueActive) beginPrologue().catch(error => { prologueActive = false; console.error(error); });
       if (!tutorial?.holdsBuild())
         open('build');
       break;
@@ -920,6 +937,7 @@ async function start() {
     catch {
     }
     s = E.parseState(raw) || E.createState(Date.now(), fixture && !tutorialPreview);
+    prologueActive = introHandoff || prologuePreview || (!fixture && !s.prologueSeen);
     if (raw && !E.parseState(raw))
       notify('저장 형식을 확인할 수 없어 새 게임으로 시작합니다.');
     offlineReward = E.claimOffline(s);
@@ -941,7 +959,7 @@ async function start() {
       world.stageFx = {kind: bannerPreview, t: .8};
     }
     buildHud();
-    tutorial = createTutorial({ game, enabled: !fixture || tutorialPreview, getState: () => s, ui: () => ({ modal, tab, busy: dungeonLoading, gacha: gachaOn }), actions: { open: name => open(name), closeAll: () => close(true), refresh: () => mutate(), save, notify } });
+    tutorial = createTutorial({ game, enabled: !fixture || tutorialPreview, getState: () => s, ui: () => ({ modal, tab, busy: dungeonLoading || prologueActive, gacha: gachaOn }), actions: { open: name => open(name), closeAll: () => close(true), refresh: () => mutate(), save, notify } });
     updatePasses();
     $('loading').remove();
     resize();
@@ -994,6 +1012,7 @@ async function start() {
       if (document.hidden)
         save();
       else {
+        if (prologueActive) { lastTime = performance.now(); s.lastSeen = Date.now(); return; }
         updatePasses();
         const reward = E.claimOffline(s);
         if(reward.dungeon){dungeonConfirm=false;if(modal==='dungeon')renderModal();notify(reward.dungeon.kind==='mine'?'자리를 비워 채굴이 종료됐어요. 캔 다이아는 유지됩니다.':'타워 도전이 종료됐어요. 최고 기록은 유지됩니다.');}
@@ -1011,11 +1030,44 @@ async function start() {
     window.addEventListener('resize', resize);
     new ResizeObserver(resize).observe($('viewport'));
     requestAnimationFrame(loop);
+    if (introHandoff) {
+      let revealed = false;
+      const reveal = async () => {
+        if (revealed) return;
+        revealed = true;
+        entryIris.reducedMotion = !s.settings.motion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+        prologueActive = false; s.prologueSeen = true; lastTime = performance.now();
+        tutorial.update(0); world.render(s, 0);
+        await entryIris.animate(1, 750); entryIris.remove();
+        window.parent.postMessage({ type: 'hamster:intro-entered' }, location.origin);
+      };
+      if (window.parent === window) reveal();
+      else {
+        window.addEventListener('message', event => {
+          if (event.origin === location.origin && event.source === window.parent && event.data?.type === 'hamster:intro-reveal') reveal();
+        });
+        window.parent.postMessage({ type: 'hamster:game-ready' }, location.origin);
+      }
+    } else if (prologueActive) await beginPrologue();
   }
   catch (err) {
-    $('loading').textContent = err.message + ' · npm start로 실행해 주세요.';
+    if ($('loading')) $('loading').textContent = err.message + ' · npm start로 실행해 주세요.';
+    else notify('이야기를 준비하지 못했어요. 새로고침해 주세요.');
+    if (introHandoff) window.parent.postMessage({ type: 'hamster:game-error' }, location.origin);
     console.error(err);
   }
+}
+
+async function beginPrologue() {
+  prologueActive = true;
+  world.render(s, 0);
+  await playPrologue(game, {
+    reducedMotion: !s.settings.motion || matchMedia('(prefers-reduced-motion: reduce)').matches,
+    onCovered: () => {
+      s.prologueSeen = true; prologueActive = false; s.lastSeen = Date.now();
+      lastTime = performance.now(); tutorial.update(0); world.render(s, 0); save();
+    }
+  });
 }
 
 function loop(now) {
@@ -1121,7 +1173,7 @@ function frame(now, force = false) {
   const dt = lastTime ? clampDt((now - lastTime) / 1000) : 0;
   lastTime = Math.max(lastTime, now);
   tutorial?.update(dt);
-  if (!paused && !dungeonLoading && !dungeonHold && !tutorial?.pausesGame() && (force || !document.hidden)) {
+  if (!paused && !prologueActive && !dungeonLoading && !dungeonHold && !tutorial?.pausesGame() && (force || !document.hidden)) {
     const ev = E.step(s, dt);
     world.events(ev, s);
     // 진동(설정에서 켜 둔 기기만): 결정이 깨질 때 짧게, 너무 자주는 울리지 않는다

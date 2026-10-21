@@ -1,0 +1,16 @@
+# 공개 저장소에는 게임이 실제로 쓰는 파일만 올린다. 아래는 작업용이라 로컬에만 둔다.
+
+# 인트로 작업 원본(PNG 40MB)·시안·제작 기록. 게임이 받는 WebP는 assets/intro/web/ 에만 있다
+# (다시 만들기: node tools/build-intro-assets.mjs)
+assets/intro/*
+!assets/intro/web/
+
+# 개발 전용
+DEV-NOTES.md
+backups/
+tests/
+intro-preview.html
+src/intro/preview.js
+src/intro/preview.css
+tools/sync-prologue.mjs
+tools/build-intro-assets.mjs

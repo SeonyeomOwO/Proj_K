@@ -7,7 +7,7 @@ export const TUTORIAL = Object.freeze({
 
 export const TUTORIAL_TEXT = Object.freeze({
   // 1부: 첫 3분
-  welcome: '광산에 온 걸 환영해요!\n햄찌들이 알아서 광석을 캐 줘요. 가만히 지켜보기만 해도 돼요.',
+  welcome: '당신이 저희를 도와주실 반장님이신가요?\n저희는 곡괭이질이 처음이라서요!\n반장님이 이끌어 주시면 열심히 캐 볼게요.',
   draft: '스킬을 3개 골라 나만의 빌드를 만들어요.\n마음에 드는 걸 골라 보세요!',
   stones: '광석을 깰 때마다 돌을 얻어요.\n돌은 스킬을 강화하는 데 쓰여요.',
   upgrade: '돌이 모였어요!\n스킬을 눌러 강화해 보세요.',

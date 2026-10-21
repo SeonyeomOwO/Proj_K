@@ -27,6 +27,7 @@ export function createState(now = Date.now(), demo = true) {
   s.dungeonProgress = D.newDungeonProgress();
   // 튜토리얼 진행: step=지금 단계, tips=이미 본 상황별 안내, rb=환생 안내(2부) 진행: 0 시작 전, 1 이상 진행 중인 단계, -1 끝남. 예시 저장은 이미 끝난 것으로 둔다.
   s.tutorial = demo ? finishedTutorial() : { done: false, step: 0, tips: [], rb: 0 };
+  s.prologueSeen = demo;
   if (!demo) {
     s.inventory = s.inventory.slice(0, 1);
     s.nextItemId = 2;
@@ -898,6 +899,8 @@ export function parseState(raw, now = Date.now()) {
         o.kind = kind;
     }
     D.restoreDungeons(s);
+    // Existing saves predate the prologue; only explicit unfinished introductions replay.
+    s.prologueSeen = s.prologueSeen !== false;
     // 튜토리얼 이전 저장에는 기록이 없다: 이미 끝난 것으로 읽어 갑자기 안내가 뜨지 않게 한다.
     {
       const t = s.tutorial;

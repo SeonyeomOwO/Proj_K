@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+  <defs>
+    <filter id="soft-edge" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="4.5"/>
+    </filter>
+  </defs>
+  <!-- Only the cast shadow: no floor texture, character art, or reveal mask. -->
+  <path fill="#36281e" fill-opacity=".32" filter="url(#soft-edge)"
+    d="M360 24
+       C320 24 295 54 295 94
+       C295 123 307 145 327 157
+       L327 168
+       C296 171 264 181 236 193
+       C213 202 196 219 178 242
+       L93 337 L45 420
+       H675 L627 337 L542 242
+       C524 219 507 202 484 193
+       C456 181 424 171 393 168
+       L393 157
+       C413 145 425 123 425 94
+       C425 54 400 24 360 24Z"/>
+</svg>
