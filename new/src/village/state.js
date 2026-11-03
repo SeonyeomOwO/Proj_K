@@ -1,6 +1,6 @@
 import {ECONOMY,startMining,settleMining} from '../mining/game-state.js';
 import {THEMES} from '../mining/mineral-themes.js';
-import {LAYOUTS} from '../mining/map-layouts.js';
+import {MAPS as LAYOUTS} from '../mining/map-layouts.js';
 import {TRAITS} from '../mining/mining-rules.js';
 
 // 마을 공통 피곤함(모바일 스테미너, 2026-11-03 확정): 탐사 1번 = 1칸, max칸이 다 차면 광산에 못 들어가고,
@@ -47,7 +47,8 @@ export function canDepart(s,now=Date.now()){
  const r=s.renewal;
  return r.village.scene==='village'&&fatigueCount(s,now)<FATIGUE.max&&(!r.run||r.run.phase==='ended');
 }
-export function prepareVillage(s,{seeds,themeId,layoutId,traits=[]}){
+// traits를 넘기지 않으면 지금 특성을 그대로 둔다(특성은 마을 광장의 허수아비에 햄찌를 던져 바꾼다).
+export function prepareVillage(s,{seeds,themeId,layoutId,traits=s.renewal.traits}){
  const r=s.renewal;if(r.village.scene!=='village')return false;
  r.village.pack=count(seeds,ECONOMY.ballCapacity);
  if(THEMES.some(x=>x.id===themeId))r.themeId=themeId;
@@ -57,6 +58,14 @@ export function prepareVillage(s,{seeds,themeId,layoutId,traits=[]}){
   seen.add(id);return id;
  });
  r.village.prepared=true;return true;
+}
+// 장비 광장(레퍼런스의 더미 던지기): 햄찌 i를 특성 허수아비에 던지면 그 특성을 낀다.
+// 이미 그 특성을 낀 햄찌를 다시 던지면 뺀다. 다른 햄찌가 끼고 있던 특성이면 그 햄찌는 기본으로 돌아간다(특성은 한 마리씩).
+export function equipVillageTrait(s,i,trait){
+ const r=s.renewal;if(!Object.hasOwn(TRAITS,trait)||trait==='none'||!(i>=0&&i<4)||r.village.scene!=='village')return null;
+ if(r.traits[i]===trait){r.traits[i]='none';return{i,trait:'none',removed:trait,from:null};}
+ const from=r.traits.findIndex((t,k)=>k!==i&&t===trait);if(from>=0)r.traits[from]='none';
+ r.traits[i]=trait;return{i,trait,removed:null,from:from>=0?from:null};
 }
 export function departVillage(s,now=Date.now()){
  if(!canDepart(s,now)||!s.renewal.village.prepared)return false;

@@ -12,7 +12,7 @@ const makeCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.he
 export class GameMine {
  constructor(canvas,rig,{getState,blocked,notify,onEnd,onChange}){
   Object.assign(this,{canvas,rig,getState,blocked,notify,onEnd,onChange});this.context=canvas.getContext('2d');this.cache=makeCanvas(900,1600);this.sound=new MineSound();this.version=-1;
-  this.idle=createState(1);this.idle.paused=true;this.idle.crew.forEach(h=>{h.clip='idle';});
+  this.idle=createState(1,{layoutId:'cave'});this.idle.paused=true;this.idle.crew.forEach(h=>{h.clip='idle';});
  }
  async load(){
   // manifest.web.json: tools/build-renewal-assets.mjs가 만든 게임용 WebP 목록(원본 PNG 목록은 manifest.json)

@@ -1,6 +1,7 @@
 import {COLS,ROWS,TILE,ORIGIN,center,noise,holeMarker,isMineable} from './model.js';
 import {drawActor} from './animation/motion.js';
-import {paintWaveTerrain} from './terrain-wave.js';
+import {paintWaveTerrain,waveContours,traceWave} from './terrain-wave.js';
+import {contours} from './terrain-geometry.js';
 import {drawHoleBase,drawHoleMarker} from './hole-marker.js';
 import {getMineral} from './mineral-themes.js';
 import {drawFragment,fragmentResources} from './loot/ore-fragments.js';
@@ -10,7 +11,18 @@ import {MINING_WEAPON_SCALE} from './mining-contact.js';
 import {drawAim,visualWorker,drawFloorSeeds,drawTired,drawFloorTransition,drawTeamEnergy} from './interaction-renderer.js';
 import {drawTerrainImpacts,breakBurst,hitDebris} from './terrain-impact.js';
 import {ballHint,BALL_HINT} from './ball-hint.js';
-export const paintTerrain=paintWaveTerrain;
+// 동굴 맵 바깥(캘 수 없는 칸)은 어둠으로 덮어, 작은 맵 덩어리가 떠 있는 모양이 보이게 한다(레퍼런스 맵 연출).
+function paintOutside(c,s){
+ if(!s.cells.some(x=>x.outside))return;
+ const loops=waveContours(contours(s.cells.map(x=>({...x,solid:!!x.outside}))));
+ c.save();traceWave(c,loops);c.fillStyle='#2e2320';c.fill('evenodd');
+ c.save();traceWave(c,loops);c.clip('evenodd');
+ for(let i=0;i<70;i++){const x=noise(i,5,81)*450,y=noise(i,7,82)*800;c.fillStyle=i%3?'#3a2c27':'#4a3a31';c.beginPath();c.arc(x,y,1+noise(i,9,83)*2.2,0,Math.PI*2);c.fill();}
+ c.restore();
+ traceWave(c,loops);c.lineJoin='round';c.strokeStyle='#1d1513';c.lineWidth=6;c.stroke();c.strokeStyle='#5b4334';c.lineWidth=2;c.stroke();
+ c.restore();
+}
+export function paintTerrain(c,s,options){paintWaveTerrain(c,s,options);paintOutside(c,s);}
 function line(c,points,color,width=1){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.stroke();}
 export function frame(c,rig,id,x,y,w,h,edge=14){const f=rig.manifest.frames[id],im=rig.images[f.sheet],cap=Math.floor(Math.min(f.w,f.h)*.34),d=Math.min(edge,w/3,h/3),sx=[f.x,f.x+cap,f.x+f.w-cap],sy=[f.y,f.y+cap,f.y+f.h-cap],sw=[cap,f.w-2*cap,cap],sh=[cap,f.h-2*cap,cap],dx=[x,x+d,x+w-d],dy=[y,y+d,y+h-d],dw=[d,w-2*d,d],dh=[d,h-2*d,d];for(let j=0;j<3;j++)for(let i=0;i<3;i++)c.drawImage(im,sx[i],sy[j],sw[i],sh[j],dx[i],dy[j],dw[i],dh[j]);}
 function text(c,value,x,y,size=18){c.font=`900 ${size}px Game, sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#3c261b';c.strokeText(value,x,y+1);c.fillStyle='#ffebbb';c.fillText(value,x,y);}
@@ -78,6 +90,11 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   }
   if(e.type==='deposit'){
    if(age<.3){c.save();c.globalAlpha=(1-age/.3)*.6;for(let i=0;i<4;i++){c.fillStyle='#e4cda0';c.beginPath();c.ellipse(cart.x+(i-1.5)*(7+age*23),cart.y-16-age*18,3+age*4,2+age*3,0,0,Math.PI*2);c.fill();}c.restore();}continue;
+  }
+  if(e.type==='unlock'){
+   // 구멍이 풀리는 순간: 금빛 고리가 퍼진다
+   if(age<.7){const[x,y]=center(e.id),k=age/.7;c.save();c.globalAlpha=1-k;c.strokeStyle='#ffe58a';c.lineWidth=5*(1-k)+1;c.beginPath();c.ellipse(x,y+4,14+k*46,9+k*30,0,0,Math.PI*2);c.stroke();c.restore();}
+   continue;
   }
   if(e.type==='crate'){
    // 상자가 열리는 순간: 열린 상자가 톡 튀어 오르며 금빛이 퍼지고, 씨앗은 드롭으로 따로 튀어 나간다

@@ -620,7 +620,8 @@ function handle(e) {
     if(['mine-menu','mine-prepare','mine-forge','mine-result'].includes(act)){open(act);return;}
     if(act==='mine-return'){const result=Mining.returnMining(s);if(result)backToVillage();return;}
     if(act==='mine-start'){
-      const prepared=Village.prepareVillage(s,{seeds:$('mine-pack').value,themeId:$('mine-theme').value,layoutId:$('mine-layout').value,traits:[...root.querySelectorAll('[data-trait-slot]')].map(el=>el.value)});
+      // 맵은 동굴(층마다 넓어짐) 고정, 특성은 마을 광장의 허수아비로 정하므로 여기서는 씨앗·광산 테마만 고른다
+      const prepared=Village.prepareVillage(s,{seeds:$('mine-pack').value,themeId:$('mine-theme').value});
       if(prepared){paused=false;$('pause').checked=false;close(true);village.focusEntrance();save();updateHud();notify(Village.canDepart(s)?'공을 아래로 당겼다 놓아 광산 구멍에 넣어 주세요.':'햄찌들이 너무 지쳤어요. 피곤함이 1칸 풀리면 출발할 수 있어요.');}return;
     }
     if(act==='village-rest-ad'){

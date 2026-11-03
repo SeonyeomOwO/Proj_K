@@ -26,6 +26,14 @@ export function clearSegment(s,a,b,r=BODY_RADIUS){
  for(let i=0;i<=steps;i++)if(!floorIsClear(s,a.x+(b.x-a.x)*i/steps,a.y+(b.y-a.y)*i/steps,r))return false;
  return true;
 }
+// 2026-11-03: 바로 위·아래 바위도 캔다(동굴 맵은 위로 파고 들어가야 하므로). 승인된 옆 휘두르기 동작은 그대로 두고,
+// 맞는 자리만 바위의 아랫면(벽면 포함)·윗면으로 잡는다. 옆 바위는 기존 miningContact가 먼저다.
+function verticalContact(n,cell,left,top){
+ if(n.x<left+6||n.x>left+TILE-6)return null;
+ const above=n.y>top+TILE+RISE,below=n.y<top;if(!above&&!below)return null;
+ const face=n.x<=left+TILE/2?1:-1;
+ return{face,contact:{x:n.x+face*6,y:above?top+TILE+RISE-4:top+4}};
+}
 export function navigation(s){
  let graph=cache.get(s);if(graph?.revision===s.navRevision)return graph;
  const nodes=[],byPosition=new Map();
@@ -41,7 +49,7 @@ export function navigation(s){
    const x=Math.max(left,Math.min(left+TILE,n.x)),y=Math.max(top,Math.min(top+TILE+RISE,n.y));
    const distance=Math.hypot(x-n.x,y-n.y);
    if(distance>=BODY_RADIUS+4&&distance<=MAX_MINING_DISTANCE&&clearSegment(s,n,{x:x+(n.x-x)*5/distance,y:y+(n.y-y)*5/distance},0)){
-    const match=miningContact(n,cell);if(match)n.jobs.push({work:cell.id,...match});
+    const match=miningContact(n,cell)??verticalContact(n,cell,left,top);if(match)n.jobs.push({work:cell.id,...match});
    }
   }
  }

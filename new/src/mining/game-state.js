@@ -1,6 +1,6 @@
-import {createState,update,finishExpedition} from './model.js';
+import {createState,update,finishExpedition,caveStep} from './model.js';
 import {THEMES} from './mineral-themes.js';
-import {LAYOUTS} from './map-layouts.js';
+import {MAPS as LAYOUTS,CAVE} from './map-layouts.js';
 import {TRAITS} from './mining-rules.js';
 import {CONFIG,TIERS} from '../../data/config.js';
 import {masteryBonus,nodes,buyNode,absorbPage} from '../mastery-state.js';
@@ -29,7 +29,7 @@ export function validRun(m){
  if(!m.cart||!m.ball||!whole(m.ball.seeds,ECONOMY.ballCapacity)||!whole(m.secured)||!whole(m.securedValue)||!whole(m.mined)||!whole(m.lostOre)||!whole(m.lostValue))return false;
  const finiteTree=v=>typeof v==='number'?Number.isFinite(v):v&&typeof v==='object'?Object.values(v).every(finiteTree):true;
  if(!finiteTree(m))return false;
- const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId});
+ const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m)});
  if(m.cells.some((c,i)=>!c||c.id!==i||c.kind!==base.cells[i].kind||typeof c.solid!=='boolean'||c.unbreakable!==base.cells[i].unbreakable||(c.unbreakable&&!c.solid)||!(c.hp>=0&&c.hp<=c.maxHp&&c.maxHp<=5)))return false;
  if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=100)||!(h.fullness>=0&&h.fullness<=3)||h.cargo&&!h.cargoDrop))return false;
  // 주인 없는 드롭(owner=null): 상자에서 튄 황금 해바라기씨는 가까운 햄찌가 나중에 맡는다.
@@ -52,7 +52,8 @@ export function initializeMining(s){
  const r=s.renewal;
  r.prologueSeen=r.prologueSeen===true;
  r.seeds=whole(r.seeds)?r.seeds:0;r.golden=whole(r.golden)?r.golden:0;r.runId=whole(r.runId)?r.runId:0;r.settledId=whole(r.settledId)?Math.min(r.settledId,r.runId):r.runId;
- r.themeId=validId(THEMES,r.themeId)?r.themeId:'base';r.layoutId=validId(LAYOUTS,r.layoutId)?r.layoutId:'classic';r.traits=safeTraits(r.traits);
+ // 2026-11-03: 새 탐사는 모두 레퍼런스식 동굴 맵(예전 맵 6종은 개발 검사용으로만 남김)
+ r.themeId=validId(THEMES,r.themeId)?r.themeId:'base';r.layoutId=CAVE.id;r.traits=safeTraits(r.traits);
  if(!r.pick||!whole(r.pick.tier,5)||!whole(r.pick.level,5))r.pick={tier:0,level:0};
  if(r.run&&!validRun(r.run)){r.run=null;r.result=null;r.recoveredInvalidRun=true;}
  if(r.run){r.run.paused=false;r.run.aim=null;r.run.ball.vx=r.run.ball.vy=0;r.run.ball.contacts=[];}

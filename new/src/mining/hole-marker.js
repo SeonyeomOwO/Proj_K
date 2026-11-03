@@ -17,5 +17,12 @@ export function drawHoleMarker(c,marker,time,position=null){
  c.save();c.font='900 12px Game, sans-serif';c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';c.lineWidth=3.2;c.strokeStyle='#684932';c.fillStyle='#fff3c4';
  const label=found?'다음 층':'아래층';c.strokeText(label,x,labelY);c.fillText(label,x,labelY);
  c.beginPath();c.moveTo(x-7,tipY-6);c.quadraticCurveTo(x,tipY-3,x+7,tipY-6);c.lineTo(x,tipY+2);c.closePath();c.fillStyle=found?'#ffdc75':'#fff0b6';c.strokeStyle='#815736';c.lineWidth=1.8;c.stroke();c.fill();
+ // 잠긴 구멍: 바위를 몇 개 더 부숴야 열리는지(레퍼런스 X 블록의 숫자). 작은 돌 그림 + 숫자 칩.
+ if(marker.remaining>0){
+  const text=String(marker.remaining),w=30+text.length*7,bx=x+22,by=labelY-11;
+  c.fillStyle='#5b3f2c';c.strokeStyle='#fff0c2';c.lineWidth=1.6;c.beginPath();c.roundRect(bx,by,w,22,11);c.fill();c.stroke();
+  c.fillStyle='#c9b08a';c.strokeStyle='#7a5d43';c.lineWidth=1.2;c.beginPath();c.moveTo(bx+6,by+15);c.lineTo(bx+8,by+7);c.lineTo(bx+14,by+5);c.lineTo(bx+19,by+9);c.lineTo(bx+18,by+16);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#fff3c4';c.font='900 13px Game, sans-serif';c.textAlign='left';c.fillText(text,bx+22,by+12);
+ }
  c.restore();
 }
