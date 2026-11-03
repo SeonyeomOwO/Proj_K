@@ -7,9 +7,12 @@ import {miningContact,MAX_MINING_DISTANCE} from './mining-contact.js';
 export const BODY_RADIUS=20;
 export const BODY_GAP=52;
 const STEP=10,cache=new WeakMap();
+// 햄찌끼리는 서로 겹쳐 지나간다(2026-11-03 결정: 길 비켜 주기로 우왕좌왕하지 않게).
+// false로 되돌리면 예전처럼 몸이 부딪히고, 잠든 햄찌만 넘어간다.
+export const CREW_OVERLAP=true;
 // A sleeping body can be stepped over. Keep an already crossing pair passable
 // until they separate, even if food wakes the sleeper halfway through.
-export const canPassWorker=(a,b)=>a===b||a.sleeping||b.sleeping||a.passingSleepers?.includes(b.id)||b.passingSleepers?.includes(a.id);
+export const canPassWorker=(a,b)=>CREW_OVERLAP||a===b||a.sleeping||b.sleeping||a.passingSleepers?.includes(b.id)||b.passingSleepers?.includes(a.id);
 export function syncSleepingPasses(s){
  for(const h of s.crew){
   h.passingSleepers=(h.passingSleepers??[]).filter(id=>s.crew.some(o=>o.id===id&&Math.hypot(h.x-o.x,h.y-o.y)<BODY_GAP+1));
