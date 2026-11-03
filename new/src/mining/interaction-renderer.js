@@ -1,15 +1,29 @@
 import {predictBall} from './ball.js';
+import {predictFling} from './fling.js';
+import {center} from './grid.js';
 import {drawIris} from '../intro/iris-transition.js';
 const clamp=x=>Math.max(0,Math.min(1,x)),smooth=x=>x*x*(3-2*x);
 export function drawAim(c,s){
+ if(s.aim&&s.aim.what&&s.aim.what!=='ball'){drawFlingAim(c,s);return;}
  const points=predictBall(s);if(points.length<2)return;
  c.save();c.lineCap='round';c.strokeStyle='#fff0bd';c.lineWidth=2;c.setLineDash([3,8]);c.beginPath();
  points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.stroke();c.setLineDash([]);
  const end=points.at(-1);c.strokeStyle=end.target?'#ffe179':'#fff0bd88';c.beginPath();c.arc(end.x,end.y,end.target?15:6,0,Math.PI*2);c.stroke();
  c.strokeStyle='#ffdf8b77';c.beginPath();c.moveTo(s.ball.x,s.ball.y);c.lineTo(s.aim.x-s.aim.dx,s.aim.y-s.aim.dy);c.stroke();c.restore();
 }
+// 햄찌·수레 조준선. 햄찌가 맞힐 바위는 네 귀퉁이 괄호로 미리 보여 준다(못 맞히면 착지점에 작은 원).
+function drawFlingAim(c,s){
+ const a=s.aim,plan=predictFling(s);if(!plan||plan.points.length<2)return;const end=plan.points.at(-1);
+ c.save();c.lineCap='round';c.strokeStyle='#fff0bd';c.lineWidth=2;c.setLineDash([3,8]);c.beginPath();
+ plan.points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.stroke();c.setLineDash([]);
+ if(plan.cell!=null){
+  const[x,y]=center(plan.cell),r=25+Math.sin(s.time*10)*1.5;c.strokeStyle='#ffe179';c.lineWidth=3;
+  for(const[dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.beginPath();c.moveTo(x+dx*(r-8),y+dy*r);c.lineTo(x+dx*r,y+dy*r);c.lineTo(x+dx*r,y+dy*(r-8));c.stroke();}
+ }else{c.strokeStyle='#fff0bd88';c.beginPath();c.arc(end.x,end.y,a.what==='cart'?14:8,0,Math.PI*2);c.stroke();}
+ c.strokeStyle='#ffdf8b77';c.beginPath();c.moveTo(a.x,a.y);c.lineTo(a.x-a.dx,a.y-a.dy);c.stroke();c.restore();
+}
 export function visualWorker(s,h){
- const t=s.transition;if(!t||!['suction','close','covered'].includes(t.stage))return h;
+ const t=s.transition;if(!t||!['suction','close','covered'].includes(t.stage))return h.fling?.z?{...h,y:h.y-h.fling.z}:h;
  const from=t.from.find(p=>p.id===h.id),elapsed=t.stage==='suction'?t.time:1.35+t.time;
  const k=clamp((elapsed-h.id*.055)/1.16),ease=smooth(k);
  return {...h,x:from.x+(t.hole.x-from.x)*ease,y:from.y+(t.hole.y-from.y)*ease,clip:'suction',motion:k*2,cargo:null,cargoDrop:null,action:null};
@@ -24,7 +38,7 @@ export function drawFloorSeeds(c,s,res){
 // "곧 잠들겠다 → 먹일 준비"를 미리 읽게 하는 신호다(그리기 전용).
 export const TIRED_AT=30,EXHAUSTED_AT=15;
 export function drawTired(c,s,h){
- if(h.stamina>TIRED_AT||h.sleeping||h.care||s.phase!=='mining')return;
+ if(h.stamina>TIRED_AT||h.sleeping||h.care||h.fling||s.phase!=='mining')return;
  const red=h.stamina<=EXHAUSTED_AT,pant=Math.abs(Math.sin(s.time*(red?7:5)+h.id)),bx=h.x+8,by=h.y-46-pant*2;
  c.save();c.font='900 12px Game, sans-serif';c.textAlign='center';c.textBaseline='middle';
  c.fillStyle=red?'#ffe1d6':'#fff3d5';c.strokeStyle=red?'#b4442f':'#72533e';c.lineWidth=1.6;

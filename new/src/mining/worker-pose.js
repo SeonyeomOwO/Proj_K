@@ -4,6 +4,13 @@ import {ACTION,smoothStep} from './action-timing.js';
 export {ACTOR_SIZE,FOOT_OFFSET} from './mining-contact.js';
 import {ACTOR_SIZE,FOOT_OFFSET} from './mining-contact.js';
 export function workerPose(h){
+ // 날아가는 햄찌: 위로 길게 늘었다가 한 바퀴 돌고, 내려앉으면 납작하게 눌린다(높이는 visualWorker가 올린다)
+ if(h.fling){
+  const f=h.fling,idle=renewalPose('idle',h.breathTime??h.motion,0);
+  if(f.landing>0){const q=Math.max(0,f.landing/.18);return{...idle,sx:idle.sx+.24*q,sy:idle.sy-.22*q};}
+  const k=Math.min(1,f.time/f.duration),up=Math.sin(k*Math.PI);
+  return{...idle,sx:idle.sx-.12*up,sy:idle.sy+.15*up,spin:k*Math.PI*2*f.dir};
+ }
  if(['sleep','startle','eat','suction','drill','bomb','blown','pajamas'].includes(h.clip))return renewalPose(h.clip,h.motion,0);
  // Return the approved mining clip untouched: no target-dependent angle,
  // grip, squash or hit-stop overrides. Tool size is a fixed render setting.

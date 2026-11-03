@@ -13,6 +13,7 @@ import {chooseIrisShape} from '../intro/iris-transition.js';
 import {assignFocusWork} from './focus-command.js';
 import {mineralRule,miningPeriod,equipTrait} from './mining-rules.js';
 import {updateBlastFlight,updateSleepMining,updateBomb} from './trait-actions.js';
+import {updateFlight,updateCart} from './fling.js';
 export {equipTrait};
 export {COLS,ROWS,TILE,ORIGIN,RISE,key,xy,center,hitCell,noise,neighbors,isMineable};
 // 층마다 박혀 있는 상자(검토용 임시 값). 캐서 열면 황금 해바라기씨가 튀어나오고, 햄찌가 수레에 담아야 확보된다.
@@ -38,7 +39,7 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
  cells.filter(c=>isMineable(c)&&!c.hole&&c.y>=2&&c.y<=11&&neighbors(c.id).some(n=>!cells[n].solid))
   .sort((a,b)=>noise(a.x,a.y,seed+77)-noise(b.x,b.y,seed+77)).slice(0,CRATE.perFloor)
   .forEach(c=>{c.crate=true;c.hp=c.maxHp=CRATE.hits;});
- const s={seed,careEnabled,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{x:177,y:653,radius:34},ball:{x:283,y:704,radius:BALL.radius,vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds}};
+ const s={seed,careEnabled,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{x:177,y:653,radius:34,vx:0,vy:0},ball:{x:283,y:704,radius:BALL.radius,vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds}};
  for(const [i,[x,y]]of [[2,7],[5,10],[6,6],[4,12]].entries()){
   const node=navigation(s).nodes.filter(n=>s.crew.every(h=>Math.hypot(h.x-n.x,h.y-n.y)>BODY_GAP+5&&hitCell(h.x,h.y)!==hitCell(n.x,n.y))).sort((a,b)=>Math.hypot(a.x-x*50,a.y-y*50)-Math.hypot(b.x-x*50,b.y-y*50))[0];
   const individuality=noise(i,seed,43);
@@ -54,7 +55,8 @@ export function strike(s,id,worker=null){const c=s.cells[id];if(s.phase!=='minin
   // 상자: 광물 집계에 넣지 않고 황금 해바라기씨를 흩뿌린다. 깬 햄찌가 하나씩 수레로 나른다.
   c.hp=0;c.solid=false;c.crate=false;c.opened=true;s.navRevision++;s.goldenFound+=CRATE.golden;
   s.events.push({type:'crate',id,time:s.time,worker:worker?.id,...contact});
-  const drops=Array.from({length:CRATE.golden},()=>spawnMinedDrop(s,c,worker?.id??null,{golden:true}));
+  // 깬 햄찌가 첫 알을 맡고, 나머지는 주인 없이 떨어져 가까운 햄찌들이 하던 일을 멈추고 먼저 주워 간다.
+  const drops=Array.from({length:CRATE.golden},(_,i)=>spawnMinedDrop(s,c,i===0?worker?.id??null:null,{golden:true}));
   if(worker){worker.pickup=drops[0].id;worker.recover=.4;worker.work=null;worker.goal=null;worker.route=[];}
   if(s.focus===id)s.focus=null;return true;
  }
@@ -68,7 +70,8 @@ export function pathTo(s,start,goal,{throughRock=false}={}){
 }
 export function planMine(s,start,target){const route=pathTo(s,start,target,{throughRock:true});if(!route)return null;const stop=route.findIndex(id=>s.cells[id].solid);if(stop<1)return null;return{work:route[stop],stand:route[stop-1],route:route.slice(1,stop)};}
 function chooseWork(s,h){
- const tree=routesFrom(s,h),focus=s.focus===null?null:center(s.focus);let best=null,score=Infinity;
+ // 날려 보낸 햄찌는 내려앉은 곳(anchor) 주변 바위를 이어서 캔다.
+ const tree=routesFrom(s,h),focus=h.anchor?[h.anchor.x,h.anchor.y]:s.focus===null?null:center(s.focus);let best=null,score=Infinity;
  for(const n of tree.graph.nodes){if(!tree.distance.has(n.id))continue;
   if(!restingSpotClear(s,h,n))continue;
   if(s.crew.some(o=>o!==h&&o.stand&&Math.hypot(o.stand.x-n.x,o.stand.y-n.y)<BODY_GAP+12))continue;
@@ -80,6 +83,26 @@ function chooseWork(s,h){
  if(!best){h.clip='idle';h.wait=.45;return;}
  h.work=best.work;h.contact=best.contact;h.workFace=best.face;h.stand={x:best.node.x,y:best.node.y};h.command=s.commandRevision;
  setDestination(h,best.node,tree);
+}
+// 날려서 맞힌 바위(h.order)를 캘 자리. 못 찾으면 false(→ 주변 아무 바위).
+function standFor(s,h,cell){
+ const tree=routesFrom(s,h,{traffic:false});let best=null,score=Infinity;
+ for(const n of tree.graph.nodes){if(!tree.distance.has(n.id)||!restingSpotClear(s,h,n))continue;
+  if(s.crew.some(o=>o!==h&&o.stand&&Math.hypot(o.stand.x-n.x,o.stand.y-n.y)<BODY_GAP+2))continue;
+  const job=n.jobs.find(j=>j.work===cell);if(!job)continue;
+  const cost=tree.distance.get(n.id);if(cost<score){score=cost;best={node:n,...job};}
+ }
+ if(!best)return false;
+ h.work=best.work;h.contact=best.contact;h.workFace=best.face;h.stand={x:best.node.x,y:best.node.y};h.command=s.commandRevision;h.wait=0;
+ setDestination(h,best.node,tree);return true;
+}
+// 바닥의 황금 해바라기씨가 최우선: 주인이 없거나(상자에서 튄 것) 주인이 잠들었으면 가장 가까운 손 빈 햄찌가 맡는다.
+function claimGolden(s,h){
+ if(s.drops.some(d=>d.id===h.pickup&&d.owner===h.id&&d.golden))return;
+ const idle=id=>{const o=s.crew.find(x=>x.id===id);return !o||o.sleeping||o.blastTime!=null;};
+ const d=s.drops.filter(d=>d.golden&&!d.confined&&(d.owner==null||d.owner===h.id||idle(d.owner))).sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y))[0];
+ if(!d)return;
+ d.owner=h.id;h.pickup=d.id;h.pickupPosition=null;h.goal=null;h.route=[];h.work=null;h.stand=null;
 }
 function goToDrop(s,h,d,traffic=true){
  const tree=routesFrom(s,h,{traffic});let best=null,score=Infinity;
@@ -129,6 +152,9 @@ function finishAction(s,h,dt){
 }
 function updateWorker(s,h,dt){
  if(h.action){finishAction(s,h,dt);return;}
+ // 손가락으로 잡혀 있는 동안은 제자리에서 버둥거리지 않고 기다린다
+ if(s.aim?.what==='hamster'&&s.aim.id===h.id){h.clip='idle';h.motion+=dt;return;}
+ if(updateFlight(s,h,dt,strike))return;
  if(updateBlastFlight(h,dt))return;
  if(updateCare(s,h,dt)){h.bomb=null;updateSleepMining(s,h,dt,strike);return;}
  // Arriving in reach is enough, even while another worker is depositing.
@@ -149,8 +175,11 @@ function updateWorker(s,h,dt){
   }
   goToCart(s,h);return;
  }
- if(h.pickup==null){const owned=s.drops.filter(d=>d.owner===h.id).sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y))[0];if(owned)h.pickup=owned.id;}
- if(h.pickup!=null){
+ // 날려서 맞힌 바위가 남아 있으면 그 바위부터(제 광석 줍기·황금 씨앗보다 먼저). 캘 자리가 없으면 주문을 버린다.
+ if(h.order!=null&&(!isMineable(s.cells[h.order])||h.work!==h.order&&!standFor(s,h,h.order)))h.order=null;
+ if(h.order==null)claimGolden(s,h);
+ if(h.order==null&&h.pickup==null){const owned=s.drops.filter(d=>d.owner===h.id).sort((a,b)=>(b.golden?1:0)-(a.golden?1:0)||Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y))[0];if(owned)h.pickup=owned.id;}
+ if(h.order==null&&h.pickup!=null){
   h.stand=null;const d=s.drops.find(d=>d.id===h.pickup&&d.owner===h.id);
   if(!d){h.pickup=null;h.goal=null;h.route=[];return;}
   if(canPickDrop(d)&&Math.hypot(d.x-h.x,d.y-h.y)<=38&&clearSegment(s,h,d,1)){
@@ -180,6 +209,7 @@ export function update(s,dt){
  if(s.phase==='transition'){updateTransition(s,dt);return;}if(s.phase==='ended')return;
  syncSleepingPasses(s);
  updateBall(s,dt,h=>hitWithBall(s,h),()=>beginDescent(s));if(s.phase!=='mining')return;
+ updateCart(s,dt);
  for(const d of s.seeds)d.age+=dt;updateMinedDrops(s,dt);
  assignFocusWork(s);
  // Rotate update order so the same hamster does not win every open footstep.
@@ -213,8 +243,10 @@ function discardUnsecured(s){
  s.lostOre+=ore.length+carried.length;s.drops=[];
  for(const h of s.crew){
   h.cargo=null;h.cargoDrop=null;h.action=null;h.releaseFrom=null;h.pickup=null;h.bomb=null;h.blastTime=null;
-  h.goal=null;h.route=[];h.work=null;h.stand=null;h.yieldGoal=null;h.yieldFor=null;
+  h.goal=null;h.route=[];h.work=null;h.stand=null;h.yieldGoal=null;h.yieldFor=null;h.order=null;
+  if(h.fling){h.fling=null;h.clip='idle';}
  }
+ s.cart.vx=s.cart.vy=0;
 }
 export function beginDescent(s){
  if(s.phase!=='mining'||!holeContains(s,s.ball))return false;

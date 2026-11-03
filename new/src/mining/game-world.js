@@ -1,8 +1,9 @@
 import {drawScene,paintTerrain} from './renderer.js';
-import {createState,selectCell,hitCell} from './model.js';
+import {createState,hitCell} from './model.js';
 import {loadImpactSprites} from './impact-assets.js';
 import {MineSound} from './sound.js';
-import {beginAim,moveAim,launchBall,cancelAim} from './ball.js';
+import {beginAim,moveAim,launchBall,cancelAim,BALL} from './ball.js';
+import {grabTarget,beginFling,launchFling} from './fling.js';
 import {stepMining} from './game-state.js';
 import {TRAITS} from './mining-rules.js';
 import {useGoldenSeedArt} from './loot/ore-fragments.js';
@@ -31,16 +32,22 @@ export class GameMine {
   c.addEventListener('pointerdown',e=>{
    const m=this.run();if(e.button!==0||!this.active()||this.blocked()||!m||m.phase!=='mining'||this.pointer!=null)return;
    this.gesture();const p=point(e);c.focus({preventScroll:true});
-   if(beginAim(m,p)){this.pointer=e.pointerId;c.setPointerCapture(e.pointerId);e.preventDefault();return;}
-   const h=m.crew.find(h=>Math.hypot(h.x-p.x,h.y-p.y)<27);
-   if(h){this.notify(`햄찌 ${h.id+1} · ${TRAITS[h.trait].name} · 체력 ${Math.ceil(h.stamina)} · 배부름 ${h.fullness}/3`);return;}
-   selectCell(m,hitCell(p.x,p.y));
+   // 공·햄찌·수레 모두 당겼다 놓아 날린다. 공과 햄찌가 겹치면 손가락에 더 가까운 쪽을 잡는다.
+   const grab=grabTarget(m,p),ballDistance=Math.hypot(p.x-m.ball.x,p.y-m.ball.y),hamsterFirst=grab?.what==='hamster'&&(ballDistance>BALL.grabRadius||grab.d<ballDistance);
+   const hold=()=>{this.pointer=e.pointerId;c.setPointerCapture(e.pointerId);e.preventDefault();};
+   if(!hamsterFirst&&beginAim(m,p)){hold();return;}
+   if(beginFling(m,p,grab)){hold();return;}
+   if(grab?.what==='hamster'){this.notify(this.info(grab.h));return;}
+   const cell=m.cells[hitCell(p.x,p.y)];if(cell?.solid&&!cell.unbreakable)this.notify('햄찌를 당겼다 놓아 캐고 싶은 바위로 날려 보세요.');
   });
   c.addEventListener('pointermove',e=>{if(this.pointer===e.pointerId){moveAim(this.run(),point(e));e.preventDefault();}});
-  c.addEventListener('pointerup',e=>{if(this.pointer!==e.pointerId)return;const m=this.run();moveAim(m,point(e));this.pointer=null;launchBall(m);if(c.hasPointerCapture(e.pointerId))c.releasePointerCapture(e.pointerId);this.onChange();});
+  c.addEventListener('pointerup',e=>{if(this.pointer!==e.pointerId)return;const m=this.run();moveAim(m,point(e));this.pointer=null;
+   const a=m.aim;if(a?.what==='ball')launchBall(m);else if(launchFling(m)==='tap'&&a?.what==='hamster'){const h=m.crew.find(o=>o.id===a.id);if(h)this.notify(this.info(h));}
+   if(c.hasPointerCapture(e.pointerId))c.releasePointerCapture(e.pointerId);this.onChange();});
   c.addEventListener('pointercancel',()=>this.cancel());c.addEventListener('lostpointercapture',()=>{if(this.pointer!=null)this.cancel();});
   c.addEventListener('keydown',e=>{if(e.key==='Escape')this.cancel();});
  }
+ info(h){return `햄찌 ${h.id+1} · ${TRAITS[h.trait].name} · 체력 ${Math.ceil(h.stamina)} · 배부름 ${h.fullness}/3`+(h.cargo?' · 수레로 나르는 중':h.sleeping?' · 쿨쿨':'');}
  step(dt){
   for(let remaining=Math.min(.1,Math.max(0,dt));remaining>1e-7;remaining-=1/60){
    const result=stepMining(this.getState(),Math.min(remaining,1/60));if(result){this.cancel();this.onEnd(result);break;}

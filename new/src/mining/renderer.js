@@ -20,15 +20,22 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  drawTerrainImpacts(c,s,{terrainCache,damageTiles:res.damageTiles,reducedMotion});
  if(s.grid){c.save();c.strokeStyle='#fff6d948';c.lineWidth=.75;for(let y=0;y<=ROWS;y++)line(c,[[0,ORIGIN+y*TILE],[450,ORIGIN+y*TILE]],'#fff6d948',.75);for(let x=0;x<=COLS;x++)line(c,[[ORIGIN+x*TILE,0],[ORIGIN+x*TILE,800]],'#fff6d948',.75);c.restore();}
  const marker=holeMarker(s);drawHoleBase(c,marker,s.holeAt);drawFloorSeeds(c,s,res);
- // 바위에 박힌 상자: 처음부터 보여서 노릴 수 있다. 맞을 때마다 흔들리고, 가끔 반짝여 눈길을 끈다.
+ // 상자가 묻힌 바위: 상자 그림 대신 바위 위로 은은한 금빛이 숨 쉬듯 번지고 작은 반짝임이 돌아가며 떠서
+ // '특별한 바위'임을 알린다. 맞으면 잠깐 더 밝아진다. 깨면 상자가 톡 튀어나온다(아래 'crate' 이벤트).
  for(const cell of s.cells){
   if(!cell.crate||!cell.solid)continue;
   const[x,y]=center(cell.id),hit=s.events.findLast(e=>e.type==='hit'&&e.id===cell.id),age=hit?s.time-hit.time:1;
-  const shake=age<.25&&!reducedMotion?Math.sin(age*70)*3.2*(1-age/.25):0,squash=age<.18&&!reducedMotion?1-.08*(1-age/.18):1;
-  c.save();c.translate(x+shake,y+17);c.scale(1/squash,squash);res.draw(c,'crate',0,0,46,40,{anchor:1});c.restore();
-  const glint=(s.time*.55+cell.id*.13)%1;
-  if(glint<.18&&!reducedMotion){const k=glint/.18,a=Math.sin(k*Math.PI);c.save();c.globalAlpha=a;c.fillStyle='#fff6c8';c.translate(x+12,y-8);c.rotate(k*1.2);
-   c.beginPath();for(let i=0;i<8;i++){const r=i%2?2:7;c.lineTo(Math.cos(i*Math.PI/4)*r,Math.sin(i*Math.PI/4)*r);}c.closePath();c.fill();c.restore();}
+  const breath=reducedMotion?.5:.5+.5*Math.sin(s.time*2.4+cell.id),flash=age<.3?1-age/.3:0,alpha=.16+.14*breath+.3*flash;
+  c.save();c.translate(x,y+10);c.globalCompositeOperation='lighter';
+  const g=c.createRadialGradient(0,0,3,0,0,31);g.addColorStop(0,`rgba(255,213,105,${alpha})`);g.addColorStop(.65,`rgba(255,196,80,${alpha*.45})`);g.addColorStop(1,'rgba(255,190,80,0)');
+  c.fillStyle=g;c.beginPath();c.arc(0,0,31,0,Math.PI*2);c.fill();c.globalCompositeOperation='source-over';
+  for(let i=0;i<3&&!reducedMotion;i++){
+   const run=s.time*.8+i/3+cell.id*.17,t=run%1;if(t>.4)continue;
+   const k=t/.4,a=Math.sin(k*Math.PI),n=Math.floor(run),px=(noise(cell.id,i,n)-.5)*36,py=(noise(i,cell.id,n+5)-.5)*30-4,r=2+4.5*a;
+   c.save();c.globalAlpha=a*.95;c.fillStyle='#fff6c8';c.translate(px,py);c.rotate(k*.9);
+   c.beginPath();for(let j=0;j<8;j++){const rr=j%2?r*.28:r;c.lineTo(Math.cos(j*Math.PI/4)*rr,Math.sin(j*Math.PI/4)*rr);}c.closePath();c.fill();c.restore();
+  }
+  c.restore();
  }
  if(s.focus!==null&&isMineable(s.cells[s.focus])){const[x,y]=center(s.focus),age=s.time-(s.focusAt??-1),pulse=Math.max(0,1-age/.65),r=24+pulse*5;c.save();c.globalAlpha=.3+pulse*.65;c.strokeStyle='#fff3bb';c.lineWidth=1.5+pulse;for(const[dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.beginPath();c.moveTo(x+dx*(r-7),y+dy*r);c.lineTo(x+dx*r,y+dy*r);c.lineTo(x+dx*r,y+dy*(r-7));c.stroke();}c.restore();}
  const delivery=s.events.findLast(e=>e.type==='deposit'),deliveryAge=delivery?s.time-delivery.time:1;
@@ -37,7 +44,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  const objects=[...s.drops.map(d=>({depth:d.y,draw(){
   const p=dropVisual(d);c.fillStyle='#36283b2b';c.beginPath();c.ellipse(p.x,p.y+d.width*.3,d.width*(.44-Math.min(.15,d.z*.002)),d.width*.12,0,0,Math.PI*2);c.fill();
   drawFragment(c,d.kind,p.x,p.y-d.z,d.width,{variant:d.variant,angle:d.angle,sx:1+d.impact,sy:1-d.impact});
- }})),{depth:cart.y+25,draw(){res.draw(c,'cart-full',cart.x,cart.y+bounce,70,64);}},{depth:ball.y+18,draw(){
+ }})),{depth:cart.y+25,draw(){c.save();c.translate(cart.x,cart.y+bounce);c.rotate(cart.tilt??0);res.draw(c,'cart-full',0,0,70,64);c.restore();}},{depth:ball.y+18,draw(){
   const t=s.transition,k=t&&['suction','close','covered'].includes(t.stage)?t.stage==='suction'?Math.max(0,1-t.time/.38):0:1;
   if(k<=0)return;const diameter=ball.radius*2+1,r=diameter/2,hint=ballHint(s,reducedMotion);
   if(hint){
@@ -49,7 +56,9 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   // 늘고 줄어드는 기준은 공의 바닥(땅에 닿는 점)이고, 공 무늬의 회전과는 따로 적용한다
   c.save();c.translate(ball.x,ball.y);c.scale(k,k);c.translate(0,r-(hint?.lift??0));c.scale(hint?.sx??1,hint?.sy??1);c.translate(0,-r);c.rotate(ball.angle??0);res.draw(c,'ball-full',0,0,diameter,diameter);c.restore();
  }}];
- for(const original of s.crew){const h=visualWorker(s,original);objects.push({depth:s.transition?1000+h.y:Math.max(h.y,h.stepOverDepth??h.y)+FOOT_OFFSET,draw(){
+ for(const original of s.crew){const h=visualWorker(s,original);objects.push({depth:s.transition?1000+h.y:Math.max(original.y,h.stepOverDepth??original.y)+FOOT_OFFSET,draw(){
+  // 날아가는 햄찌의 바닥 그림자(높이 뜰수록 작고 옅게)
+  if(original.fling?.z){const up=Math.min(1,original.fling.z/70);c.save();c.fillStyle='#3a24182e';c.globalAlpha=1-up*.5;c.beginPath();c.ellipse(original.x,original.y+FOOT_OFFSET-2,16*(1-up*.35),5*(1-up*.35),0,0,Math.PI*2);c.fill();c.restore();}
   const d=h.cargoDrop,p=workerPose(h),f=actionFragment(s,h,p),actorRes=fragmentResources(res,{variant:d?.variant??0,width:d?d.width*.9/ACTOR_SIZE:null,angle:d?d.angle*.15:0,alpha:h.action?0:1,unmirror:h.face});
   const carryOverride=f?.hands?{x:((f.handsX??f.x)-h.x)/ACTOR_SIZE*h.face-(p.shift??0),y:((f.handsY??f.y)-h.y-FOOT_OFFSET)/ACTOR_SIZE-p.bob,angle:f.angle*h.face}:null;
   if(d&&(h.care||h.sleeping))drawFragment(c,d.kind,h.x-18,h.y+19,d.width*.9,{variant:d.variant,angle:d.angle});

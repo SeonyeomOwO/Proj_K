@@ -6,15 +6,16 @@ export function beginAim(s,p){
  if(ballSpeed(s.ball)){s.ball.vx=s.ball.vy=0;s.ball.contacts=[];s.navRevision++;}
  // Drag displacement starts at the finger, so grabbing the generous hit area
  // off-centre does not fire a shot before the player has actually pulled.
- s.aim={x:s.ball.x,y:s.ball.y,pointerX:p.x,pointerY:p.y,dx:0,dy:0};return true;
+ s.aim={what:'ball',x:s.ball.x,y:s.ball.y,pointerX:p.x,pointerY:p.y,dx:0,dy:0};return true;
 }
+// 햄찌·수레 조준(fling.js)도 같은 당김 계산을 쓴다. maxPull만 다르다.
 export function moveAim(s,p){
- if(!s.aim)return;const dx=s.aim.pointerX-p.x,dy=s.aim.pointerY-p.y,k=Math.min(1,BALL.maxPull/(Math.hypot(dx,dy)||1));
+ if(!s.aim)return;const dx=s.aim.pointerX-p.x,dy=s.aim.pointerY-p.y,k=Math.min(1,(s.aim.maxPull??BALL.maxPull)/(Math.hypot(dx,dy)||1));
  s.aim.dx=dx*k;s.aim.dy=dy*k;
 }
 export function cancelAim(s){s.aim=null;}
 export function launchBall(s){
- const a=s.aim;s.aim=null;if(!a||s.phase!=='mining'||Math.hypot(a.dx,a.dy)<6)return false;
+ const a=s.aim;if(a&&a.what&&a.what!=='ball')return false;s.aim=null;if(!a||s.phase!=='mining'||Math.hypot(a.dx,a.dy)<6)return false;
  s.ball.vx=a.dx*BALL.power;s.ball.vy=a.dy*BALL.power;s.ball.contacts=[];s.navRevision++;return true;
 }
 export function holeContains(s,b){
@@ -73,7 +74,7 @@ export function updateBall(s,dt,onHit,onHole){
  if(!ballSpeed(b)){s.navRevision++;b.contacts=[];}
 }
 export function predictBall(s){
- if(!s.aim)return[];const b={...s.ball,vx:s.aim.dx*BALL.power,vy:s.aim.dy*BALL.power},points=[{x:b.x,y:b.y}];
+ if(!s.aim||s.aim.what&&s.aim.what!=='ball')return[];const b={...s.ball,vx:s.aim.dx*BALL.power,vy:s.aim.dy*BALL.power},points=[{x:b.x,y:b.y}];
  if(ballSpeed(b)<BALL.stop)return points;
  for(let i=0;i<180;i++){
   const hits=stepBall(s,b,1/120);

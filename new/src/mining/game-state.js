@@ -32,7 +32,8 @@ export function validRun(m){
  const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId});
  if(m.cells.some((c,i)=>!c||c.id!==i||c.kind!==base.cells[i].kind||typeof c.solid!=='boolean'||c.unbreakable!==base.cells[i].unbreakable||(c.unbreakable&&!c.solid)||!(c.hp>=0&&c.hp<=c.maxHp&&c.maxHp<=5)))return false;
  if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=100)||!(h.fullness>=0&&h.fullness<=3)||h.cargo&&!h.cargoDrop))return false;
- if(m.drops.some(d=>!whole(d.id)||!whole(d.owner,3)||!whole(d.value,5)))return false;
+ // 주인 없는 드롭(owner=null): 상자에서 튄 황금 해바라기씨는 가까운 햄찌가 나중에 맡는다.
+ if(m.drops.some(d=>!whole(d.id)||d.owner!=null&&!whole(d.owner,3)||!whole(d.value,5)))return false;
  if(m.phase==='transition'&&(!m.transition||!['suction','close','covered','open'].includes(m.transition.stage)||m.transition.from?.length!==4))return false;
  if(!whole(m.goldenFound??0)||!whole(m.securedGolden??0)||!whole(m.lostGolden??0))return false;
  // 광물과 황금 해바라기씨는 따로 맞아떨어져야 한다(부서진 광물 = 확보 + 잃음 + 바닥 + 운반 중).
