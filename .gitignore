@@ -8,9 +8,29 @@ assets/intro/*
 # 개발 전용
 DEV-NOTES.md
 backups/
+launcher/runtime/
+launcher/logs/
+*.lnk
 tests/
 intro-preview.html
 src/intro/preview.js
 src/intro/preview.css
 tools/sync-prologue.mjs
 tools/build-intro-assets.mjs
+
+# 기획서·검토 캡처·임시 파일(사내 자료, 수백 MB). 공개 저장소에 올리지 않는다.
+/docs/
+/design/
+/output/
+/tmp/
+/tools/*.py
+
+# 뉴 햄찌 광산 작업 소스(로컬 전용). 공개본은 `node tools/publish-new.mjs`가 만든 new/ 폴더로만 올린다.
+# 맨 앞 '/'는 저장소 맨 위만 뜻한다 — new/ 안의 같은 이름 폴더는 올라간다.
+/src/mining/
+/src/village/
+/src/renewal-session.js
+/assets/mining/
+/assets/village/
+/launcher/
+/start-*.cmd
