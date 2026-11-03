@@ -5,6 +5,7 @@ import {MineSound} from './sound.js';
 import {beginAim,moveAim,launchBall,cancelAim} from './ball.js';
 import {stepMining} from './game-state.js';
 import {TRAITS} from './mining-rules.js';
+import {useGoldenSeedArt} from './loot/ore-fragments.js';
 
 const makeCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 export class GameMine {
@@ -17,6 +18,7 @@ export class GameMine {
   const base=new URL('../../assets/mining/',import.meta.url),manifest=await fetch(new URL('manifest.web.json',base)).then(r=>{if(!r.ok)throw Error('광산 리소스 목록을 열 수 없어요');return r.json();});
   const images={};await Promise.all(Object.entries(manifest.props).map(async([id,p])=>images[id]=await this.rig.image(new URL(p.path,base))));
   this.res={rig:this.rig,draw(c,id,x,y,w,h=w,{anchor=.5,alpha=1}={}){const p=manifest.props[id];if(!p)return;const[sx,sy,sw,sh]=p.bounds,k=Math.min(w/sw,h/sh);c.save();c.globalAlpha*=alpha;c.drawImage(images[id],sx,sy,sw,sh,x-sw*k/2,y-sh*k*anchor,sw*k,sh*k);c.restore();}};
+  useGoldenSeedArt((c,x,y,w)=>this.res.draw(c,'golden-seed',x,y,w,w));
   this.res.damageTiles=await loadImpactSprites(url=>this.rig.image(url),makeCanvas);await document.fonts.load('900 20px Game');this.bind();return this;
  }
  active(){const s=this.getState();return !!s.renewal&&s.renewal.village?.scene!=='village'&&!s.dungeon&&!s.rubyStage;}

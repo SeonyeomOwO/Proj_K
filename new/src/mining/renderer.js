@@ -7,7 +7,7 @@ import {drawFragment,fragmentResources} from './loot/ore-fragments.js';
 import {dropVisual} from './drop-system.js';
 import {workerPose,actionFragment,ACTOR_SIZE,FOOT_OFFSET} from './worker-pose.js';
 import {MINING_WEAPON_SCALE} from './mining-contact.js';
-import {drawAim,visualWorker,drawFloorSeeds,drawTired,drawFloorTransition} from './interaction-renderer.js';
+import {drawAim,visualWorker,drawFloorSeeds,drawTired,drawFloorTransition,drawTeamEnergy} from './interaction-renderer.js';
 import {drawTerrainImpacts,breakBurst,hitDebris} from './terrain-impact.js';
 import {ballHint,BALL_HINT} from './ball-hint.js';
 export const paintTerrain=paintWaveTerrain;
@@ -20,6 +20,16 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  drawTerrainImpacts(c,s,{terrainCache,damageTiles:res.damageTiles,reducedMotion});
  if(s.grid){c.save();c.strokeStyle='#fff6d948';c.lineWidth=.75;for(let y=0;y<=ROWS;y++)line(c,[[0,ORIGIN+y*TILE],[450,ORIGIN+y*TILE]],'#fff6d948',.75);for(let x=0;x<=COLS;x++)line(c,[[ORIGIN+x*TILE,0],[ORIGIN+x*TILE,800]],'#fff6d948',.75);c.restore();}
  const marker=holeMarker(s);drawHoleBase(c,marker,s.holeAt);drawFloorSeeds(c,s,res);
+ // 바위에 박힌 상자: 처음부터 보여서 노릴 수 있다. 맞을 때마다 흔들리고, 가끔 반짝여 눈길을 끈다.
+ for(const cell of s.cells){
+  if(!cell.crate||!cell.solid)continue;
+  const[x,y]=center(cell.id),hit=s.events.findLast(e=>e.type==='hit'&&e.id===cell.id),age=hit?s.time-hit.time:1;
+  const shake=age<.25&&!reducedMotion?Math.sin(age*70)*3.2*(1-age/.25):0,squash=age<.18&&!reducedMotion?1-.08*(1-age/.18):1;
+  c.save();c.translate(x+shake,y+17);c.scale(1/squash,squash);res.draw(c,'crate',0,0,46,40,{anchor:1});c.restore();
+  const glint=(s.time*.55+cell.id*.13)%1;
+  if(glint<.18&&!reducedMotion){const k=glint/.18,a=Math.sin(k*Math.PI);c.save();c.globalAlpha=a;c.fillStyle='#fff6c8';c.translate(x+12,y-8);c.rotate(k*1.2);
+   c.beginPath();for(let i=0;i<8;i++){const r=i%2?2:7;c.lineTo(Math.cos(i*Math.PI/4)*r,Math.sin(i*Math.PI/4)*r);}c.closePath();c.fill();c.restore();}
+ }
  if(s.focus!==null&&isMineable(s.cells[s.focus])){const[x,y]=center(s.focus),age=s.time-(s.focusAt??-1),pulse=Math.max(0,1-age/.65),r=24+pulse*5;c.save();c.globalAlpha=.3+pulse*.65;c.strokeStyle='#fff3bb';c.lineWidth=1.5+pulse;for(const[dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.beginPath();c.moveTo(x+dx*(r-7),y+dy*r);c.lineTo(x+dx*r,y+dy*r);c.lineTo(x+dx*r,y+dy*(r-7));c.stroke();}c.restore();}
  const delivery=s.events.findLast(e=>e.type==='deposit'),deliveryAge=delivery?s.time-delivery.time:1;
  const bounce=deliveryAge<.35?Math.sin(deliveryAge/.35*Math.PI*2)*2*(1-deliveryAge/.35):0;
@@ -60,6 +70,14 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   if(e.type==='deposit'){
    if(age<.3){c.save();c.globalAlpha=(1-age/.3)*.6;for(let i=0;i<4;i++){c.fillStyle='#e4cda0';c.beginPath();c.ellipse(cart.x+(i-1.5)*(7+age*23),cart.y-16-age*18,3+age*4,2+age*3,0,0,Math.PI*2);c.fill();}c.restore();}continue;
   }
+  if(e.type==='crate'){
+   // 상자가 열리는 순간: 열린 상자가 톡 튀어 오르며 금빛이 퍼지고, 씨앗은 드롭으로 따로 튀어 나간다
+   if(age<.8){const[cx,cy]=center(e.id),pop=reducedMotion?1:age<.12?1+age/.12*.18:1.18-Math.min(.18,(age-.12)*.6);
+    c.save();c.globalAlpha=Math.max(0,1-Math.max(0,age-.45)/.35);
+    const glow=c.createRadialGradient(cx,cy,2,cx,cy,46);glow.addColorStop(0,'#fff3b0cc');glow.addColorStop(1,'#ffd56a00');c.fillStyle=glow;c.beginPath();c.arc(cx,cy,46,0,Math.PI*2);c.fill();
+    c.translate(cx,cy+17);c.scale(pop,pop);res.draw(c,'crate-open',0,0,50,47,{anchor:1});c.restore();}
+   continue;
+  }
   const[x,y]=e.x===undefined?center(e.id):[e.x,e.y];
   if(e.type==='blast'){
    if(age<.42){c.save();c.globalAlpha=(1-age/.42)*.55;c.strokeStyle='#ffe1a5';c.lineWidth=4*(1-age/.42);c.beginPath();c.ellipse(x,y,20+age*165,14+age*110,0,0,Math.PI*2);c.stroke();c.restore();}continue;
@@ -82,6 +100,10 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  drawHoleMarker(c,marker,s.time,s.holeAt);drawAim(c,s);
  frame(c,res.rig,'panel_brown',13,16,108,42);text(c,`지하 ${s.depth??1}층`,67,44);
  frame(c,res.rig,'panel_brown',342,16,95,42);res.draw(c,'seed',364,37,14,21);text(c,String(ball.seeds??0),402,44,17);
+ if(s.crew?.length)drawTeamEnergy(c,s,{frame,rig:res.rig,text});
+ // 이번 탐사에서 수레에 담은 황금 해바라기씨(상자를 열었을 때부터 보인다). 담길 때마다 톡 튄다.
+ if(s.goldenFound){const got=s.events.findLast(e=>e.type==='deposit'&&e.golden),k=got&&s.time-got.time<.3&&!reducedMotion?1+.25*Math.sin((s.time-got.time)/.3*Math.PI):1;
+  frame(c,res.rig,'panel_brown',342,62,95,34);c.save();c.translate(364,79);c.scale(k,k);res.draw(c,'golden-seed',0,0,22,22);c.restore();text(c,String(s.securedGolden??0),402,86,15);}
  if(s.phase==='ended'&&showResult){
   c.fillStyle='#21142666';c.fillRect(0,0,450,800);frame(c,res.rig,'panel_brown',55,291,340,180,25);
   text(c,'탐사 마침',225,334,24);text(c,`지하 ${s.depth}층 · 수레 확보 ${s.secured}개`,225,374,18);text(c,`수확 가치 ${s.securedValue??s.secured}`,225,401,17);text(c,'아래에서 다시 탐사할 수 있어요',225,434,13);

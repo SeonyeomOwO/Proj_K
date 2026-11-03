@@ -7,11 +7,11 @@ import {masteryBonus,nodes,buyNode,absorbPage} from '../mastery-state.js';
 import {recordSeason} from '../season-state.js';
 
 // First integrated playtest economy. Centralized so review values can change.
-// goldenPerRun/goldenPerFloor: 마스터리 재화 '황금 해바라기' 획득량. 검토용 임시 값(확정 밸런스 아님).
-//   정산 때 광물을 1개 이상 수레에 담았으면 goldenPerRun, 이번 탐사에서 내려간 층마다 goldenPerFloor를 더 준다.
-export const ECONOMY={initialSeeds:24,ballCapacity:8,seedsPerValue:1,goldenPerRun:1,goldenPerFloor:1};
-export const GOLDEN_NAME='황금 해바라기';
-// 마스터리 결제는 루비 대신 황금 해바라기(뉴 햄찌 광산). mastery-state.js의 buyNode/absorbPage에 넘긴다.
+// 황금 해바라기씨(마스터리·가챠 재화)는 층마다 있는 상자에서만 나온다: 상자를 캐서 연 뒤 수레에 담은 만큼 정산된다
+// (상자 수·개수는 model.js의 CRATE, 검토용 임시 값).
+export const ECONOMY={initialSeeds:24,ballCapacity:8,seedsPerValue:1};
+export const GOLDEN_NAME='황금 해바라기씨';
+// 마스터리 결제는 루비 대신 황금 해바라기씨(뉴 햄찌 광산). mastery-state.js의 buyNode/absorbPage에 넘긴다.
 export const GOLDEN_PURSE={get:s=>s.renewal.golden,spend:(s,n)=>{s.renewal.golden-=n;}};
 export const miningMasteryAvailable=node=>!!node&&['damage','speed','stones'].includes(node.effect);
 export const buyMiningMastery=(s,id)=>miningMasteryAvailable(nodes(s).find(n=>n.id===id))&&buyNode(s,id,GOLDEN_PURSE);
@@ -34,7 +34,12 @@ export function validRun(m){
  if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=100)||!(h.fullness>=0&&h.fullness<=3)||h.cargo&&!h.cargoDrop))return false;
  if(m.drops.some(d=>!whole(d.id)||!whole(d.owner,3)||!whole(d.value,5)))return false;
  if(m.phase==='transition'&&(!m.transition||!['suction','close','covered','open'].includes(m.transition.stage)||m.transition.from?.length!==4))return false;
- return m.mined===m.secured+m.lostOre+m.drops.length+m.crew.filter(h=>h.cargo).length;
+ if(!whole(m.goldenFound??0)||!whole(m.securedGolden??0)||!whole(m.lostGolden??0))return false;
+ // 광물과 황금 해바라기씨는 따로 맞아떨어져야 한다(부서진 광물 = 확보 + 잃음 + 바닥 + 운반 중).
+ const isGold=d=>!!d?.golden,carrying=m.crew.filter(h=>h.cargo);
+ const oreOk=m.mined===m.secured+m.lostOre+m.drops.filter(d=>!isGold(d)).length+carrying.filter(h=>!isGold(h.cargoDrop)).length;
+ const goldOk=(m.goldenFound??0)===(m.securedGolden??0)+(m.lostGolden??0)+m.drops.filter(isGold).length+carrying.filter(h=>isGold(h.cargoDrop)).length;
+ return oreOk&&goldOk;
 }
 export function initializeMining(s){
  const old=s.renewal;
@@ -69,11 +74,10 @@ export function settleMining(s){
  const r=s.renewal,m=r.run;if(!m||m.phase!=='ended'||r.settledId===r.runId)return null;
  const earned=Math.floor(m.securedValue*ECONOMY.seedsPerValue*(m.rewardMultiplier??1)),room=CONFIG.walletCap-r.seeds;
  const returned=Math.min(room,m.ball.seeds),seeds=Math.min(room-returned,earned);
- // 예전 저장의 탐사에는 시작 깊이가 없다: 내려간 층을 0으로 본다.
- const floors=Math.max(0,m.depth-(Number.isSafeInteger(m.startDepth)?m.startDepth:m.depth));
- const golden=Math.min(CONFIG.walletCap-r.golden,(m.secured>0?ECONOMY.goldenPerRun:0)+floors*ECONOMY.goldenPerFloor);
+ // 상자에서 나와 수레에 담은 황금 해바라기씨만 확보된다(바닥·손에 남긴 것은 잃음)
+ const golden=Math.min(CONFIG.walletCap-r.golden,m.securedGolden??0);
  r.seeds+=returned+seeds;r.golden+=golden;r.settledId=r.runId;
- r.result={id:r.runId,depth:m.depth,secured:m.secured,value:m.securedValue,seeds,returned,golden,lost:m.lostOre,reason:m.result?.reason??'return'};
+ r.result={id:r.runId,depth:m.depth,secured:m.secured,value:m.securedValue,seeds,returned,golden,lostGolden:m.lostGolden??0,lost:m.lostOre,reason:m.result?.reason??'return'};
  s.totalMined+=m.secured;recordSeason(s,'mined',m.secured);return r.result;
 }
 export function stepMining(s,dt){

@@ -17,13 +17,16 @@ function landingPoint(s,source,radius){
  // Keep its reward at its source until connected ground becomes available.
  return candidates[0]??{x:origin[0],y:origin[1],confined:true};
 }
-export function spawnMinedDrop(s,cell,owner=null){
+// golden: 상자에서 나온 황금 해바라기씨(광물 집계와 따로, 수레에 담으면 securedGolden)
+export function spawnMinedDrop(s,cell,owner=null,{golden=false}={}){
  const id=s.nextDrop++,n=k=>noise(id+s.seed*37,k,cell.id),width=LOOT_WIDTH[0]+n(8)*(LOOT_WIDTH[1]-LOOT_WIDTH[0]);
  const radius=width*.45,p=landingPoint(s,cell.id,radius),[birthX,birthY]=center(cell.id);
  const a=n(3)*Math.PI*2,speed=75+n(4)*70;
  const d={id,sourceCell:cell.id,cell:hitCell(p.x,p.y),kind:cell.kind,reserved:false,width,radius,variant:Math.floor(n(7)*3),angle:n(6)*Math.PI*2,x:p.x,y:p.y,birthX,birthY,age:0,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,omega:(n(5)-.5)*12,z:0,vz:105+n(9)*65,impact:0,friction:1.8+n(11)*1.1,confined:!!p.confined};
  if(d.confined)d.vx=d.vy=d.vz=d.omega=0;
- d.owner=owner;d.value=cell.value??1;s.drops.push(d);return d;
+ d.owner=owner;d.value=golden?1:cell.value??1;
+ if(golden){d.kind='golden';d.golden=true;d.vz+=60;}   // 상자에서 조금 더 높이 튀어 오른다
+ s.drops.push(d);return d;
 }
 export function updateMinedDrops(s,dt){
  for(const d of s.drops){d.age+=dt;

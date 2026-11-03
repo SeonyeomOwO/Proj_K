@@ -45,6 +45,36 @@
         1112,
         835
       ]
+    },
+    "crate": {
+      "path": "props/crate.png",
+      "source": "assets/gacha/crate-closed-v1.png (가챠 상자 원화 재사용)",
+      "bounds": [
+        105,
+        344,
+        1082,
+        702
+      ]
+    },
+    "crate-open": {
+      "path": "props/crate-open.png",
+      "source": "assets/gacha/crate-open-v1.png (가챠 상자 원화 재사용)",
+      "bounds": [
+        108,
+        123,
+        1079,
+        1020
+      ]
+    },
+    "golden-seed": {
+      "path": "props/golden-seed.png",
+      "source": "assets/intro/motion-v1/gold-seed-single-v8.png (프롤로그 전단지 황금 씨앗)",
+      "bounds": [
+        200,
+        176,
+        895,
+        939
+      ]
     }
   }
 }

@@ -15,6 +15,9 @@ import {mineralRule,miningPeriod,equipTrait} from './mining-rules.js';
 import {updateBlastFlight,updateSleepMining,updateBomb} from './trait-actions.js';
 export {equipTrait};
 export {COLS,ROWS,TILE,ORIGIN,RISE,key,xy,center,hitCell,noise,neighbors,isMineable};
+// 층마다 박혀 있는 상자(검토용 임시 값). 캐서 열면 황금 해바라기씨가 튀어나오고, 햄찌가 수레에 담아야 확보된다.
+// 황금 해바라기씨는 일반 광물 집계(mined/secured)와 따로 센다(securedGolden).
+export const CRATE={perFloor:1,hits:4,golden:3};
 export function createState(seed=1,{themeId='base',layoutId='classic',careEnabled=true,mineralRules='varied',traits=[]}={}){
  const theme=getTheme(themeId),map=getLayout(layoutId),layout=map.rows.map(row=>[...row].map(v=>v==='#'));
  const cells=layout.flatMap((row,y)=>row.map((solid,x)=>{
@@ -31,19 +34,31 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
   return{id:key(x,y),x,y,solid,unbreakable,kind,value:rule.value,texture:rule.texture,geology:copper?'copper':jade?'jade':'stone',hp,maxHp:hp,variant:Math.floor(noise(x,y,seed)*4),rotation:Math.floor(noise(x,y,seed+9)*4),hole:false};
  }));
  const holeCell=cells.find(c=>isMineable(c)&&c.y>=3&&c.y<=6&&neighbors(c.id).some(n=>!cells[n].solid));holeCell.hole=true;
+ // 상자는 구멍·수레 근처(아래쪽 줄)를 피해 길에 맞닿은 안쪽 바위에 시드로 정해 박는다. 처음부터 보여서 노릴 수 있다.
+ cells.filter(c=>isMineable(c)&&!c.hole&&c.y>=2&&c.y<=11&&neighbors(c.id).some(n=>!cells[n].solid))
+  .sort((a,b)=>noise(a.x,a.y,seed+77)-noise(b.x,b.y,seed+77)).slice(0,CRATE.perFloor)
+  .forEach(c=>{c.crate=true;c.hp=c.maxHp=CRATE.hits;});
  const s={seed,careEnabled,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{x:177,y:653,radius:34},ball:{x:283,y:704,radius:BALL.radius,vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds}};
  for(const [i,[x,y]]of [[2,7],[5,10],[6,6],[4,12]].entries()){
   const node=navigation(s).nodes.filter(n=>s.crew.every(h=>Math.hypot(h.x-n.x,h.y-n.y)>BODY_GAP+5&&hitCell(h.x,h.y)!==hitCell(n.x,n.y))).sort((a,b)=>Math.hypot(a.x-x*50,a.y-y*50)-Math.hypot(b.x-x*50,b.y-y*50))[0];
   const individuality=noise(i,seed,43);
   s.crew.push({id:i,stamina:CARE.maxStamina,fullness:0,sleeping:false,care:null,careTime:0,foodTarget:null,x:node.x,y:node.y,skin:i===3?'star':'miner',role:'worker',clip:'idle',face:i%2?-1:1,motion:i*.37,walkTime:0,moveBlend:0,breathTime:i*.47,route:[],goal:null,work:null,command:-1,mineTime:.3+i*.29,period:1.8+individuality*.65,speed:76+individuality*18,gait:.88+individuality*.25,cargo:null,wait:i*.19,stuck:0,delivered:0});
  }
- s.mineralRules=mineralRules;s.minedValue=0;s.securedValue=0;s.lostValue=0;
+ s.mineralRules=mineralRules;s.minedValue=0;s.securedValue=0;s.lostValue=0;s.goldenFound=0;s.securedGolden=0;s.lostGolden=0;
  for(const h of s.crew){h.baseSkin=h.skin;h.trait='none';equipTrait(s,h.id,traits[h.id]??'none');}
  return s;
 }
 export function selectCell(s,id){if(s.phase!=='mining'||id===null||!isMineable(s.cells[id]))return false;s.focusAt=s.time;if(s.focus===id)return true;s.focus=id;s.commandRevision++;return true;}
 export function holeMarker(s){const cell=s.cells.find(c=>c.hole);return cell?{id:cell.id,state:cell.solid?'buried':'revealed'}:null;}
-export function strike(s,id,worker=null){const c=s.cells[id];if(s.phase!=='mining'||!isMineable(c))return false;c.hp=Math.max(0,c.hp-(worker?.power??1));s.revision++;const contact=worker?.contact??{x:center(id)[0],y:center(id)[1]};s.events.push({type:'hit',id,time:s.time,kind:c.kind,worker:worker?.id,...contact});if(c.hp<=0){c.hp=0;c.solid=false;s.mined++;s.minedValue+=c.value??1;s.navRevision++;s.events.push({type:'break',id,time:s.time,kind:c.kind,worker:worker?.id,...contact});const drop=spawnMinedDrop(s,c,worker?.id??null);if(worker){worker.pickup=drop.id;worker.recover=worker.trait==='drill'?.1:.32;worker.work=null;worker.goal=null;worker.route=[];}if(c.hole){s.hole=id;s.holeAt=placeHole(s,id);}if(s.focus===id)s.focus=null;}return true;}
+export function strike(s,id,worker=null){const c=s.cells[id];if(s.phase!=='mining'||!isMineable(c))return false;c.hp=Math.max(0,c.hp-(worker?.power??1));s.revision++;const contact=worker?.contact??{x:center(id)[0],y:center(id)[1]};s.events.push({type:'hit',id,time:s.time,kind:c.kind,worker:worker?.id,...contact});if(c.hp<=0&&c.crate){
+  // 상자: 광물 집계에 넣지 않고 황금 해바라기씨를 흩뿌린다. 깬 햄찌가 하나씩 수레로 나른다.
+  c.hp=0;c.solid=false;c.crate=false;c.opened=true;s.navRevision++;s.goldenFound+=CRATE.golden;
+  s.events.push({type:'crate',id,time:s.time,worker:worker?.id,...contact});
+  const drops=Array.from({length:CRATE.golden},()=>spawnMinedDrop(s,c,worker?.id??null,{golden:true}));
+  if(worker){worker.pickup=drops[0].id;worker.recover=.4;worker.work=null;worker.goal=null;worker.route=[];}
+  if(s.focus===id)s.focus=null;return true;
+ }
+ if(c.hp<=0){c.hp=0;c.solid=false;s.mined++;s.minedValue+=c.value??1;s.navRevision++;s.events.push({type:'break',id,time:s.time,kind:c.kind,worker:worker?.id,...contact});const drop=spawnMinedDrop(s,c,worker?.id??null);if(worker){worker.pickup=drop.id;worker.recover=worker.trait==='drill'?.1:.32;worker.work=null;worker.goal=null;worker.route=[];}if(c.hole){s.hole=id;s.holeAt=placeHole(s,id);}if(s.focus===id)s.focus=null;}return true;}
 export function pathTo(s,start,goal,{throughRock=false}={}){
  if(start===null||goal===null||!s.cells[start]||!s.cells[goal]||s.cells[start].unbreakable||s.cells[goal].unbreakable)return null;
  const dist=new Map([[start,0]]),prev=new Map(),open=new Set([start]);
@@ -105,7 +120,9 @@ function finishAction(s,h,dt){
  }else if(h.action==='deposit'){
   if(before<ACTION.release&&h.actionTime>=ACTION.release)h.releaseFrom=carrySocket(h);
   if(before<ACTION.land&&h.actionTime>=ACTION.land){
-   const value=h.cargoDrop.value??1;s.secured++;s.securedValue+=value;h.delivered++;s.events.push({type:'deposit',time:s.time,kind:h.cargo,value,dropId:h.cargoDrop.id,worker:h.id,owner:h.cargoDrop.owner,x:s.cart.x,y:s.cart.y});h.cargo=null;
+   const value=h.cargoDrop.value??1,golden=!!h.cargoDrop.golden;
+   if(golden)s.securedGolden++;else{s.secured++;s.securedValue+=value;}
+   h.delivered++;s.events.push({type:'deposit',time:s.time,kind:h.cargo,value,golden,dropId:h.cargoDrop.id,worker:h.id,owner:h.cargoDrop.owner,x:s.cart.x,y:s.cart.y});h.cargo=null;
   }
   if(h.actionTime>=ACTION.deposit){h.cargoDrop=null;h.releaseFrom=null;h.pickup=null;h.action=null;h.clip='idle';}
  }
@@ -189,8 +206,11 @@ function placeHole(s,id){
  return best??{x,y:y+25};
 }
 function discardUnsecured(s){
- s.lostValue+=s.drops.reduce((v,d)=>v+(d.value??1),0)+s.crew.reduce((v,h)=>v+(h.cargo?(h.cargoDrop.value??1):0),0);
- s.lostOre+=s.drops.length+s.crew.filter(h=>h.cargo).length;s.drops=[];
+ // 바닥·손에 남은 것은 잃는다. 황금 해바라기씨는 광물과 따로 센다.
+ const ore=s.drops.filter(d=>!d.golden),carried=s.crew.filter(h=>h.cargo&&!h.cargoDrop?.golden);
+ s.lostGolden=(s.lostGolden??0)+s.drops.filter(d=>d.golden).length+s.crew.filter(h=>h.cargo&&h.cargoDrop?.golden).length;
+ s.lostValue+=ore.reduce((v,d)=>v+(d.value??1),0)+carried.reduce((v,h)=>v+(h.cargoDrop.value??1),0);
+ s.lostOre+=ore.length+carried.length;s.drops=[];
  for(const h of s.crew){
   h.cargo=null;h.cargoDrop=null;h.action=null;h.releaseFrom=null;h.pickup=null;h.bomb=null;h.blastTime=null;
   h.goal=null;h.route=[];h.work=null;h.stand=null;h.yieldGoal=null;h.yieldFor=null;
@@ -214,7 +234,7 @@ function nextFloor(s){
   for(const field of ['stamina','fullness','skin','baseSkin','trait','period','power','speed','gait','delivered','mineTime','sleepHitsRemaining'])h[field]=prior[field];
   h.sleeping=h.stamina<=0;h.sleepTime=0;h.clip=h.sleeping?'sleep':'idle';
  }
- const carried={time:s.time,depth:s.depth+1,rewardMultiplier:s.rewardMultiplier,mined:s.mined,minedValue:s.minedValue,secured:s.secured,securedValue:s.securedValue,lostOre:s.lostOre,lostValue:s.lostValue,nextDrop:s.nextDrop,nextSeed:s.nextSeed,grid:s.grid,paused:s.paused,transition:s.transition,phase:'transition',revision,navRevision};
+ const carried={time:s.time,depth:s.depth+1,rewardMultiplier:s.rewardMultiplier,mined:s.mined,minedValue:s.minedValue,secured:s.secured,securedValue:s.securedValue,lostOre:s.lostOre,lostValue:s.lostValue,goldenFound:s.goldenFound??0,securedGolden:s.securedGolden??0,lostGolden:s.lostGolden??0,nextDrop:s.nextDrop,nextSeed:s.nextSeed,grid:s.grid,paused:s.paused,transition:s.transition,phase:'transition',revision,navRevision};
  Object.assign(s,fresh,carried);s.ball.seeds=seeds;
 }
 function updateTransition(s,dt){
@@ -227,6 +247,6 @@ function updateTransition(s,dt){
 export function finishExpedition(s,reason='return'){
  if(s.phase!=='mining')return false;
  s.aim=null;discardUnsecured(s);s.ball.vx=s.ball.vy=0;s.phase='ended';
- s.result={reason,depth:s.depth,secured:s.secured,securedValue:s.securedValue,lostOre:s.lostOre,lostValue:s.lostValue,seeds:s.ball.seeds};return true;
+ s.result={reason,depth:s.depth,secured:s.secured,securedValue:s.securedValue,lostOre:s.lostOre,lostValue:s.lostValue,seeds:s.ball.seeds,securedGolden:s.securedGolden??0};return true;
 }
 export {boundaryEdges,contours} from './terrain-geometry.js';

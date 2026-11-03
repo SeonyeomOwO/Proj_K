@@ -8,6 +8,9 @@ export const FRAGMENTS=[
  ...Object.entries(MINERALS).map(([id,m])=>({id,name:m.name,face:m.colors[0],light:m.colors[1],dark:m.colors[2],ink:({quartz:'#5f707c',amethyst:'#59416c',pyrite:'#75532b',malachite:'#355943',azurite:'#354d70',fluorite:'#595572',rhodochrosite:'#7d485d',hematite:'#493e42',aquamarine:'#426773'})[id],form:m.shape}))
 ];
 export const fragmentInfo=id=>FRAGMENTS.find(f=>f.id===id)??FRAGMENTS[0];
+// 상자에서 나온 황금 해바라기씨는 광물 조각 대신 씨앗 그림으로 그린다(바닥·손·던지기 모두 같은 경로).
+let goldenSeed=null;
+export function useGoldenSeedArt(draw){goldenSeed=draw;}
 const SHAPES=[
  [[-29,-2],[-17,-22],[-2,-17],[12,-23],[28,3],[21,20],[-3,25],[-25,14]],
  [[-28,3],[-20,-15],[-3,-24],[10,-15],[24,-12],[29,8],[12,23],[-17,22]],
@@ -24,6 +27,11 @@ function pointsFor(info,variant){
  return p;
 }
 export function drawFragment(c,id,x,y,width=22,{variant=0,angle=0,shadow=false,alpha=1,sx=1,sy=1}={}){
+ if(id==='golden'&&goldenSeed){
+  c.save();c.globalAlpha*=alpha;c.translate(x,y);
+  if(shadow){c.fillStyle='#35283a30';c.beginPath();c.ellipse(0,width*.34,width*.47,width*.13,0,0,Math.PI*2);c.fill();}
+  c.rotate(angle*.35);c.scale(sx,sy);goldenSeed(c,0,0,width*1.05);c.restore();return;
+ }
  const m=fragmentInfo(id),p=pointsFor(m,variant);
  c.save();c.globalAlpha*=alpha;c.translate(x,y);
  if(shadow){c.fillStyle='#35283a30';c.beginPath();c.ellipse(0,width*.34,width*.47,width*.13,0,0,Math.PI*2);c.fill();}
