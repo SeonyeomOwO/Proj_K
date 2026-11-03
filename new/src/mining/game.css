@@ -18,6 +18,13 @@
 .seed-bank .golden-icon{width:56px;height:56px;margin-left:10px}
 .golden-icon{object-fit:contain;vertical-align:middle}
 .mine-result .amount .golden-icon{width:64px;height:64px;margin-left:16px}
+.fatigue-box{text-align:center}
+.fatigue-box h2{margin:0 0 10px;font-size:40px}
+.fatigue-pips{display:inline-flex;gap:12px;margin:6px 0 14px}
+.fatigue-pips i{width:34px;height:34px;border-radius:50%;background:#efe1c4;border:3px solid #c9ab80}
+.fatigue-pips i.on{background:#e48a54;border-color:#8a4a2a}
+.fatigue-pips.small{gap:6px;margin:0 0 0 10px;vertical-align:middle}
+.fatigue-pips.small i{width:20px;height:20px;border-width:2px}
 .mine-menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .mine-menu-grid .cta{margin:0;min-height:120px;font-size:31px}
 .mine-form,.mine-traits{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0}

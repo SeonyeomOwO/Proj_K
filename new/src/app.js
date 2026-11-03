@@ -22,7 +22,7 @@ import * as Mining from './mining/game-state.js';
 import {miningModal,syncTraitOptions,GOLDEN_UI} from './mining/game-ui.js';
 import {VillageWorld} from './village/world.js';
 import * as Village from './village/state.js';
-import {villageModal,restText} from './village/ui.js';
+import {villageModal,fatigueBlock} from './village/ui.js';
 import {gameSaveKey,readGameSave,needsPrologue,completePrologue} from './renewal-session.js';
 const $ = id => document.getElementById(id), root = $('modal-root'), hud = $('hud'), game = $('game');
 const fmt = n => n >= 1e9 ? (n / 1e9).toFixed(1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : Math.floor(n).toLocaleString('en-US');
@@ -143,7 +143,8 @@ function updateHud() {
     hud.querySelector('[data-act="mine-return"]').hidden=!active;
     hud.querySelector('[data-act="mine-prepare"]').hidden=!!active;
     hud.querySelector('[data-act="mine-return"]').disabled=sceneChanging||mine.run()?.phase==='transition';
-    const rest=root.querySelector('[data-village-rest]');if(rest)rest.textContent=restText(s);
+    // 쉼터 창이 열려 있으면 피곤함 칸·남은 시간을 바뀔 때만 다시 그린다
+    const rest=root.querySelector('[data-village-fatigue]');if(rest){const html=fatigueBlock(s);if(rest.dataset.html!==html){rest.innerHTML=html;rest.dataset.html=html;}}
   }
   for (const k of ['stone', 'ruby', 'diamond'])
     $(k).textContent = fmt(s.wallet[k]);
@@ -620,7 +621,11 @@ function handle(e) {
     if(act==='mine-return'){const result=Mining.returnMining(s);if(result)backToVillage();return;}
     if(act==='mine-start'){
       const prepared=Village.prepareVillage(s,{seeds:$('mine-pack').value,themeId:$('mine-theme').value,layoutId:$('mine-layout').value,traits:[...root.querySelectorAll('[data-trait-slot]')].map(el=>el.value)});
-      if(prepared){paused=false;$('pause').checked=false;close(true);village.focusEntrance();save();updateHud();notify(Village.restSeconds(s)?'준비됐어요. 햄찌들이 쉬고 나면 출발해요.':'공을 아래로 당겼다 놓아 광산 구멍에 넣어 주세요.');}return;
+      if(prepared){paused=false;$('pause').checked=false;close(true);village.focusEntrance();save();updateHud();notify(Village.canDepart(s)?'공을 아래로 당겼다 놓아 광산 구멍에 넣어 주세요.':'햄찌들이 너무 지쳤어요. 피곤함이 1칸 풀리면 출발할 수 있어요.');}return;
+    }
+    if(act==='village-rest-ad'){
+      // 광고 보고 회복 자리: 실제 광고 없이 테스트로 1칸만 푼다
+      if(Village.recoverFatigue(s,1)){save();notify('테스트: 광고 없이 피곤함 1칸을 풀었어요.');renderModal();updateHud();}return;
     }
     if(act==='mine-enhance'){
       const result=Mining.enhanceSharedPick(s);if(result){save();notify(result.outcome==='success'?'강화 성공! '+result.label:result.outcome==='destroy'?'곡괭이가 파괴되어 D+0으로 돌아갔어요.':'강화에 실패했어요. 곡괭이 단계는 유지됩니다.');renderModal();}return;

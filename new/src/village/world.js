@@ -1,6 +1,6 @@
 import {drawActor} from '../mining/animation/motion.js';
 import {frame} from '../mining/renderer.js';
-import {restSeconds,canDepart} from './state.js';
+import {fatigueState,canDepart} from './state.js';
 import {HOME,WORLD,worldPoint,pan,zoomAt,pinch} from './camera.js';
 import {HOLE,PLAZA,freshBall,aimVelocity,stepBall,trajectory} from './plaza.js';
 
@@ -143,8 +143,10 @@ export class VillageWorld{
   this.cancel();this.suction={time:0,crew:this.crewPositions().map(p=>({...p}))};
  }
  crewPositions(){
-  if(restSeconds(this.getState()))return REST_SPOTS.map(([x,y],i)=>({x,y,clip:'rest',t:this.time+i*.71,face:i%2?1:-1}));
+  // 피곤할수록 쉼터 앞에서 늘어져 쉬는 햄찌가 늘고(5칸 중 칸 수에 비례), 다 차면 모두 퍼질러 잔다.
+  const f=fatigueState(this.getState()),resting=f.count>=f.max?SKINS.length:Math.floor(f.count/f.max*SKINS.length);
   return SKINS.map((_,i)=>{
+   if(i<resting){const[x,y]=REST_SPOTS[i];return{x,y,clip:f.count>=f.max?'sleep':'rest',t:this.time+i*.71,face:i%2?1:-1};}
    const t=(this.time+i*2.7)%12,moving=t<5,progress=moving?t/5:1;
    const x=620+(i%2)*160,y=865+Math.floor(i/2)*115+(i%2?1:-1)*Math.sin(progress*Math.PI)*32;
    return{x,y,clip:moving?'walk':'idle',t:this.time+i*.71,face:i%2?-1:1};
@@ -158,7 +160,7 @@ export class VillageWorld{
   }else if(!this.blocked()&&!this.aim&&(this.ball.vx||this.ball.vy)&&stepBall(this.ball,dt))this.enter();
  }
  render(){
-  const c=this.context,cam=this.camera,s=this.getState(),rest=restSeconds(s);
+  const c=this.context,cam=this.camera,s=this.getState(),f=fatigueState(s),tired=f.count>=f.max;
   c.save();c.setTransform(c.canvas.width/450,0,0,c.canvas.height/800,0,0);c.clearRect(0,0,450,800);
   c.save();c.translate(225,400);c.scale(cam.zoom,cam.zoom);c.translate(-cam.x,-cam.y);c.drawImage(this.background,0,0);
   this.sprite(c,'mine-hole',HOLE.x,HOLE.y+45,132,91);
@@ -176,7 +178,7 @@ export class VillageWorld{
   objects.push({depth:this.ball.y+20,draw:()=>{
    if(this.suction)return;c.save();c.translate(this.ball.x,this.ball.y);c.rotate(this.ball.angle);
    this.res.draw(c,'ball-full',0,0,42,42);c.restore();
-   if(!this.aim&&Math.hypot(this.ball.vx,this.ball.vy)<9)label(c,s.renewal.village.prepared?'당겨서 구멍으로!':'눌러서 탐사 준비',this.ball.x,this.ball.y+37,13);
+   if(!this.aim&&Math.hypot(this.ball.vx,this.ball.vy)<9)label(c,tired?'햄찌들이 지쳤어요':s.renewal.village.prepared?'당겨서 구멍으로!':'눌러서 탐사 준비',this.ball.x,this.ball.y+37,13);
   }});
   objects.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
   if(this.aim){
@@ -187,9 +189,13 @@ export class VillageWorld{
   c.restore();
   frame(c,this.res.rig,'panel_brown',13,16,125,42);label(c,'햄찌 마을',75,44,18);
   frame(c,this.res.rig,'panel_brown',326,16,111,42);this.res.draw(c,'seed',347,37,14,21);label(c,String(s.renewal.seeds),392,44,17);
-  frame(c,this.res.rig,'panel_brown',137,67,176,32);label(c,rest?`함께 쉬는 중 · ${rest}초`:'모두 준비됐어요',225,89,13);
+  // 피곤함 칸(모바일 스테미너): 찬 칸은 주황, 빈 칸은 연하게. 칸이 남아 있으면 다음 1칸 회복까지 남은 시간.
+  frame(c,this.res.rig,'panel_brown',100,67,250,34);
+  for(let i=0;i<f.max;i++){c.beginPath();c.arc(124+i*19,84,6.5,0,Math.PI*2);c.fillStyle=i<f.count?'#e48a54':'#efe1c4';c.fill();c.lineWidth=1.6;c.strokeStyle=i<f.count?'#8a4a2a':'#b99a70';c.stroke();}
+  const left=Math.ceil(f.nextMs/1000),time=`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`;
+  label(c,f.count?`${tired?'지쳤어요':'피곤함'} · ${time}`:'쌩쌩해요!',275,90,13);
   c.restore();
-  const desc=`햄찌 마을 · ${rest?'휴식 '+rest+'초':'탐사 가능'} · 씨앗 ${s.renewal.seeds}개 · 확대 ${Math.round(cam.zoom*100)}%`;
+  const desc=`햄찌 마을 · 피곤함 ${f.count}/${f.max}${f.count?' · 1칸 회복까지 '+time:''} · 씨앗 ${s.renewal.seeds}개 · 확대 ${Math.round(cam.zoom*100)}%`;
   if(this.canvas.getAttribute('aria-label')!==desc)this.canvas.setAttribute('aria-label',desc);
  }
 }
