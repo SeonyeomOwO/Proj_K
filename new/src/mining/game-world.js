@@ -13,7 +13,8 @@ export class GameMine {
   this.idle=createState(1);this.idle.paused=true;this.idle.crew.forEach(h=>{h.clip='idle';});
  }
  async load(){
-  const base=new URL('../../assets/mining/',import.meta.url),manifest=await fetch(new URL('manifest.json',base)).then(r=>{if(!r.ok)throw Error('광산 리소스 목록을 열 수 없어요');return r.json();});
+  // manifest.web.json: tools/build-renewal-assets.mjs가 만든 게임용 WebP 목록(원본 PNG 목록은 manifest.json)
+  const base=new URL('../../assets/mining/',import.meta.url),manifest=await fetch(new URL('manifest.web.json',base)).then(r=>{if(!r.ok)throw Error('광산 리소스 목록을 열 수 없어요');return r.json();});
   const images={};await Promise.all(Object.entries(manifest.props).map(async([id,p])=>images[id]=await this.rig.image(new URL(p.path,base))));
   this.res={rig:this.rig,draw(c,id,x,y,w,h=w,{anchor=.5,alpha=1}={}){const p=manifest.props[id];if(!p)return;const[sx,sy,sw,sh]=p.bounds,k=Math.min(w/sw,h/sh);c.save();c.globalAlpha*=alpha;c.drawImage(images[id],sx,sy,sw,sh,x-sw*k/2,y-sh*k*anchor,sw*k,sh*k);c.restore();}};
   this.res.damageTiles=await loadImpactSprites(url=>this.rig.image(url),makeCanvas);await document.fonts.load('900 20px Game');this.bind();return this;

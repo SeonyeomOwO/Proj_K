@@ -3,13 +3,19 @@ import {THEMES} from './mineral-themes.js';
 import {LAYOUTS} from './map-layouts.js';
 import {TRAITS} from './mining-rules.js';
 import {CONFIG,TIERS} from '../../data/config.js';
-import {masteryBonus,nodes,buyNode} from '../mastery-state.js';
+import {masteryBonus,nodes,buyNode,absorbPage} from '../mastery-state.js';
 import {recordSeason} from '../season-state.js';
 
 // First integrated playtest economy. Centralized so review values can change.
-export const ECONOMY={initialSeeds:24,ballCapacity:8,seedsPerValue:1};
+// goldenPerRun/goldenPerFloor: 마스터리 재화 '황금 해바라기' 획득량. 검토용 임시 값(확정 밸런스 아님).
+//   정산 때 광물을 1개 이상 수레에 담았으면 goldenPerRun, 이번 탐사에서 내려간 층마다 goldenPerFloor를 더 준다.
+export const ECONOMY={initialSeeds:24,ballCapacity:8,seedsPerValue:1,goldenPerRun:1,goldenPerFloor:1};
+export const GOLDEN_NAME='황금 해바라기';
+// 마스터리 결제는 루비 대신 황금 해바라기(뉴 햄찌 광산). mastery-state.js의 buyNode/absorbPage에 넘긴다.
+export const GOLDEN_PURSE={get:s=>s.renewal.golden,spend:(s,n)=>{s.renewal.golden-=n;}};
 export const miningMasteryAvailable=node=>!!node&&['damage','speed','stones'].includes(node.effect);
-export const buyMiningMastery=(s,id)=>miningMasteryAvailable(nodes(s).find(n=>n.id===id))&&buyNode(s,id);
+export const buyMiningMastery=(s,id)=>miningMasteryAvailable(nodes(s).find(n=>n.id===id))&&buyNode(s,id,GOLDEN_PURSE);
+export const absorbMiningMastery=s=>absorbPage(s,GOLDEN_PURSE);
 export function miningGrowth(s){
  const {tier,level}=s.renewal.pick;
  return {power:(1+(tier*6+level)*.08)*(1+masteryBonus(s,'damage')),speed:1+masteryBonus(s,'speed'),reward:1+masteryBonus(s,'stones')};
@@ -39,7 +45,7 @@ export function initializeMining(s){
  }
  const r=s.renewal;
  r.prologueSeen=r.prologueSeen===true;
- r.seeds=whole(r.seeds)?r.seeds:0;r.runId=whole(r.runId)?r.runId:0;r.settledId=whole(r.settledId)?Math.min(r.settledId,r.runId):r.runId;
+ r.seeds=whole(r.seeds)?r.seeds:0;r.golden=whole(r.golden)?r.golden:0;r.runId=whole(r.runId)?r.runId:0;r.settledId=whole(r.settledId)?Math.min(r.settledId,r.runId):r.runId;
  r.themeId=validId(THEMES,r.themeId)?r.themeId:'base';r.layoutId=validId(LAYOUTS,r.layoutId)?r.layoutId:'classic';r.traits=safeTraits(r.traits);
  if(!r.pick||!whole(r.pick.tier,5)||!whole(r.pick.level,5))r.pick={tier:0,level:0};
  if(r.run&&!validRun(r.run)){r.run=null;r.result=null;r.recoveredInvalidRun=true;}
@@ -53,7 +59,7 @@ export function startMining(s,{seeds=ECONOMY.ballCapacity,themeId,layoutId,trait
  if(traits)r.traits=safeTraits(traits);
  const packed=Math.min(r.seeds,ECONOMY.ballCapacity,Math.max(0,Math.floor(Number(seeds)||0)));
  r.seeds-=packed;r.runId++;r.result=null;
- const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits});m.depth=s.floor;m.ball.seeds=packed;
+ const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
  // Snapshot growth on departure; changing menus never resets an active swing.
  const {power,speed,reward}=miningGrowth(s);
  for(const h of m.crew){h.power=power;h.period/=speed;}
@@ -63,8 +69,11 @@ export function settleMining(s){
  const r=s.renewal,m=r.run;if(!m||m.phase!=='ended'||r.settledId===r.runId)return null;
  const earned=Math.floor(m.securedValue*ECONOMY.seedsPerValue*(m.rewardMultiplier??1)),room=CONFIG.walletCap-r.seeds;
  const returned=Math.min(room,m.ball.seeds),seeds=Math.min(room-returned,earned);
- r.seeds+=returned+seeds;r.settledId=r.runId;
- r.result={id:r.runId,depth:m.depth,secured:m.secured,value:m.securedValue,seeds,returned,lost:m.lostOre,reason:m.result?.reason??'return'};
+ // 예전 저장의 탐사에는 시작 깊이가 없다: 내려간 층을 0으로 본다.
+ const floors=Math.max(0,m.depth-(Number.isSafeInteger(m.startDepth)?m.startDepth:m.depth));
+ const golden=Math.min(CONFIG.walletCap-r.golden,(m.secured>0?ECONOMY.goldenPerRun:0)+floors*ECONOMY.goldenPerFloor);
+ r.seeds+=returned+seeds;r.golden+=golden;r.settledId=r.runId;
+ r.result={id:r.runId,depth:m.depth,secured:m.secured,value:m.securedValue,seeds,returned,golden,lost:m.lostOre,reason:m.result?.reason??'return'};
  s.totalMined+=m.secured;recordSeason(s,'mined',m.secured);return r.result;
 }
 export function stepMining(s,dt){

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "props": {
+    "ball-full": {
+      "path": "web/props/ball-full.webp",
+      "bounds": [
+        53,
+        50,
+        406,
+        400
+      ]
+    },
+    "cart-full": {
+      "path": "web/props/cart-full.webp",
+      "bounds": [
+        37,
+        55,
+        447,
+        371
+      ]
+    },
+    "seed": {
+      "path": "web/props/seed.webp",
+      "bounds": [
+        73,
+        44,
+        365,
+        425
+      ]
+    },
+    "drill": {
+      "path": "web/props/drill.webp",
+      "bounds": [
+        13,
+        131,
+        488,
+        248
+      ]
+    },
+    "dynamite": {
+      "path": "web/props/dynamite.webp",
+      "bounds": [
+        31,
+        84,
+        455,
+        342
+      ]
+    }
+  },
+  "generatedFrom": "manifest.json"
+}

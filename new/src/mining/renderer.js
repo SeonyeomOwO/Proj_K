@@ -9,6 +9,7 @@ import {workerPose,actionFragment,ACTOR_SIZE,FOOT_OFFSET} from './worker-pose.js
 import {MINING_WEAPON_SCALE} from './mining-contact.js';
 import {drawAim,visualWorker,drawFloorSeeds,drawTired,drawFloorTransition} from './interaction-renderer.js';
 import {drawTerrainImpacts,breakBurst,hitDebris} from './terrain-impact.js';
+import {ballHint,BALL_HINT} from './ball-hint.js';
 export const paintTerrain=paintWaveTerrain;
 function line(c,points,color,width=1){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.stroke();}
 export function frame(c,rig,id,x,y,w,h,edge=14){const f=rig.manifest.frames[id],im=rig.images[f.sheet],cap=Math.floor(Math.min(f.w,f.h)*.34),d=Math.min(edge,w/3,h/3),sx=[f.x,f.x+cap,f.x+f.w-cap],sy=[f.y,f.y+cap,f.y+f.h-cap],sw=[cap,f.w-2*cap,cap],sh=[cap,f.h-2*cap,cap],dx=[x,x+d,x+w-d],dy=[y,y+d,y+h-d],dw=[d,w-2*d,d],dh=[d,h-2*d,d];for(let j=0;j<3;j++)for(let i=0;i<3;i++)c.drawImage(im,sx[i],sy[j],sw[i],sh[j],dx[i],dy[j],dw[i],dh[j]);}
@@ -28,7 +29,15 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   drawFragment(c,d.kind,p.x,p.y-d.z,d.width,{variant:d.variant,angle:d.angle,sx:1+d.impact,sy:1-d.impact});
  }})),{depth:cart.y+25,draw(){res.draw(c,'cart-full',cart.x,cart.y+bounce,70,64);}},{depth:ball.y+18,draw(){
   const t=s.transition,k=t&&['suction','close','covered'].includes(t.stage)?t.stage==='suction'?Math.max(0,1-t.time/.38):0:1;
-  if(k<=0)return;const diameter=ball.radius*2+1;c.save();c.translate(ball.x,ball.y);c.rotate(ball.angle??0);c.scale(k,k);res.draw(c,'ball-full',0,0,diameter,diameter);c.restore();
+  if(k<=0)return;const diameter=ball.radius*2+1,r=diameter/2,hint=ballHint(s,reducedMotion);
+  if(hint){
+   // 먹일 햄찌가 있을 때만: 바닥 그림자(공이 뜰수록 작고 옅게)와 은은한 빛으로 "굴려 보세요"를 알린다
+   const up=hint.lift/BALL_HINT.height;c.save();c.fillStyle='#3a24182e';c.globalAlpha=1-up*.45;
+   c.beginPath();c.ellipse(ball.x,ball.y+r-2,r*(.9-up*.25),r*.28*(1-up*.3),0,0,Math.PI*2);c.fill();c.restore();
+   if(hint.glow>0){c.save();c.globalAlpha=hint.glow;c.strokeStyle='#fff3bb';c.lineWidth=3;c.beginPath();c.arc(ball.x,ball.y-hint.lift,r+5,0,Math.PI*2);c.stroke();c.restore();}
+  }
+  // 늘고 줄어드는 기준은 공의 바닥(땅에 닿는 점)이고, 공 무늬의 회전과는 따로 적용한다
+  c.save();c.translate(ball.x,ball.y);c.scale(k,k);c.translate(0,r-(hint?.lift??0));c.scale(hint?.sx??1,hint?.sy??1);c.translate(0,-r);c.rotate(ball.angle??0);res.draw(c,'ball-full',0,0,diameter,diameter);c.restore();
  }}];
  for(const original of s.crew){const h=visualWorker(s,original);objects.push({depth:s.transition?1000+h.y:Math.max(h.y,h.stepOverDepth??h.y)+FOOT_OFFSET,draw(){
   const d=h.cargoDrop,p=workerPose(h),f=actionFragment(s,h,p),actorRes=fragmentResources(res,{variant:d?.variant??0,width:d?d.width*.9/ACTOR_SIZE:null,angle:d?d.angle*.15:0,alpha:h.action?0:1,unmirror:h.face});

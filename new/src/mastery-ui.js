@@ -36,26 +36,30 @@ const view={zoom:.9,x:0,y:0,ready:false,center:null};
 export const resetView=()=>{view.ready=false;view.center=null;};
 export const centerOn=id=>{view.center=id;};
 
-function action(s,n,page){
- const lv=M.nodeLevel(s,n.id),maxed=lv>=n.max,can=M.reachable(s,n),cost=masteryPrice(n,lv,page),afford=s.wallet.ruby>=cost;
+// 결제 재화 표시. 기본은 루비, 뉴 햄찌 광산은 options.currency로 황금 해바라기를 넘긴다.
+const RUBY={amount:s=>s.wallet.ruby,icon:I('ruby'),name:'루비'};
+// 받침 없는 이름 뒤에는 '가', 받침 있으면 '이'
+const subject=name=>{const c=name.charCodeAt(name.length-1)-0xac00;return name+(c>=0&&c<11172&&c%28?'이':'가');};
+function action(s,n,page,cur){
+ const lv=M.nodeLevel(s,n.id),maxed=lv>=n.max,can=M.reachable(s,n),cost=masteryPrice(n,lv,page),afford=cur.amount(s)>=cost;
  const state=maxed?'maxed':!can?'locked':!afford?'short':'ok';
- const label=maxed?'최고 레벨':!can?'잠김':!afford?'루비 부족':n.unlock?'해금':lv?'레벨 업':'배우기';
- return {lv,maxed,can,cost,afford,state,label,need:cost-s.wallet.ruby};
+ const label=maxed?'최고 레벨':!can?'잠김':!afford?cur.name+' 부족':n.unlock?'해금':lv?'레벨 업':'배우기';
+ return {lv,maxed,can,cost,afford,state,label,need:cost-cur.amount(s)};
 }
-function hint(a){return a.state==='ok'?`한 번 더 누르면 ${a.label}`:a.state==='short'?`루비가 ${num(a.need)}개 모자라요`:a.state==='maxed'?'이미 최고 레벨이에요':'앞 노드를 최고 레벨까지 올려야 해요';}
+function hint(a,cur){return a.state==='ok'?`한 번 더 누르면 ${a.label}`:a.state==='short'?`${subject(cur.name)} ${num(a.need)}개 모자라요`:a.state==='maxed'?'이미 최고 레벨이에요':'앞 노드를 최고 레벨까지 올려야 해요';}
 function bubble(s,selected,all,ready,page,fx,options){
- const pop=fx.pop?' pop':'';
+ const pop=fx.pop?' pop':'',cur=options.currency??RUBY;
  if(selected==='seal'&&ready){
-  const cost=sealPrice(page),ok=s.wallet.ruby>=cost,state=ok?'ok':'short';
-  return {bubble:`<div class="map-bubble seal-bubble${pop}" data-x="920" data-y="920" data-r="91"><div class="bubble-head">${I('rebirth')}<div><small>모든 노드 완료 · 최종 노드</small><strong>기억의 심장</strong></div></div><p>이 페이지의 능력치를 계정에 새겨요.<small>현재 채굴과 빌드는 그대로 이어져요</small></p><div class="bubble-cost ${ok?'':'short'}">${I('ruby')}<b>${num(cost)}</b></div><div class="bubble-hint">${ok?'한 번 더 누르면 영구 흡수':`루비가 ${num(cost-s.wallet.ruby)}개 모자라요`}</div><i class="tail"></i></div>`,
-   cta:`<div class="node-cta ${state}" data-x="920" data-y="920">${ok?'흡수':'루비 부족'}</div>`};
+  const cost=sealPrice(page),ok=cur.amount(s)>=cost,state=ok?'ok':'short';
+  return {bubble:`<div class="map-bubble seal-bubble${pop}" data-x="920" data-y="920" data-r="91"><div class="bubble-head">${I('rebirth')}<div><small>모든 노드 완료 · 최종 노드</small><strong>기억의 심장</strong></div></div><p>이 페이지의 능력치를 계정에 새겨요.<small>현재 채굴과 빌드는 그대로 이어져요</small></p><div class="bubble-cost ${ok?'':'short'}">${cur.icon}<b>${num(cost)}</b></div><div class="bubble-hint">${ok?'한 번 더 누르면 영구 흡수':`${subject(cur.name)} ${num(cost-cur.amount(s))}개 모자라요`}</div><i class="tail"></i></div>`,
+   cta:`<div class="node-cta ${state}" data-x="920" data-y="920">${ok?'흡수':cur.name+' 부족'}</div>`};
  }
  const n=all.find(x=>x.id===selected);if(!n)return {bubble:'',cta:''};
- const a=action(s,n,page),branch=BRANCHES.find(x=>x.id===n.branch)?.name||'성장의 시작',r=n.id==='root'&&ready?91:58;
+ const a=action(s,n,page,cur),branch=BRANCHES.find(x=>x.id===n.branch)?.name||'성장의 시작',r=n.id==='root'&&ready?91:58;
  const available=!options.canLearn||options.canLearn(n),label=options.effectLabels?.[n.effect];
  const desc=n.unlock?`${UNLOCK_SKILLS.find(k=>k.id===n.unlock).desc}<small>다음 환생부터 선택지에 등장 · 영구 유지</small>`:`${label?label+' +'+pct(n.value)+EFFECTS[n.effect].unit:effectText(n.effect,n.value)} / 레벨<small>현재 +${pct(n.value*a.lv)}${EFFECTS[n.effect].unit}${a.maxed?'':` → +${pct(n.value*(a.lv+1))}${EFFECTS[n.effect].unit}`}</small>`;
  if(!available)return {bubble:`<div class="map-bubble${pop}" data-x="${n.x}" data-y="${n.y}" data-r="${r}"><div class="bubble-head">${I(n.icon)}<div><small>${a.lv}/${n.max}</small><strong>${n.name}</strong></div></div><p>새 광산에서 사용할 수 있도록 준비 중이에요.<small>기존에 배운 레벨은 보관돼요. 지금은 구매할 수 없어요.</small></p><i class="tail"></i></div>`,cta:`<div class="node-cta locked" data-x="${n.x}" data-y="${n.y}">준비 중</div>`};
- return {bubble:`<div class="map-bubble${pop}" data-x="${n.x}" data-y="${n.y}" data-r="${r}"><div class="bubble-head">${I(n.icon)}<div><small>${n.unlock?'새 빌드 해금':branch} · ${a.lv}/${n.max}</small><strong>${n.name}</strong></div></div><p>${desc}</p>${a.maxed?'':`<div class="bubble-cost ${a.afford?'':'short'}">${I('ruby')}<b>${num(a.cost)}</b></div>`}<div class="bubble-hint ${a.state}">${hint(a)}</div><i class="tail"></i></div>`,
+ return {bubble:`<div class="map-bubble${pop}" data-x="${n.x}" data-y="${n.y}" data-r="${r}"><div class="bubble-head">${I(n.icon)}<div><small>${n.unlock?'새 빌드 해금':branch} · ${a.lv}/${n.max}</small><strong>${n.name}</strong></div></div><p>${desc}</p>${a.maxed?'':`<div class="bubble-cost ${a.afford?'':'short'}">${cur.icon}<b>${num(a.cost)}</b></div>`}<div class="bubble-hint ${a.state}">${hint(a,cur)}</div><i class="tail"></i></div>`,
   cta:`<div class="node-cta ${a.state}" data-x="${n.x}" data-y="${n.y}">${a.label}</div>`};
 }
 
@@ -68,7 +72,7 @@ export function masteryBody(s,selected=null,overview=false,fx={},options={}){
  const seal=ready?B('node',I('rebirth')+'<span class="seal-label">기억의 심장</span>',`data-id="seal" data-x="920" data-y="920" aria-label="기억의 심장" aria-pressed="${selected==='seal'}" style="left:920px;top:920px"`,`map-node final-node ${selected==='seal'?'selected':''} ${fx.bump==='seal'?'bump':''}`):'';
  const info=selected?bubble(s,selected,ns,ready,b.page,fx,options):{bubble:'',cta:''};
  const transform=view.ready?`transform:translate(${view.x}px,${view.y}px) scale(${view.zoom})`:'';
- return `<div class="mastery-top"><div><small>${b.page===1?'발견의 지도':'성장의 지도'}</small><strong>PAGE ${String(b.page).padStart(2,'0')}</strong></div><div class="map-progress"><span>완성한 노드 <b>${p.maxed} / ${p.total}</b></span><div><i style="width:${p.levels/p.maxLevels*100}%"></i></div><span>${Math.floor(p.levels/p.maxLevels*100)}%</span></div><div class="mastery-wallet">${I('ruby')}${num(s.wallet.ruby)}</div></div>`
+ return `<div class="mastery-top"><div><small>${b.page===1?'발견의 지도':'성장의 지도'}</small><strong>PAGE ${String(b.page).padStart(2,'0')}</strong></div><div class="map-progress"><span>완성한 노드 <b>${p.maxed} / ${p.total}</b></span><div><i style="width:${p.levels/p.maxLevels*100}%"></i></div><span>${Math.floor(p.levels/p.maxLevels*100)}%</span></div><div class="mastery-wallet">${(options.currency??RUBY).icon}${num((options.currency??RUBY).amount(s))}</div></div>`
   +`<div class="constellation" id="mastery-scroll" tabindex="0" role="application" aria-label="마스터리 지도. 끌어서 이동하고, 두 손가락이나 마우스 휠로 확대·축소해요. 아이콘을 누르면 설명이 나오고 한 번 더 누르면 배워요."><div class="map-space" style="${transform}"><svg class="map-paths" viewBox="0 0 1840 1840" aria-hidden="true">${lines}</svg>${nodes}${seal}</div><div class="map-overlay">${info.bubble}${info.cta}</div></div>`
   +`<div class="mastery-bottom">${B('profile','누적 능력치 보기','','map-tool')}<span>${ready?'가운데 최종 노드를 눌러 흡수해요':'아이콘을 누르면 설명 · 한 번 더 누르면 배우기<br>끌어서 이동 · 두 손가락/휠로 확대'}</span></div>`;
 }

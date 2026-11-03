@@ -15,8 +15,10 @@ export const reachable=(s,n)=>parentsMaxed(s,n)||nodeLevel(s,n.id)>0;
 const connected=(s,n)=>n.parents.every(id=>nodeLevel(s,id)>=1);
 export const visibleNodes=s=>nodes(s).filter(n=>reachable(s,n));
 export function progress(s){const ns=nodes(s),maxed=ns.filter(n=>nodeLevel(s,n.id)===n.max).length;return {maxed,total:ns.length,levels:ns.reduce((a,n)=>a+nodeLevel(s,n.id),0),maxLevels:ns.reduce((a,n)=>a+n.max,0),ready:maxed===ns.length};}
-export function buyNode(s,id){const n=nodes(s).find(n=>n.id===id),lv=nodeLevel(s,id);if(!n||!reachable(s,n)||lv>=n.max)return false;const cost=masteryPrice(n,lv,book(s).page);if(s.wallet.ruby<cost)return false;s.wallet.ruby-=cost;book(s).levels[id]=lv+1;if(n.unlock&&!book(s).unlocked.includes(n.unlock))book(s).unlocked.push(n.unlock);return true;}
-export function absorbPage(s){if(!progress(s).ready)return false;const b=book(s),cost=sealPrice(b.page);if(s.wallet.ruby<cost)return false;const gains=pageBonuses(s),page=b.page;s.wallet.ruby-=cost;for(const [k,v] of Object.entries(gains))b.permanent[k]=(b.permanent[k]||0)+v;b.levels={};b.page++;return {page,gains,cost};}
+// 마스터리 결제 재화. 기본은 루비, 뉴 햄찌 광산은 황금 해바라기 지갑을 넘긴다(mining/game-state.js의 GOLDEN_PURSE).
+export const RUBY_PURSE={get:s=>s.wallet.ruby,spend:(s,n)=>{s.wallet.ruby-=n;}};
+export function buyNode(s,id,purse=RUBY_PURSE){const n=nodes(s).find(n=>n.id===id),lv=nodeLevel(s,id);if(!n||!reachable(s,n)||lv>=n.max)return false;const cost=masteryPrice(n,lv,book(s).page);if(purse.get(s)<cost)return false;purse.spend(s,cost);book(s).levels[id]=lv+1;if(n.unlock&&!book(s).unlocked.includes(n.unlock))book(s).unlocked.push(n.unlock);return true;}
+export function absorbPage(s,purse=RUBY_PURSE){if(!progress(s).ready)return false;const b=book(s),cost=sealPrice(b.page);if(purse.get(s)<cost)return false;const gains=pageBonuses(s),page=b.page;purse.spend(s,cost);for(const [k,v] of Object.entries(gains))b.permanent[k]=(b.permanent[k]||0)+v;b.levels={};b.page++;return {page,gains,cost};}
 export function activateUnlocks(s){book(s).active=[...book(s).unlocked];}
 export function validateBook(s){
  const b=book(s);if(!b||b.version!==2||!Number.isSafeInteger(b.page)||b.page<1||!b.levels||!b.permanent||typeof b.levels!=='object'||typeof b.permanent!=='object'||Array.isArray(b.levels)||Array.isArray(b.permanent))return false;

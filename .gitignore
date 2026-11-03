@@ -34,3 +34,4 @@ tools/build-intro-assets.mjs
 /assets/village/
 /launcher/
 /start-*.cmd
+/tools/build-renewal-assets.mjs

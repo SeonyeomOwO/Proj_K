@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "forge",
+      "name": "대장간",
+      "group": "village",
+      "path": "web/forge.webp",
+      "width": 896,
+      "height": 896,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        51,
+        72,
+        788,
+        739
+      ],
+      "bytes": 90978,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "village"
+    },
+    {
+      "id": "mastery",
+      "name": "마스터리 연구소",
+      "group": "village",
+      "path": "web/mastery.webp",
+      "width": 896,
+      "height": 896,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        59,
+        52,
+        821,
+        738
+      ],
+      "bytes": 97668,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "village"
+    },
+    {
+      "id": "care-house",
+      "name": "햄찌 관리소",
+      "group": "village",
+      "path": "web/care-house.webp",
+      "width": 896,
+      "height": 896,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        45,
+        82,
+        815,
+        689
+      ],
+      "bytes": 85452,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "village"
+    },
+    {
+      "id": "home",
+      "name": "기본 햄찌 집",
+      "group": "village",
+      "path": "web/home.webp",
+      "width": 896,
+      "height": 896,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        53,
+        77,
+        798,
+        714
+      ],
+      "bytes": 76220,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "village"
+    },
+    {
+      "id": "bench",
+      "name": "휴식 벤치",
+      "group": "village",
+      "path": "web/bench.webp",
+      "width": 896,
+      "height": 896,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        53,
+        135,
+        792,
+        649
+      ],
+      "bytes": 66644,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "village"
+    },
+    {
+      "id": "tree",
+      "name": "그늘 나무",
+      "group": "village",
+      "path": "web/tree.webp",
+      "width": 896,
+      "height": 896,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        77,
+        57,
+        749,
+        788
+      ],
+      "bytes": 41938,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "village"
+    },
+    {
+      "id": "flowerbed",
+      "name": "꽃밭",
+      "group": "village",
+      "path": "web/flowerbed.webp",
+      "width": 896,
+      "height": 896,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        75,
+        130,
+        748,
+        621
+      ],
+      "bytes": 72900,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "village"
+    },
+    {
+      "id": "playground",
+      "name": "햄찌 놀이터",
+      "group": "village",
+      "path": "web/playground.webp",
+      "width": 896,
+      "height": 896,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        31,
+        145,
+        844,
+        621
+      ],
+      "bytes": 83702,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "village"
+    },
+    {
+      "id": "mine-hole",
+      "name": "광산 구멍",
+      "group": "mine",
+      "path": "web/mine-hole.webp",
+      "width": 896,
+      "height": 448,
+      "alpha": [
+        0,
+        255
+      ],
+      "bounds": [
+        142,
+        51,
+        613,
+        340
+      ],
+      "bytes": 26908,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "pivotSpace": "normalized trimmed bounds; suggested anchor",
+      "origin": "imagegen-new",
+      "usage": "mine"
+    }
+  ],
+  "source": "Existing renewal resource kit, 2026-10-26",
+  "generatedFrom": "manifest.json"
+}

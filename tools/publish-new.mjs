@@ -22,7 +22,8 @@ const ASSET_SKIP = [
   /^assets\/shop\/exported\/resources\.json$/, /^assets\/shop\/parts\.json$/
 ];
 // PNG는 원본(작업용)이라 기본은 제외하고, 뉴 버전이 실행 중에 직접 읽는 그림만 넣는다.
-const PNG_KEEP = [/^assets\/mining\//, /^assets\/village\//];
+// 마을·광산 그림은 WebP(manifest.web.json)를 쓰고, 지형 균열 무늬(작은 PNG 9장)만 PNG 그대로 읽는다.
+const PNG_KEEP = [/^assets\/mining\/impacts\//];
 
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => {
   const p = path.join(dir, e.name);
@@ -61,11 +62,15 @@ for (const f of files.filter(f => /\.(js|css|html)$/.test(f))) {
 const intro = await import(pathToFileURL(path.join(out, 'src/intro/storyboard.js')).href);
 for (const [key, file] of Object.entries(intro.ASSETS))
   if (!fs.existsSync(path.resolve(out, 'src/intro', file))) missing.push(`인트로 ${key} → ${file}`);
-for (const manifest of ['assets/mining/manifest.json', 'assets/village/manifest.json']) {
-  const m = JSON.parse(fs.readFileSync(path.join(out, manifest), 'utf8'));
-  const paths = [...Object.values(m.props ?? {}).map(p => p.path), ...(m.assets ?? []).map(p => p.path)];
-  for (const p of paths)
-    if (!fs.existsSync(path.resolve(out, path.dirname(manifest), p))) missing.push(`${manifest} → ${p}`);
+// 마을·광산 그림: 게임이 읽는 manifest.web.json의 그림이 모두 있고, 원본 목록의 그림이 하나도 빠지지 않았는지
+// (원본에 그림을 추가하고 tools/build-renewal-assets.mjs를 안 돌렸으면 여기서 실패한다)
+for (const dir of ['assets/mining', 'assets/village']) {
+  const read = name => JSON.parse(fs.readFileSync(path.join(root, dir, name), 'utf8'));
+  const ids = m => [...Object.keys(m.props ?? {}), ...(m.assets ?? []).map(a => a.id)];
+  const web = read('manifest.web.json'), source = read('manifest.json');
+  for (const id of ids(source)) if (!ids(web).includes(id)) missing.push(`${dir}/manifest.web.json에 ${id} 없음 (tools/build-renewal-assets.mjs 실행 필요)`);
+  for (const p of [...Object.values(web.props ?? {}).map(p => p.path), ...(web.assets ?? []).map(p => p.path)])
+    if (!fs.existsSync(path.join(out, dir, p))) missing.push(`${dir}/manifest.web.json → ${p}`);
 }
 
 const bytes = files.reduce((n, f) => n + fs.statSync(path.join(out, f)).size, 0);

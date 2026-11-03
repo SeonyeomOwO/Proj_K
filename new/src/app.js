@@ -19,7 +19,7 @@ import { IrisOverlay, PROLOGUE_IRIS, transitionIris } from './intro/iris-transit
 import { playPrologue } from './intro/prologue.js';
 import {GameMine} from './mining/game-world.js';
 import * as Mining from './mining/game-state.js';
-import {miningModal,syncTraitOptions} from './mining/game-ui.js';
+import {miningModal,syncTraitOptions,GOLDEN_UI} from './mining/game-ui.js';
 import {VillageWorld} from './village/world.js';
 import * as Village from './village/state.js';
 import {villageModal,restText} from './village/ui.js';
@@ -443,7 +443,7 @@ function renderModal() {
     case 'mastery':
       title = '마스터리';
       // 연출(말풍선 또잉·구매 반동)은 이번 그리기 한 번에만 쓴다
-      body = MU.masteryBody(s,chosenNode,mapOverview,s.settings.motion?mapFx:{},renewalMode?{canLearn:Mining.miningMasteryAvailable,effectLabels:{stones:'정산 씨앗'}}:{});
+      body = MU.masteryBody(s,chosenNode,mapOverview,s.settings.motion?mapFx:{},renewalMode?{canLearn:Mining.miningMasteryAvailable,effectLabels:{stones:'정산 씨앗'},currency:GOLDEN_UI}:{});
       mapFx = {};
       break;
     case 'profile':
@@ -791,14 +791,14 @@ function handle(e) {
         mapFx = { pop: true };
       }
       else if (id === 'seal') {
-        const before = E.stats(s), result = E.absorbMastery(s);
+        const before = E.stats(s), result = renewalMode ? Mining.absorbMiningMastery(s) : E.absorbMastery(s);
         if (result) {
           absorption = { ...result, before, after: E.stats(s) };
           chosenNode = null;
           modal = 'absorbed';
         }
         else {
-          notify('루비가 부족해요.');
+          notify((renewalMode ? Mining.GOLDEN_NAME + '가' : '루비가') + ' 부족해요.');
           mapFx = { bump: 'seal' };
         }
       }
@@ -821,7 +821,7 @@ function handle(e) {
       }
       else {
         const n = M.nodes(s).find(x => x.id === id), lv = M.nodeLevel(s, id);
-        notify(!n ? '이 노드는 지금 배울 수 없어요.' : lv >= n.max ? '이미 최고 레벨이에요.' : !M.reachable(s, n) ? '앞 노드를 최고 레벨까지 올려야 해요.' : '루비가 부족해요.');
+        notify(!n ? '이 노드는 지금 배울 수 없어요.' : lv >= n.max ? '이미 최고 레벨이에요.' : !M.reachable(s, n) ? '앞 노드를 최고 레벨까지 올려야 해요.' : (renewalMode ? Mining.GOLDEN_NAME + '가' : '루비가') + ' 부족해요.');
         mapFx = { bump: id };
       }
       break;

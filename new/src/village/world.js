@@ -35,7 +35,8 @@ export class VillageWorld{
  }
  async load(){
   const base=new URL('../../assets/village/',import.meta.url);
-  const manifest=await fetch(new URL('manifest.json',base)).then(r=>{if(!r.ok)throw Error('마을 리소스를 열 수 없어요');return r.json();});
+  // manifest.web.json: tools/build-renewal-assets.mjs가 만든 게임용 WebP 목록(원본 PNG 목록은 manifest.json)
+  const manifest=await fetch(new URL('manifest.web.json',base)).then(r=>{if(!r.ok)throw Error('마을 리소스를 열 수 없어요');return r.json();});
   this.sprites={};await Promise.all(manifest.assets.map(async p=>{this.sprites[p.id]={...p,image:await this.res.rig.image(new URL(p.path,base))};}));
   this.background=document.createElement('canvas');this.background.width=WORLD.width;this.background.height=WORLD.height;
   this.paintGround(this.background.getContext('2d'));this.bind();return this;
