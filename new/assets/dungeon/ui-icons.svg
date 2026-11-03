@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+<defs><linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fff185"/><stop offset="1" stop-color="#ffae20"/></linearGradient></defs>
+<symbol id="clock" viewBox="0 0 80 80"><g stroke="#553019" stroke-width="5" stroke-linejoin="round"><path d="M32 5h16v12H32z" fill="#ffcc55"/><circle cx="40" cy="45" r="30" fill="url(#gold)"/><circle cx="40" cy="45" r="22" fill="#fff4db"/><path d="M40 26v19l13-10" stroke="#3e99c2" stroke-linecap="round" fill="none"/></g></symbol>
+<symbol id="stairs" viewBox="0 0 80 80"><path d="M8 70V51h19V32h20V10h25v60Z" fill="url(#gold)" stroke="#603418" stroke-width="6" stroke-linejoin="round"/><path d="M10 53h18V34h22V13" fill="none" stroke="#fff1ad" stroke-width="5"/></symbol>
+<symbol id="ticket" viewBox="0 0 80 80"><g transform="rotate(-13 40 40)"><path d="M8 18h64v16q-12 6 0 12v16H8V46q12-6 0-12Z" fill="#f2768e" stroke="#642c28" stroke-width="5"/><path d="M22 26h36v28H22z" fill="none" stroke="#ffc4ad" stroke-width="3"/><path d="m40 30 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1Z" fill="#ffcd91"/></g></symbol>
+<symbol id="crown" viewBox="0 0 80 80"><path d="m12 28 17 14 11-28 11 28 17-14-8 39H20Z" fill="url(#gold)" stroke="#65351a" stroke-width="5" stroke-linejoin="round"/><g fill="#fff2a3" stroke="#65351a" stroke-width="4"><circle cx="12" cy="26" r="6"/><circle cx="40" cy="12" r="6"/><circle cx="68" cy="26" r="6"/></g><path d="M24 58h32" stroke="#ffe58b" stroke-width="5"/></symbol>
+<symbol id="back" viewBox="0 0 80 80"><path d="M39 11 8 40l31 28V52h31V28H39Z" fill="#fff0cd" stroke="#543119" stroke-width="6" stroke-linejoin="round"/></symbol>
+<symbol id="next" viewBox="0 0 80 80"><path d="m31 17 23 23-23 23" fill="none" stroke="#603615" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>

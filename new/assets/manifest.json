@@ -1,0 +1,1752 @@
+{
+  "version": 1,
+  "coordinateSystem": "top-left pixels",
+  "sheets": {
+    "ui-panels": {
+      "path": "assets/atlases/ui-panels.png",
+      "web": "assets/atlases/ui-panels.webp",
+      "width": 1024,
+      "height": 1536,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "ui-icons": {
+      "path": "assets/atlases/ui-icons.png",
+      "web": "assets/atlases/ui-icons.webp",
+      "width": 1536,
+      "height": 1024,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "world-sprites": {
+      "path": "assets/atlases/world-sprites.png",
+      "web": "assets/atlases/world-sprites.webp",
+      "width": 1254,
+      "height": 1254,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "pickaxes": {
+      "path": "assets/atlases/pickaxes.png",
+      "web": "assets/atlases/pickaxes.webp",
+      "width": 1536,
+      "height": 1024,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "hamster-poses": {
+      "path": "assets/atlases/hamster-poses.png",
+      "web": "assets/atlases/hamster-poses.webp",
+      "width": 1536,
+      "height": 1024,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "costumes": {
+      "path": "assets/atlases/costumes.png",
+      "web": "assets/atlases/costumes.webp",
+      "width": 1536,
+      "height": 1024,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "mineral-families-v2": {
+      "path": "assets/atlases/mineral-families-v2.png",
+      "web": "assets/atlases/mineral-families-v2.webp",
+      "width": 1983,
+      "height": 793,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "hamster-round-swing-v3": {
+      "path": "assets/atlases/hamster-round-swing-v3.png",
+      "web": "assets/atlases/hamster-round-swing-v3.webp",
+      "width": 1536,
+      "height": 1024,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "hamster-rig-v1": {
+      "path": "assets/atlases/hamster-rig-v1.png",
+      "web": "assets/atlases/hamster-rig-v1.webp",
+      "width": 1536,
+      "height": 1024,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "pickaxes-held-v1": {
+      "path": "assets/atlases/pickaxes-held-v1.png",
+      "web": "assets/atlases/pickaxes-held-v1.webp",
+      "width": 1536,
+      "height": 1024,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "hamster-face": {
+      "path": "assets/icons/hamster-face-v3-bold.png",
+      "web": "assets/icons/hamster-face-v3-bold.webp",
+      "width": 1496,
+      "height": 1051,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "shop-products-v1": {
+      "path": "assets/shop/shop-products-v1.png",
+      "web": "assets/shop/shop-products-v1.webp",
+      "width": 1536,
+      "height": 1024,
+      "alphaExtrema": [
+        0,
+        254
+      ]
+    },
+    "shop_gem_bag_large-v1": {
+      "path": "assets/shop/shop-gem-bag-large-v1.png",
+      "web": "assets/shop/shop-gem-bag-large-v1.webp",
+      "width": 1402,
+      "height": 1122,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "shop_gem_chest_large-v1": {
+      "path": "assets/shop/shop-gem-chest-large-v1.png",
+      "web": "assets/shop/shop-gem-chest-large-v1.webp",
+      "width": 1402,
+      "height": 1122,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "shop_gem_warehouse-v1": {
+      "path": "assets/shop/shop-gem-warehouse-v1.png",
+      "web": "assets/shop/shop-gem-warehouse-v1.webp",
+      "width": 1254,
+      "height": 1254,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "monthly-diamonds": {
+      "path": "assets/shop/monthly-diamonds-v1.png",
+      "web": "assets/shop/monthly-diamonds-v1.webp",
+      "width": 1402,
+      "height": 1122,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "monthly-adfree": {
+      "path": "assets/shop/monthly-adfree-v1.png",
+      "web": "assets/shop/monthly-adfree-v1.webp",
+      "width": 1402,
+      "height": 1122,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "auto-upgrade-lock": {
+      "path": "assets/shop/auto-upgrade-lock-v1.png",
+      "web": "assets/shop/auto-upgrade-lock-v1.webp",
+      "width": 2073,
+      "height": 758,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "pass-instant-gems": {
+      "path": "assets/shop/pass-instant-gems-v1.png",
+      "web": "assets/shop/pass-instant-gems-v1.webp",
+      "width": 1254,
+      "height": 1254,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "pass-daily-gems": {
+      "path": "assets/shop/pass-daily-gems-v1.png",
+      "web": "assets/shop/pass-daily-gems-v1.webp",
+      "width": 1254,
+      "height": 1254,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "pass-no-ads": {
+      "path": "assets/shop/pass-no-ads-v1.png",
+      "web": "assets/shop/pass-no-ads-v1.webp",
+      "width": 1254,
+      "height": 1254,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "pass-auto-upgrade": {
+      "path": "assets/shop/pass-auto-upgrade-v1.png",
+      "web": "assets/shop/pass-auto-upgrade-v1.webp",
+      "width": 1254,
+      "height": 1254,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "vein-banner-copper-v1": {
+      "path": "assets/ui/vein-banners/copper-v1.png",
+      "web": "assets/ui/vein-banners/copper-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "vein-banner-emerald-v1": {
+      "path": "assets/ui/vein-banners/emerald-v1.png",
+      "web": "assets/ui/vein-banners/emerald-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    },
+    "vein-banner-ruby-v1": {
+      "path": "assets/ui/vein-banners/ruby-v1.png",
+      "web": "assets/ui/vein-banners/ruby-v1.webp",
+      "width": 2172,
+      "height": 724,
+      "alphaExtrema": [
+        0,
+        255
+      ]
+    }
+  },
+  "frames": {
+    "panel_cream": {
+      "sheet": "ui-panels",
+      "x": 43,
+      "y": 60,
+      "w": 445,
+      "h": 230,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "panel_brown": {
+      "sheet": "ui-panels",
+      "x": 534,
+      "y": 103,
+      "w": 451,
+      "h": 146,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "button_gold": {
+      "sheet": "ui-panels",
+      "x": 51,
+      "y": 340,
+      "w": 437,
+      "h": 176,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "button_blue": {
+      "sheet": "ui-panels",
+      "x": 538,
+      "y": 341,
+      "w": 437,
+      "h": 175,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "button_green": {
+      "sheet": "ui-panels",
+      "x": 51,
+      "y": 574,
+      "w": 437,
+      "h": 174,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "button_disabled": {
+      "sheet": "ui-panels",
+      "x": 538,
+      "y": 574,
+      "w": 437,
+      "h": 173,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "inset_dark": {
+      "sheet": "ui-panels",
+      "x": 43,
+      "y": 823,
+      "w": 449,
+      "h": 147,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "card_cream": {
+      "sheet": "ui-panels",
+      "x": 529,
+      "y": 791,
+      "w": 458,
+      "h": 205,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "tab_active": {
+      "sheet": "ui-panels",
+      "x": 45,
+      "y": 1032,
+      "w": 443,
+      "h": 143,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "tab_idle": {
+      "sheet": "ui-panels",
+      "x": 535,
+      "y": 1034,
+      "w": 445,
+      "h": 140,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "slot_empty": {
+      "sheet": "ui-panels",
+      "x": 117,
+      "y": 1214,
+      "w": 299,
+      "h": 262,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "nav_bar": {
+      "sheet": "ui-panels",
+      "x": 513,
+      "y": 1269,
+      "w": 485,
+      "h": 143,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-panels"
+    },
+    "stone": {
+      "sheet": "ui-icons",
+      "x": 47,
+      "y": 87,
+      "w": 202,
+      "h": 199,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "ruby": {
+      "sheet": "ui-icons",
+      "x": 294,
+      "y": 86,
+      "w": 206,
+      "h": 191,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "diamond": {
+      "sheet": "ui-icons",
+      "x": 538,
+      "y": 90,
+      "w": 217,
+      "h": 190,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "settings": {
+      "sheet": "ui-icons",
+      "x": 785,
+      "y": 79,
+      "w": 215,
+      "h": 213,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "mission": {
+      "sheet": "ui-icons",
+      "x": 1045,
+      "y": 64,
+      "w": 181,
+      "h": 226,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "dungeon": {
+      "sheet": "ui-icons",
+      "x": 1268,
+      "y": 77,
+      "w": 229,
+      "h": 210,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "pickaxe": {
+      "sheet": "ui-icons",
+      "x": 52,
+      "y": 307,
+      "w": 206,
+      "h": 207,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "mastery": {
+      "sheet": "ui-icons",
+      "x": 283,
+      "y": 338,
+      "w": 227,
+      "h": 176,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "rebirth": {
+      "sheet": "ui-icons",
+      "x": 540,
+      "y": 318,
+      "w": 199,
+      "h": 200,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "costume": {
+      "sheet": "ui-icons",
+      "x": 779,
+      "y": 321,
+      "w": 222,
+      "h": 188,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "shop": {
+      "sheet": "ui-icons",
+      "x": 1026,
+      "y": 313,
+      "w": 217,
+      "h": 200,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "chest": {
+      "sheet": "ui-icons",
+      "x": 1273,
+      "y": 327,
+      "w": 219,
+      "h": 186,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "lightning": {
+      "sheet": "ui-icons",
+      "x": 60,
+      "y": 527,
+      "w": 175,
+      "h": 227,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "amplify": {
+      "sheet": "ui-icons",
+      "x": 283,
+      "y": 524,
+      "w": 216,
+      "h": 225,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "explosion": {
+      "sheet": "ui-icons",
+      "x": 519,
+      "y": 523,
+      "w": 236,
+      "h": 244,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "focus": {
+      "sheet": "ui-icons",
+      "x": 756,
+      "y": 533,
+      "w": 244,
+      "h": 234,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "fast": {
+      "sheet": "ui-icons",
+      "x": 1030,
+      "y": 539,
+      "w": 221,
+      "h": 205,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "cart": {
+      "sheet": "ui-icons",
+      "x": 1270,
+      "y": 532,
+      "w": 233,
+      "h": 228,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "lock": {
+      "sheet": "ui-icons",
+      "x": 58,
+      "y": 762,
+      "w": 178,
+      "h": 211,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "check": {
+      "sheet": "ui-icons",
+      "x": 298,
+      "y": 777,
+      "w": 194,
+      "h": 195,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "close": {
+      "sheet": "ui-icons",
+      "x": 547,
+      "y": 787,
+      "w": 179,
+      "h": 179,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "plus": {
+      "sheet": "ui-icons",
+      "x": 787,
+      "y": 784,
+      "w": 190,
+      "h": 190,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "arrow": {
+      "sheet": "ui-icons",
+      "x": 1033,
+      "y": 787,
+      "w": 198,
+      "h": 175,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "ad": {
+      "sheet": "ui-icons",
+      "x": 1277,
+      "y": 787,
+      "w": 220,
+      "h": 179,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "ui-icons"
+    },
+    "ore_copper_a": {
+      "sheet": "world-sprites",
+      "x": 27,
+      "y": 42,
+      "w": 287,
+      "h": 274,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "ore_copper_b": {
+      "sheet": "world-sprites",
+      "x": 330,
+      "y": 45,
+      "w": 287,
+      "h": 275,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "ore_copper_c": {
+      "sheet": "world-sprites",
+      "x": 642,
+      "y": 39,
+      "w": 285,
+      "h": 282,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "ore_copper_cracked": {
+      "sheet": "world-sprites",
+      "x": 949,
+      "y": 36,
+      "w": 284,
+      "h": 279,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "ore_iron": {
+      "sheet": "world-sprites",
+      "x": 24,
+      "y": 338,
+      "w": 290,
+      "h": 290,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "ore_gold": {
+      "sheet": "world-sprites",
+      "x": 333,
+      "y": 348,
+      "w": 284,
+      "h": 280,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "ore_ruby": {
+      "sheet": "world-sprites",
+      "x": 642,
+      "y": 347,
+      "w": 289,
+      "h": 282,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "rock_plain": {
+      "sheet": "world-sprites",
+      "x": 948,
+      "y": 349,
+      "w": 283,
+      "h": 278,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "ore_crate": {
+      "sheet": "world-sprites",
+      "x": 32,
+      "y": 670,
+      "w": 302,
+      "h": 274,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "debris_a": {
+      "sheet": "world-sprites",
+      "x": 393,
+      "y": 700,
+      "w": 197,
+      "h": 202,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "debris_b": {
+      "sheet": "world-sprites",
+      "x": 682,
+      "y": 717,
+      "w": 215,
+      "h": 172,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "drop_stone": {
+      "sheet": "world-sprites",
+      "x": 1012,
+      "y": 718,
+      "w": 171,
+      "h": 164,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "drop_copper": {
+      "sheet": "world-sprites",
+      "x": 89,
+      "y": 1009,
+      "w": 171,
+      "h": 182,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "strike_arc": {
+      "sheet": "world-sprites",
+      "x": 373,
+      "y": 983,
+      "w": 211,
+      "h": 222,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "spark": {
+      "sheet": "world-sprites",
+      "x": 701,
+      "y": 988,
+      "w": 173,
+      "h": 182,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "shadow": {
+      "sheet": "world-sprites",
+      "x": 934,
+      "y": 934,
+      "w": 320,
+      "h": 320,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "world-sprites"
+    },
+    "pickaxe_d": {
+      "sheet": "pickaxes",
+      "x": 93,
+      "y": 100,
+      "w": 358,
+      "h": 350,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "pickaxes"
+    },
+    "pickaxe_c": {
+      "sheet": "pickaxes",
+      "x": 583,
+      "y": 97,
+      "w": 359,
+      "h": 352,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "pickaxes"
+    },
+    "pickaxe_b": {
+      "sheet": "pickaxes",
+      "x": 1081,
+      "y": 98,
+      "w": 362,
+      "h": 355,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "pickaxes"
+    },
+    "pickaxe_a": {
+      "sheet": "pickaxes",
+      "x": 93,
+      "y": 583,
+      "w": 359,
+      "h": 348,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "pickaxes"
+    },
+    "pickaxe_s": {
+      "sheet": "pickaxes",
+      "x": 602,
+      "y": 573,
+      "w": 356,
+      "h": 358,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "pickaxes"
+    },
+    "pickaxe_ss": {
+      "sheet": "pickaxes",
+      "x": 1103,
+      "y": 571,
+      "w": 366,
+      "h": 363,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "pickaxes"
+    },
+    "hamster_idle": {
+      "sheet": "hamster-poses",
+      "x": 147,
+      "y": 148,
+      "w": 265,
+      "h": 261,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-poses"
+    },
+    "hamster_raise": {
+      "sheet": "hamster-poses",
+      "x": 624,
+      "y": 129,
+      "w": 270,
+      "h": 285,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-poses"
+    },
+    "hamster_strike": {
+      "sheet": "hamster-poses",
+      "x": 1105,
+      "y": 197,
+      "w": 304,
+      "h": 216,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-poses"
+    },
+    "hamster_recover": {
+      "sheet": "hamster-poses",
+      "x": 143,
+      "y": 662,
+      "w": 310,
+      "h": 224,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-poses"
+    },
+    "hamster_sleep": {
+      "sheet": "hamster-poses",
+      "x": 614,
+      "y": 622,
+      "w": 278,
+      "h": 260,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-poses"
+    },
+    "hamster_celebrate": {
+      "sheet": "hamster-poses",
+      "x": 1082,
+      "y": 615,
+      "w": 307,
+      "h": 269,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-poses"
+    },
+    "costume_miner": {
+      "sheet": "costumes",
+      "x": 99,
+      "y": 113,
+      "w": 319,
+      "h": 300,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "costumes"
+    },
+    "costume_farmer": {
+      "sheet": "costumes",
+      "x": 600,
+      "y": 113,
+      "w": 321,
+      "h": 302,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "costumes"
+    },
+    "costume_star": {
+      "sheet": "costumes",
+      "x": 1112,
+      "y": 113,
+      "w": 327,
+      "h": 300,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "costumes"
+    },
+    "costume_rain": {
+      "sheet": "costumes",
+      "x": 97,
+      "y": 586,
+      "w": 341,
+      "h": 312,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "costumes"
+    },
+    "costume_pink": {
+      "sheet": "costumes",
+      "x": 591,
+      "y": 585,
+      "w": 345,
+      "h": 312,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "costumes"
+    },
+    "costume_explorer": {
+      "sheet": "costumes",
+      "x": 1103,
+      "y": 585,
+      "w": 350,
+      "h": 312,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "costumes"
+    },
+    "mineral_stone": {
+      "sheet": "mineral-families-v2",
+      "x": 53,
+      "y": 69,
+      "w": 353,
+      "h": 375,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_copper": {
+      "sheet": "mineral-families-v2",
+      "x": 447,
+      "y": 69,
+      "w": 337,
+      "h": 384,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_ruby": {
+      "sheet": "mineral-families-v2",
+      "x": 828,
+      "y": 95,
+      "w": 334,
+      "h": 350,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_diamond": {
+      "sheet": "mineral-families-v2",
+      "x": 1203,
+      "y": 72,
+      "w": 363,
+      "h": 373,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_emerald": {
+      "sheet": "mineral-families-v2",
+      "x": 1608,
+      "y": 83,
+      "w": 322,
+      "h": 363,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_stone_broken": {
+      "sheet": "mineral-families-v2",
+      "x": 78,
+      "y": 484,
+      "w": 277,
+      "h": 253,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_copper_broken": {
+      "sheet": "mineral-families-v2",
+      "x": 475,
+      "y": 501,
+      "w": 279,
+      "h": 231,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_ruby_broken": {
+      "sheet": "mineral-families-v2",
+      "x": 867,
+      "y": 483,
+      "w": 277,
+      "h": 254,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_diamond_broken": {
+      "sheet": "mineral-families-v2",
+      "x": 1252,
+      "y": 508,
+      "w": 284,
+      "h": 228,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "mineral_emerald_broken": {
+      "sheet": "mineral-families-v2",
+      "x": 1643,
+      "y": 501,
+      "w": 258,
+      "h": 237,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "mineral-families-v2"
+    },
+    "hamster_round_idle": {
+      "sheet": "hamster-round-swing-v3",
+      "x": 127,
+      "y": 56,
+      "w": 513,
+      "h": 479,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-round-swing-v3"
+    },
+    "hamster_round_lift": {
+      "sheet": "hamster-round-swing-v3",
+      "x": 881,
+      "y": 50,
+      "w": 516,
+      "h": 494,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-round-swing-v3"
+    },
+    "hamster_round_hit": {
+      "sheet": "hamster-round-swing-v3",
+      "x": 186,
+      "y": 631,
+      "w": 582,
+      "h": 316,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-round-swing-v3"
+    },
+    "hamster_round_recover": {
+      "sheet": "hamster-round-swing-v3",
+      "x": 883,
+      "y": 630,
+      "w": 576,
+      "h": 319,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-round-swing-v3"
+    },
+    "rig_miner_body": {
+      "sheet": "hamster-rig-v1",
+      "x": 103,
+      "y": 83,
+      "w": 352,
+      "h": 349,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_miner_paw_left": {
+      "sheet": "hamster-rig-v1",
+      "x": 153,
+      "y": 438,
+      "w": 74,
+      "h": 73,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_miner_paw_right": {
+      "sheet": "hamster-rig-v1",
+      "x": 320,
+      "y": 438,
+      "w": 74,
+      "h": 73,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_farmer_body": {
+      "sheet": "hamster-rig-v1",
+      "x": 603,
+      "y": 77,
+      "w": 347,
+      "h": 357,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_farmer_paw_left": {
+      "sheet": "hamster-rig-v1",
+      "x": 654,
+      "y": 438,
+      "w": 73,
+      "h": 74,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_farmer_paw_right": {
+      "sheet": "hamster-rig-v1",
+      "x": 816,
+      "y": 438,
+      "w": 74,
+      "h": 74,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_star_body": {
+      "sheet": "hamster-rig-v1",
+      "x": 1099,
+      "y": 74,
+      "w": 379,
+      "h": 358,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_star_paw_left": {
+      "sheet": "hamster-rig-v1",
+      "x": 1149,
+      "y": 438,
+      "w": 74,
+      "h": 73,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_star_paw_right": {
+      "sheet": "hamster-rig-v1",
+      "x": 1316,
+      "y": 438,
+      "w": 73,
+      "h": 73,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_rain_body": {
+      "sheet": "hamster-rig-v1",
+      "x": 86,
+      "y": 532,
+      "w": 373,
+      "h": 369,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_rain_paw_left": {
+      "sheet": "hamster-rig-v1",
+      "x": 152,
+      "y": 909,
+      "w": 74,
+      "h": 74,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_rain_paw_right": {
+      "sheet": "hamster-rig-v1",
+      "x": 319,
+      "y": 909,
+      "w": 74,
+      "h": 74,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_pink_body": {
+      "sheet": "hamster-rig-v1",
+      "x": 599,
+      "y": 552,
+      "w": 370,
+      "h": 352,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_pink_paw_left": {
+      "sheet": "hamster-rig-v1",
+      "x": 657,
+      "y": 910,
+      "w": 73,
+      "h": 73,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_pink_paw_right": {
+      "sheet": "hamster-rig-v1",
+      "x": 816,
+      "y": 910,
+      "w": 74,
+      "h": 73,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_explorer_body": {
+      "sheet": "hamster-rig-v1",
+      "x": 1104,
+      "y": 542,
+      "w": 361,
+      "h": 360,
+      "pivot": [
+        0.5,
+        1
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_explorer_paw_left": {
+      "sheet": "hamster-rig-v1",
+      "x": 1150,
+      "y": 910,
+      "w": 73,
+      "h": 73,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_explorer_paw_right": {
+      "sheet": "hamster-rig-v1",
+      "x": 1313,
+      "y": 910,
+      "w": 73,
+      "h": 73,
+      "pivot": [
+        0.5,
+        0.5
+      ],
+      "category": "hamster-rig"
+    },
+    "rig_pickaxe_d": {
+      "sheet": "pickaxes-held-v1",
+      "x": 71,
+      "y": 9,
+      "w": 402,
+      "h": 484,
+      "pivot": [
+        0.5,
+        0.85
+      ],
+      "category": "held-pickaxes"
+    },
+    "rig_pickaxe_c": {
+      "sheet": "pickaxes-held-v1",
+      "x": 566,
+      "y": 8,
+      "w": 402,
+      "h": 484,
+      "pivot": [
+        0.5,
+        0.85
+      ],
+      "category": "held-pickaxes"
+    },
+    "rig_pickaxe_b": {
+      "sheet": "pickaxes-held-v1",
+      "x": 1063,
+      "y": 8,
+      "w": 404,
+      "h": 485,
+      "pivot": [
+        0.5,
+        0.85
+      ],
+      "category": "held-pickaxes"
+    },
+    "rig_pickaxe_a": {
+      "sheet": "pickaxes-held-v1",
+      "x": 69,
+      "y": 519,
+      "w": 405,
+      "h": 487,
+      "pivot": [
+        0.5,
+        0.85
+      ],
+      "category": "held-pickaxes"
+    },
+    "rig_pickaxe_s": {
+      "sheet": "pickaxes-held-v1",
+      "x": 565,
+      "y": 519,
+      "w": 406,
+      "h": 487,
+      "pivot": [
+        0.5,
+        0.85
+      ],
+      "category": "held-pickaxes"
+    },
+    "rig_pickaxe_ss": {
+      "sheet": "pickaxes-held-v1",
+      "x": 1057,
+      "y": 519,
+      "w": 413,
+      "h": 487,
+      "pivot": [
+        0.5,
+        0.85
+      ],
+      "category": "held-pickaxes"
+    },
+    "hamster_face": {
+      "sheet": "hamster-face",
+      "x": 57,
+      "y": 86,
+      "w": 1379,
+      "h": 877,
+      "category": "ui-icons"
+    },
+    "shop_bundle": {
+      "sheet": "shop-products-v1",
+      "x": 14,
+      "y": 132,
+      "w": 504,
+      "h": 374,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_pickaxe_box": {
+      "sheet": "shop-products-v1",
+      "x": 528,
+      "y": 135,
+      "w": 496,
+      "h": 392,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_hamster_box": {
+      "sheet": "shop-products-v1",
+      "x": 1026,
+      "y": 156,
+      "w": 496,
+      "h": 379,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_gems": {
+      "sheet": "shop-products-v1",
+      "x": 41,
+      "y": 654,
+      "w": 425,
+      "h": 264,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_gem_bag": {
+      "sheet": "shop-products-v1",
+      "x": 518,
+      "y": 616,
+      "w": 520,
+      "h": 337,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_gem_chest": {
+      "sheet": "shop-products-v1",
+      "x": 1051,
+      "y": 583,
+      "w": 451,
+      "h": 384,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_gem_bag_large": {
+      "sheet": "shop_gem_bag_large-v1",
+      "x": 24,
+      "y": 12,
+      "w": 1336,
+      "h": 1099,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_gem_chest_large": {
+      "sheet": "shop_gem_chest_large-v1",
+      "x": 41,
+      "y": 16,
+      "w": 1342,
+      "h": 1090,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_gem_warehouse": {
+      "sheet": "shop_gem_warehouse-v1",
+      "x": 15,
+      "y": 67,
+      "w": 1239,
+      "h": 1081,
+      "category": "shop",
+      "pivot": [
+        0.5,
+        0.5
+      ]
+    },
+    "shop_monthly_diamonds": {
+      "sheet": "monthly-diamonds",
+      "x": 0,
+      "y": 12,
+      "w": 1395,
+      "h": 1090
+    },
+    "shop_monthly_adfree": {
+      "sheet": "monthly-adfree",
+      "x": 0,
+      "y": 49,
+      "w": 1374,
+      "h": 1014
+    },
+    "auto_upgrade_lock": {
+      "sheet": "auto-upgrade-lock",
+      "x": 0,
+      "y": 4,
+      "w": 2073,
+      "h": 754
+    },
+    "pass_instant_gems": {
+      "sheet": "pass-instant-gems",
+      "x": 41,
+      "y": 115,
+      "w": 1177,
+      "h": 1051
+    },
+    "pass_daily_gems": {
+      "sheet": "pass-daily-gems",
+      "x": 0,
+      "y": 83,
+      "w": 1215,
+      "h": 1171
+    },
+    "pass_no_ads": {
+      "sheet": "pass-no-ads",
+      "x": 0,
+      "y": 90,
+      "w": 1172,
+      "h": 1164
+    },
+    "pass_auto_upgrade": {
+      "sheet": "pass-auto-upgrade",
+      "x": 0,
+      "y": 33,
+      "w": 1211,
+      "h": 1221
+    },
+    "vein_banner_copper": {
+      "sheet": "vein-banner-copper-v1",
+      "x": 0,
+      "y": 0,
+      "w": 2172,
+      "h": 724,
+      "category": "vein-banners",
+      "label": "구리 광맥!",
+      "textBaked": true,
+      "description": "돌 획득 ×1.5"
+    },
+    "vein_banner_emerald": {
+      "sheet": "vein-banner-emerald-v1",
+      "x": 0,
+      "y": 0,
+      "w": 2172,
+      "h": 724,
+      "category": "vein-banners",
+      "label": "에메랄드 광맥!",
+      "textBaked": true,
+      "description": "돌 획득 ×2"
+    },
+    "vein_banner_ruby": {
+      "sheet": "vein-banner-ruby-v1",
+      "x": 0,
+      "y": 0,
+      "w": 2172,
+      "h": 724,
+      "category": "vein-banners",
+      "label": "루비 광맥!",
+      "textBaked": true,
+      "description": "다 캐면 루비 보너스"
+    }
+  }
+}

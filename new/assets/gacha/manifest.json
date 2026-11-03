@@ -1,0 +1,248 @@
+{
+  "version": 1,
+  "status": "resource-preview-only",
+  "created": "2026-10-08",
+  "coordinateSystem": "top-left pixels; keep original PNG alpha",
+  "rasterAssets": [
+    {
+      "id": "background-hamster-v1",
+      "path": "assets/gacha/v1/background-hamster-v1.png",
+      "width": 941,
+      "height": 1672,
+      "alpha": false,
+      "alphaExtrema": null,
+      "visibleBoundsAlphaAbove100": null,
+      "bytes": 1842311
+    },
+    {
+      "id": "background-pickaxe-v1",
+      "path": "assets/gacha/v1/background-pickaxe-v1.png",
+      "width": 941,
+      "height": 1672,
+      "alpha": false,
+      "alphaExtrema": null,
+      "visibleBoundsAlphaAbove100": null,
+      "bytes": 1801379
+    },
+    {
+      "id": "badge-a-v1",
+      "path": "assets/gacha/v1/badge-a-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "visibleBoundsAlphaAbove100": [
+        55,
+        53,
+        1197,
+        1175
+      ],
+      "bytes": 1076203
+    },
+    {
+      "id": "badge-b-v1",
+      "path": "assets/gacha/v1/badge-b-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "visibleBoundsAlphaAbove100": [
+        53,
+        51,
+        1201,
+        1183
+      ],
+      "bytes": 1084212
+    },
+    {
+      "id": "badge-c-v1",
+      "path": "assets/gacha/v1/badge-c-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "visibleBoundsAlphaAbove100": [
+        110,
+        61,
+        1143,
+        1200
+      ],
+      "bytes": 1096100
+    },
+    {
+      "id": "badge-s-v1",
+      "path": "assets/gacha/v1/badge-s-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "visibleBoundsAlphaAbove100": [
+        58,
+        34,
+        1196,
+        1187
+      ],
+      "bytes": 1143308
+    },
+    {
+      "id": "badge-ss-v1",
+      "path": "assets/gacha/v1/badge-ss-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "visibleBoundsAlphaAbove100": [
+        8,
+        29,
+        1244,
+        1215
+      ],
+      "bytes": 1207157
+    },
+    {
+      "id": "crate-closed-v1",
+      "path": "assets/gacha/v1/crate-closed-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "visibleBoundsAlphaAbove100": [
+        105,
+        344,
+        1187,
+        1046
+      ],
+      "bytes": 829665,
+      "groundAnchorPx": {
+        "x": 646,
+        "y": 1046
+      },
+      "displayWidthRatio": 0.72
+    },
+    {
+      "id": "crate-open-v1",
+      "path": "assets/gacha/v1/crate-open-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "visibleBoundsAlphaAbove100": [
+        108,
+        123,
+        1187,
+        1142
+      ],
+      "bytes": 1170635,
+      "groundAnchorPx": {
+        "x": 647.5,
+        "y": 1142
+      },
+      "displayWidthRatio": 0.72
+    }
+  ],
+  "vectorAssets": [
+    {
+      "id": "nameplate-blank-v1",
+      "path": "assets/gacha/v1/nameplate-blank-v1.svg",
+      "width": 720,
+      "height": 160,
+      "dynamicContent": [
+        "gradeBadge",
+        "rewardName"
+      ]
+    }
+  ],
+  "grades": {
+    "C": {
+      "material": "silver",
+      "badge": "badge-c-v1",
+      "rewardFrame": "pickaxe_c"
+    },
+    "B": {
+      "material": "copper",
+      "badge": "badge-b-v1",
+      "rewardFrame": "pickaxe_b"
+    },
+    "A": {
+      "material": "gold",
+      "badge": "badge-a-v1",
+      "rewardFrame": "pickaxe_a"
+    },
+    "S": {
+      "material": "cyan-diamond",
+      "badge": "badge-s-v1",
+      "rewardFrame": "pickaxe_s"
+    },
+    "SS": {
+      "material": "amethyst-gold",
+      "badge": "badge-ss-v1",
+      "rewardFrame": "pickaxe_ss"
+    }
+  },
+  "existingRewards": {
+    "manifest": "assets/manifest.json",
+    "pickaxes": [
+      "pickaxe_c",
+      "pickaxe_b",
+      "pickaxe_a",
+      "pickaxe_s",
+      "pickaxe_ss"
+    ],
+    "hamsters": [
+      "costume_farmer",
+      "costume_rain",
+      "costume_pink",
+      "costume_explorer",
+      "costume_star"
+    ],
+    "note": "Use the actual reward id and grade from game data. Badge art does not define the drop table."
+  },
+  "composition": {
+    "layerOrder": [
+      "background",
+      "revealGlow",
+      "crate",
+      "existingRewardAboveCrate",
+      "nameplate",
+      "gradeBadge",
+      "liveRewardName",
+      "actionButton"
+    ],
+    "crateGroundPointNormalized": [
+      0.5,
+      0.648
+    ],
+    "crateStateAlignment": "Render both crate PNGs at equal scale, align their groundAnchorPx to the same scene point. They are two illustrated states, not a skeletal lid rig.",
+    "rewardHandling": "Use the existing atlas frame, reveal above the front wall; do not bake items or characters into the crate.",
+    "animationExampleMs": {
+      "drop": 780,
+      "hold": 320,
+      "rewardStart": 1250,
+      "complete": 1950
+    },
+    "title": "Use existing assets/shop/parts/header-wood.svg and live text",
+    "button": "Use existing assets/shop/parts/button-gold.svg and live text"
+  },
+  "preview": "gacha-resources-preview-v1.html"
+}

@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "props": {
+    "ball-full": {
+      "path": "props/ball-full.png",
+      "bounds": [
+        131,
+        123,
+        991,
+        979
+      ]
+    },
+    "cart-full": {
+      "path": "props/cart-full.png",
+      "bounds": [
+        95,
+        141,
+        1144,
+        950
+      ]
+    },
+    "seed": {
+      "path": "props/seed.png",
+      "bounds": [
+        181,
+        109,
+        890,
+        1039
+      ]
+    },
+    "drill": {
+      "path": "props/drill.png",
+      "bounds": [
+        33,
+        323,
+        1193,
+        604
+      ]
+    },
+    "dynamite": {
+      "path": "props/dynamite.png",
+      "bounds": [
+        77,
+        206,
+        1112,
+        835
+      ]
+    }
+  }
+}

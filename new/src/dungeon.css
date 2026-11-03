@@ -1,0 +1,100 @@
+/* Dungeon art is text-free; every label, progress value and control is live UI. */
+.dungeon-modal.modal{width:882px;height:1280px;max-height:1280px;border:7px solid #4b2918;border-radius:29px;background:#885331 url('../assets/season-pass/wood-surface-v1.webp') center/900px auto;box-shadow:0 0 0 3px #ca955c,0 8px 0 #2e1d14aa;color:#4a2a18}
+.dungeon-modal .modal-header{height:110px;min-height:110px;flex:none;border:0;padding:0 90px 4px;font-size:58px;line-height:1.15;background:url('../assets/shop/parts/header-wood.svg') center/100% 100% no-repeat;color:#fff0cb;-webkit-text-stroke:7px #43220f;paint-order:stroke fill;text-shadow:0 4px #43220f}
+.dungeon-modal .close{width:69px;height:69px;border:0;background:url('../assets/shop/parts/button-close.svg') center/100% 100%;box-shadow:none}
+.dungeon-modal .close .icon{width:36px;height:36px}
+.dungeon-modal .close:focus-visible{outline:3px solid #ffe6a9;outline-offset:-9px;border-radius:15px}
+#viewport:has(.dungeon-modal){overflow:clip}
+.dungeon-modal .modal-body{flex:1;min-height:0;max-height:none;padding:12px 14px 10px;overflow:auto;scrollbar-width:thin;scrollbar-color:#dfb575 #784724;font-size:26px}
+.dg-content{height:100%;display:flex;flex-direction:column;gap:10px;position:relative;isolation:isolate}
+.dg-content button{font:inherit;font-weight:900}
+.dg-content button:focus-visible{outline:5px solid #fff1a0;outline-offset:-7px}
+.dg-icon{width:57px;height:57px;flex:none;vertical-align:middle}
+.dg-welcome{height:124px;flex:none;display:flex;align-items:center;justify-content:center;gap:28px;color:#f8dfac;text-shadow:0 2px #412613;font-size:23px;line-height:1.5}
+.dg-welcome b{font-size:32px;color:#fff0d1}
+.dg-welcome .dg-mascot{width:175px;height:126px;object-fit:contain;filter:drop-shadow(0 5px 1px #39201566)}
+.dg-card{display:flex;flex-direction:column;flex:1;min-height:325px;width:100%;padding:0;overflow:hidden;border:5px solid #502a16;border-radius:22px;background:#fff0d0;box-shadow:0 3px 0 #362012,inset 0 0 0 3px #ffd592;color:#4d2b17;text-align:left}
+.dg-banner{display:block;flex:1;min-height:235px;position:relative;overflow:hidden;background:#182a47}
+.dg-banner>img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:60% center;transition:transform .2s}
+.dg-card:hover .dg-banner>img{transform:scale(1.02)}
+.dg-card-copy{position:absolute;top:28px;left:28px;display:flex;flex-direction:column;align-items:flex-start;gap:17px;z-index:1}
+.dg-card-copy strong{font-size:52px;line-height:1.25;color:#fff2cb;-webkit-text-stroke:9px #301b0d;paint-order:stroke fill;text-shadow:0 5px #301b0d;letter-spacing:-2px}
+.dg-card-copy>span{font-size:24px;line-height:1.3;color:#fff0cb;background:#101a32d9;border-radius:20px;padding:8px 12px;text-shadow:0 2px #142035}
+.dg-card-meta{height:86px;flex:none;display:flex;align-items:center;gap:17px;padding:9px 16px;background:linear-gradient(110deg,#fff2d7,#ffdfa5);border-top:3px solid #b98043;font-size:23px;white-space:nowrap}
+.dg-card-meta>span:not(.dg-card-arrow){display:flex;align-items:center;gap:8px;flex:1}
+.dg-card-meta>span+span:not(.dg-card-arrow){border-left:2px solid #c79965;padding-left:14px}
+.dg-card-meta b{font-size:31px}
+.dg-card-meta .dg-icon{width:45px;height:49px}
+.dg-card-arrow{width:54px;height:54px;flex:none;background:linear-gradient(#ffe774,#ffb525);border:3px solid #6d3b14;border-radius:16px;box-shadow:inset 0 0 0 3px #fff0a9,0 3px #9b5d20;display:grid;place-items:center}
+.dg-card-arrow .dg-icon{width:43px;height:43px}
+.dg-playing{position:absolute;bottom:18px;right:18px;background:#ffce39;color:#41230e;padding:6px 20px;border-radius:18px;border:3px solid #4b2e17;font-style:normal}
+.dungeon-modal .dg-foot{margin:0;text-align:center;font-size:22px;line-height:28px;color:#fce0af;flex:none;padding:3px 0;text-shadow:0 2px #5a321c}
+/* 패널·버튼은 CSS 테두리로 그린다: SVG 9분할은 안쪽 선이 어긋나 줄무늬로 남았다(상점·시즌과 같은 처리) */
+.dg-info,.dg-reward-box,.dg-confirm{position:relative;background:#ffedce;border:5px solid #482919;border-radius:20px;box-shadow:0 5px 0 #291d16}
+.dg-info{height:92px;flex:none;display:flex;align-items:center;justify-content:space-around;gap:14px;padding:10px 24px;font-size:26px}
+.dg-info>span{display:flex;align-items:center;justify-content:center;gap:12px;flex:1;white-space:nowrap}
+.dg-info>span+span{border-left:2px solid #d4ac79}
+.dg-info b{font-size:37px;letter-spacing:-1px}
+.dg-room{position:relative;flex:1;min-height:400px;border:5px solid #52301b;border-radius:18px;overflow:hidden;background:#242130;box-shadow:0 0 0 2px #bf884f}
+.dg-room>img{display:block;width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:50% 60%}
+.tower .dg-room>img{object-position:50% 54%}
+.dg-rail{position:absolute;inset:15px auto 24px 12px;width:88px;display:flex;flex-direction:column;justify-content:space-around;align-items:center;padding-top:28px;z-index:1}
+.dg-rail::before{content:'';position:absolute;top:40px;bottom:24px;left:40px;width:10px;border:3px solid #492d23;border-radius:12px;background:linear-gradient(#8a6640,#ffce40);box-shadow:1px 0 0 2px #ffdb83;z-index:-1}
+.dg-rail-arrow{position:absolute;top:-13px;left:24px;font-size:49px;color:#ffd348;text-shadow:2px 3px #57340f;-webkit-text-stroke:3px #57340f;paint-order:stroke fill}
+.dg-rail>span:not(.dg-rail-arrow){padding:8px 7px;border:4px solid #422a20;border-radius:14px;background:#866e59;color:#fff0d4;font-size:26px;box-shadow:inset 0 0 0 2px #bc9875,0 3px 0 #271c15;min-width:76px;text-align:center;line-height:1.2}
+.dg-rail>span.current{color:#4d2e0d;background:linear-gradient(#ffe86e,#ffbf20);box-shadow:inset 0 0 0 3px #fff1a8,0 0 14px #fff46b;font-size:30px}
+.dg-rail>span.cleared{color:#d8f5ac;background:#666749}
+.dg-reward-box{height:217px;flex:none;padding:13px 28px 12px;text-align:center}
+.dg-reward-box h3{margin:0;font-size:31px;line-height:1.25;color:#643414}
+.dg-mine-reward{display:flex;align-items:center;justify-content:center;gap:23px;height:155px}
+.dg-mine-reward>img{width:166px;height:130px;object-fit:contain}
+.dg-mine-reward>span{border-left:2px solid #c79861;padding-left:25px;text-align:left;display:flex;flex-direction:column;gap:10px;font-size:27px}
+.dg-mine-reward>span>b{font-size:34px}
+.dg-tower-reward{height:194px;padding-top:10px}
+.dg-tower-reward>div{display:flex;justify-content:center;gap:32px;height:134px;padding-top:7px}
+.dg-tower-reward>div>span{display:flex;flex-direction:column;justify-content:center;align-items:center;width:230px;gap:3px;font-size:27px}
+.dg-tower-reward>div>span+span{border-left:2px solid #cc9d64}
+.dg-tower-reward img{height:83px;width:155px;object-fit:contain}
+.dg-tower-reward>div>span+span img{width:95px}
+.dungeon-modal .dg-help{margin:0;text-align:center;color:#ffecc3;font-size:23px;line-height:30px;flex:none}
+.dg-actions{display:flex;gap:14px;height:91px;flex:none;padding:0 4px}
+.dg-button{position:relative;isolation:isolate;background:linear-gradient(#ffdc62,#ffc22b 55%,#f59e17);border:5px solid #482919;border-radius:18px;box-shadow:0 5px 0 #291d16;color:#fff4d9;paint-order:stroke fill;-webkit-text-stroke:6px #653719;text-shadow:0 3px #653719;display:flex;align-items:center;justify-content:center;padding:5px 24px 12px;line-height:1.2;flex:1;font-size:40px!important}
+.dg-button:active:not(:disabled){translate:0 3px}
+.dg-button.cream{background:linear-gradient(#fff3d6,#ffe1a8);color:#59341e;-webkit-text-stroke:0;text-shadow:none;font-size:32px!important}
+.dg-button.back{flex:none;width:91px;background:linear-gradient(#956344,#7a482c 52%,#533120);padding:6px 15px 10px}
+.dg-button.back .dg-icon{width:55px;height:55px}
+.dg-button:disabled{filter:saturate(.35);opacity:.78}
+.dg-battle-status{position:absolute;top:14px;left:18px;right:18px;background:#fff1d5ed;border:3px solid #76512d;border-radius:15px;padding:9px 16px;font-size:22px;box-shadow:0 3px #3c291c88;z-index:2}
+.tower .dg-battle-status{left:116px}
+.dg-hp-title{display:flex;justify-content:space-between;line-height:28px}
+.dg-meter{height:20px;border:3px solid #724d2b;border-radius:15px;background:#694f3b;overflow:hidden;margin-top:4px}
+.dg-meter i{height:100%;display:block;background:linear-gradient(#fff18c,#ffb816);border-radius:12px;transition:width .1s}
+.dg-live-caption{display:block;font-size:19px;text-align:center;margin-top:3px}
+.dg-result{position:absolute;left:14%;right:8%;top:26%;padding:23px 16px;border:5px solid #74411e;border-radius:23px;background:#fff1d9f5;box-shadow:0 5px 0 #33221988,0 0 50px #f5d26077;text-align:center;z-index:3;display:flex;flex-direction:column;gap:9px}
+.dg-result>strong{font-size:39px;color:#ffbf27;paint-order:stroke fill;-webkit-text-stroke:6px #5b3113;text-shadow:0 3px #5b3113}
+.dg-result>span{font-size:25px}
+.dg-result>div{display:flex;align-items:center;justify-content:center;gap:8px;font-size:32px;margin-top:4px}
+.dg-result img{width:90px;height:80px;object-fit:contain}
+.dg-hit-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.dg-float{position:absolute;left:64%;top:50%;color:#fff0b5;font-size:42px;paint-order:stroke fill;-webkit-text-stroke:5px #512917;text-shadow:0 3px #512917;animation:dg-pop .85s ease-out forwards}
+.dg-float.gem{top:57%;color:#88eeff;font-size:39px;-webkit-text-stroke:5px #144965}
+@keyframes dg-pop{0%{opacity:0;transform:translate(0,15px) scale(.8)}15%{opacity:1;transform:translate(0,0) scale(1.12)}100%{opacity:0;transform:translate(var(--drift),-85px) scale(1)}}
+.dg-confirm-shade{position:absolute;inset:-125px -16px -12px;z-index:10;background:#21180ec9;border-radius:20px;display:grid;place-items:center}
+.dg-confirm{width:690px;padding:35px 35px 30px;text-align:center}
+.dg-confirm h3{font-size:39px;margin:0 0 20px}
+.dg-confirm p{font-size:27px;line-height:1.6;margin-bottom:24px}
+.dg-confirm .dg-button{width:100%;height:78px;margin-top:10px}
+@media(prefers-reduced-motion:reduce){.dg-banner>img,.dg-meter i{transition:none}.dg-float{display:none}}
+
+/* 던전 입장 로딩 화면: 승인된 로딩 씬 그림이 새 무대가 열리는 동안 게임 화면을 덮는다(app.js showDungeonLoading) */
+.stage-loading{position:absolute;inset:0;z-index:30;background:#f0e1a0;opacity:1;transition:opacity .4s ease}
+.stage-loading[hidden]{display:none}
+.stage-loading.leaving{opacity:0;pointer-events:none}
+.stage-loading .sl-art{display:block;width:100%;height:100%;object-fit:cover}
+@media(prefers-reduced-motion:reduce){.stage-loading{transition:none}}
+
+/* 던전 나가기 확인: 던전 창 없이 안내 카드만 뜬다(app.js dungeon-exit) */
+.modal.bare{width:auto;max-height:none;border:0;border-radius:0;background:none;box-shadow:none;overflow:visible}
+.dg-bare button{font:inherit;font-weight:900}
+.dg-bare .dg-button{font-size:40px!important}
+.dg-bare .dg-button.cream{font-size:32px!important}

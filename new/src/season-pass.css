@@ -1,0 +1,154 @@
+/* Independent, text-free art; consistent corners without screenshot overlays. */
+.season-modal.modal{width:882px;height:1320px;max-height:1320px;border:7px solid #4b2a19;border-radius:30px;background:#8f5833 url('../assets/season-pass/wood-surface-v1.webp') center/880px auto;box-shadow:0 0 0 3px #be8753,0 8px 0 #38241799}
+.season-modal .modal-header{min-height:93px;height:93px;flex:none;padding:0 88px 4px;background:url('../assets/shop/parts/header-wood.svg') center/100% 100% no-repeat;border:0;font-size:47px}
+.season-modal #modal-title{display:flex;align-items:center;gap:16px;white-space:nowrap}
+.season-modal .sp-ticket{width:70px;height:58px;object-fit:contain;flex:none;transform:rotate(-12deg)}
+.season-modal .close{width:65px;height:65px;border:0;box-shadow:none;background:url('../assets/shop/parts/button-close.svg') center/100% 100% no-repeat}
+.season-modal .close .icon{width:34px;height:34px}
+.season-modal .modal-body{flex:1;min-height:0;max-height:none;padding:9px 13px 13px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#e6b875 #684225;font-size:25px}
+.sp-content{display:flex;flex-direction:column;gap:6px;color:#482818}
+.sp-banner{height:120px;flex:none;position:relative;border:4px solid #62402a;border-radius:16px;overflow:hidden;box-shadow:0 2px 0 #dcac71,inset 0 0 0 2px #ca965f;background:#423a32}
+.sp-banner>img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 50%}
+.sp-season-name{position:absolute;inset:17px 15px 17px 34%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.sp-season-name>b{font-size:32px;white-space:nowrap;color:#fff2db;-webkit-text-stroke:6px #41230e;paint-order:stroke fill;text-shadow:0 3px #41230e}
+.sp-season-name em{font-style:normal;color:#ffdf4c}
+.sp-season-name>span{border:3px solid #56311b;border-radius:30px;padding:4px 28px;background:#fff0d0;font-size:23px;line-height:1.2;box-shadow:0 2px 0 #311f13}
+.sp-xp{display:flex;align-items:center;gap:18px;padding:6px 20px;height:92px;flex:none}
+.sp-level{width:113px;height:72px;flex:none;display:grid;place-items:center;background:url('../assets/season-pass/parts/level-badge.svg') center/100% 100% no-repeat;font-size:31px;color:#412311}
+.sp-xp-body{flex:1;min-width:0}
+.sp-xp-title{display:flex;justify-content:space-between;align-items:center;font-size:19px;line-height:24px;margin-bottom:3px}
+.sp-xp-title small{font-size:16px;color:#9a7553}
+.sp-meter{height:22px;padding:3px;background:#68442f;border:2px solid #4f2c1a;border-radius:15px;box-shadow:inset 0 2px 0 #9c7050}
+.sp-meter i,.sp-small-meter i{display:block;height:100%;border-radius:10px;background:url('../assets/season-pass/parts/xp-fill.svg') center/100% 100%;min-width:0}
+.sp-xp-number{display:block;text-align:center;font-size:18px;line-height:20px}
+.sp-wood{background:linear-gradient(#50271944,#552c2144),url('../assets/season-pass/wood-surface-v1.webp') center/840px auto;border:3px solid #85522f;border-radius:19px;box-shadow:inset 0 0 0 2px #d6a26c66,0 2px 0 #58311e;padding:7px 14px}
+.sp-track-heading{display:flex;align-items:center;justify-content:space-between;height:34px;margin-bottom:7px}
+.sp-track-heading h3{margin:0;font-size:24px;line-height:34px;padding:0 25px;background:url('../assets/shop/parts/header-wood.svg') center/100% 100%;color:#fff1d4;-webkit-text-stroke:4px #502c18;paint-order:stroke fill}
+.season-modal .sp-button{--surface:url('../assets/shop/parts/button-gold.svg');--slice:22;--edge:16px;border:0;border-radius:0;margin:0;background:none;box-shadow:none;min-width:0;color:#fff5df;paint-order:stroke fill;-webkit-text-stroke:4px #613c23;font-size:27px;font-weight:900;padding:6px 18px 11px;line-height:1.1;min-height:56px;cursor:pointer}
+.season-modal .sp-button.blue{--surface:url('../assets/shop/parts/button-blue.svg')}
+.season-modal .sp-button.cream{--surface:url('../assets/shop/parts/button-cream.svg');color:#795035;-webkit-text-stroke:0}
+.season-modal .sp-button:disabled{filter:saturate(.6);opacity:.8;cursor:default}
+.sp-reward-art{display:block;width:139px;height:80px}
+.sp-reward-art .sp-art,.sp-reward-art .icon{width:100%;height:100%;object-fit:contain;display:block;margin:0}
+.sp-reward>strong{font-size:27px;line-height:29px}
+.sp-reward.ready .sp-reward-art{height:60px;margin-top:0}
+.sp-reward.ready>strong{font-size:24px;line-height:24px}
+.sp-mini-claim{width:132px;height:28px;display:grid;place-items:center;background:url('../assets/shop/parts/button-gold.svg') center/100% 100%;color:#fff0d8;font-size:21px;line-height:1;padding-bottom:3px;-webkit-text-stroke:3px #5b321a;paint-order:stroke fill}
+.season-modal .sp-unlock{height:60px;width:640px;max-width:96%;display:flex;align-items:center;justify-content:center;gap:11px;margin:8px auto 0;font-size:28px}
+.sp-unlock .sp-ticket{width:41px;height:34px}
+.sp-unlock small{font-size:23px;border-left:2px solid #a96b1c;padding-left:13px;margin-left:7px;white-space:nowrap}
+.sp-premium-active{text-align:center;color:#fff2c1;height:60px;padding-top:20px;font-size:26px;-webkit-text-stroke:3px #593319;paint-order:stroke fill}
+.season-modal .sp-note{color:#fff0d2;font-size:17px;line-height:24px;text-align:center;margin:3px 0 0;text-shadow:0 1px #67391f}
+.sp-quests{display:grid;gap:6px;padding-top:7px}
+.sp-quest-heading{display:flex;align-items:center;justify-content:space-between;color:#fff2d9}
+.sp-quest-heading h3{font-size:26px;margin:0;-webkit-text-stroke:4px #60361c;paint-order:stroke fill;line-height:1}
+.sp-quest-heading small{font-size:17px;color:#ffe2b6}
+.sp-quest{height:88px;display:grid;grid-template-columns:85px minmax(0,1fr) 112px 132px;align-items:center;gap:9px;padding:5px 15px 7px 9px}
+.sp-quest-icon .icon{display:block;width:78px;height:76px;margin:0}
+.sp-quest-detail h4{font-size:23px;line-height:28px;margin:0 0 5px}
+.sp-small-meter{height:17px;border:2px solid #744b2c;background:#d1b78e;border-radius:10px;overflow:hidden;padding:1px}
+.sp-quest-detail small{display:block;text-align:center;font-size:17px;line-height:22px}
+.sp-quest-xp{font-size:22px;white-space:nowrap;display:flex;align-items:center;gap:5px;justify-content:center}
+.sp-quest-xp span{font-size:14px;padding:5px;border:2px solid #83521b;background:#ffdc7a;border-radius:7px;box-shadow:inset 0 0 0 2px #fff0b7}
+.sp-quest .sp-button{font-size:25px;min-height:54px;padding-left:8px;padding-right:8px}
+.sp-footer{display:flex;align-items:center;flex-direction:column;gap:4px;padding:0 0 1px}
+.sp-footer .sp-button{min-height:60px;width:420px;font-size:34px}
+.sp-footer>small{color:#fff0cf;font-size:16px;line-height:19px;text-shadow:0 1px #653d20}
+.sp-confirm-shade{position:absolute;inset:0;background:#28170dbd;z-index:5;display:grid;place-items:center;padding:50px;border-radius:23px}
+.sp-confirm{width:650px;max-width:100%;padding:38px 30px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:15px}
+.sp-confirm h3{margin:0;font-size:36px}.sp-confirm>.sp-ticket{width:100px;height:80px}.sp-confirm>strong{font-size:43px}
+.season-modal .sp-confirm p{margin:0;font-size:27px}.season-modal .sp-confirm small{font-size:21px}
+.sp-confirm .sp-button{width:100%;min-height:65px;font-size:30px}
+.season-modal button:focus-visible{outline:4px solid #fff4b3;outline-offset:2px}
+
+/* 틀 정리(2026-10-07): 크림 패널·보상 카드는 SVG를 9분할로 늘리면 안쪽 흰 선이 가장자리에서 어긋나 "남은 테두리"처럼 보였다.
+   CSS 테두리와 대칭 안쪽 선(inset)으로 바꿔서 네 변이 똑같이 보인다. 버튼은 그대로 SVG 9분할. */
+.sp-panel{background:#ffedce;border:4px solid #482919;border-radius:20px;box-shadow:inset 0 0 0 3px #ffe6a355,0 4px 0 #291d16}
+.season-modal .sp-reward{width:100%;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:5px solid #a16e43;border-radius:20px;background:linear-gradient(#fffaf0,#f5dfb7);box-shadow:inset 0 0 0 3px #fff9e7,0 5px 0 #60391e;padding:4px 6px 8px;margin:0;color:#4c2818;cursor:pointer;overflow:visible}
+.season-modal .sp-reward.premium{height:126px;border-color:#dfab45;background:linear-gradient(#fff9d9,#f6d98a);box-shadow:inset 0 0 0 3px #fff6c6,0 5px 0 #9b642b}
+.season-modal .sp-reward:disabled{opacity:1;filter:none;cursor:default;pointer-events:none}
+.season-modal .sp-reward.ready{outline:4px solid #ffe279;outline-offset:-1px;box-shadow:inset 0 0 0 3px #fff9e7,0 5px 0 #60391e,0 0 15px 2px #ffce4288}
+
+/* 보상 띠: 50개 레벨을 가로로 이어 붙이고 좌우로 민다(터치=가로 스크롤, 마우스=끌기, 키보드=←/→). 한 번에 4칸이 보이고 칸에 맞춰 멈춘다. */
+.sp-carousel{position:relative}
+.sp-strip{display:grid;grid-auto-flow:column;grid-auto-columns:25%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;outline:none}
+.sp-strip::-webkit-scrollbar{display:none}
+.sp-strip.dragging{cursor:grabbing}
+.sp-strip:focus-visible{outline:3px solid #fff4b3;outline-offset:2px;border-radius:10px}
+.sp-col{display:flex;flex-direction:column;min-width:0}
+.sp-cell{padding:0 6px;min-width:0}
+.sp-cell.free{height:138px;padding-top:2px}
+.sp-cell.rail{height:50px;position:relative;display:grid;place-items:center}
+
+/* 버튼 틀: SVG 9분할을 ::before 층에 그린다 */
+.sp-panel,.sp-button,.sp-reward{position:relative;isolation:isolate}
+/* 버튼도 CSS 테두리로: SVG 9분할의 안쪽 선이 어긋나 남던 것을 없앴다 */
+.season-modal .sp-button{border:5px solid #482919;border-radius:17px;background:linear-gradient(#ffdc62,#ffc22b 55%,#f59e17);box-shadow:inset 0 0 0 2px #ffffff40,0 5px 0 #291d16}
+.season-modal .sp-button.blue{background:linear-gradient(#38d5ff,#009de1)}
+.season-modal .sp-button.cream{background:linear-gradient(#fff3d6,#ffe1a8)}
+.season-modal .sp-button:disabled{box-shadow:inset 0 0 0 2px #ffffff40,0 5px 0 #291d16}
+
+/* 프리미엄 칸 마감(2026-10-07): 노란 띠를 스크롤하는 띠가 아니라 가만히 있는 둥근 상자로 따로 깔고, 보상 카드가 그 위를 미끄러지게 한다.
+   카드는 상자 안쪽 7px에서 잘려 상자 테두리에 닿지 않는다. 길(레벨 막대)도 같은 방식의 고정 막대. */
+.sp-strip{position:relative;z-index:1}
+
+/* 프리미엄 줄(2026-10-07 정정): 이름표는 "무료 보상"과 같은 모양·같은 왼쪽 위치로 줄 위에 따로 두고, 노란 바탕은 보상 카드 줄에만 깐다(이름표·길과 따로, 스크롤해도 제자리). */
+.sp-cell.prem{padding:49px 6px 12px}
+
+/* 보상 상태 표시(2026-10-07)
+   · 받을 수 있음(ready): 밝게 + 노란 테두리·"받기"  · 받음(claimed): 살짝 가라앉히고 큰 초록 체크  · 못 받음(level-locked/premium-locked): 어둡게(딤) + 자물쇠
+   · 레벨 길(막대)은 지금 레벨 배지까지 금색으로 차 있다(스크롤하는 띠 안에 있어 카드와 같이 움직인다). */
+.sp-carousel{container-type:inline-size}
+.sp-card-state{position:absolute;right:6px;top:6px;width:36px;height:40px;pointer-events:none}
+.sp-card-state .icon{display:block;width:100%;height:100%;margin:0}
+
+/* 레벨 게이지·보상 상태 정정(2026-10-07)
+   · 게이지: 어두운 홈(트로프) + 밝은 금색 채움으로 대비를 키우고 두께 20으로 했다. 홈은 고정, 채움은 스크롤하는 띠 안에서 카드와 같이 움직인다.
+   · 상태: 못 받는 보상은 어둡게(레벨 미달만). 프리미엄은 레벨을 넘었으면 해금 전이라도 밝게(자물쇠만 남김). 받음은 카드 한가운데에 큰 체크. */
+.season-modal .sp-reward.level-locked{filter:brightness(.6) saturate(.55)}
+.season-modal .sp-reward.level-locked .sp-card-state{filter:brightness(1.5)}
+.season-modal .sp-reward.claimed{filter:brightness(.95) saturate(.9)}
+.season-modal .sp-reward.claimed .sp-reward-art,.season-modal .sp-reward.claimed>strong{opacity:.55}
+.season-modal .sp-reward.claimed .sp-card-state{left:50%;top:50%;right:auto;width:78px;height:78px;transform:translate(-50%,-50%);filter:drop-shadow(0 3px 0 #3b2a10)}
+/* 레벨 게이지 = 위 "패스 경험치" 게이지(.sp-meter)와 같은 모양(2026-10-07): 어두운 갈색 홈 #68442f, 2px #4f2c1a 테두리, 안쪽 위 하이라이트, 안쪽 여백 3px, 끝이 둥근 xp-fill 채움 */
+/* 레벨 길(레퍼런스 구성, 2026-10-07): 길은 1번 배지 중심에서 시작해 50번 배지 중심에서 끝나는 가는 막대(스크롤하는 띠 안).
+   채움은 도달한 배지 중심에서 다음 배지 쪽으로 진행도(xp/500)만큼. 배지는 도달 = 밝게, 미도달 = 어둡게. */
+.sp-rail-track,.sp-rail-fill{position:absolute;left:12.5cqw;top:155px;height:16px;z-index:0;pointer-events:none}
+.sp-rail-track{width:calc(49 * 25cqw);background:#68442f;border-top:2px solid #4f2c1a;border-bottom:2px solid #4f2c1a;box-shadow:inset 0 2px 0 #9c7050}
+.sp-rail-fill{width:calc(var(--n) * 25cqw);background:linear-gradient(#ffe48a,#ffc22b 60%,#f2a21b);box-shadow:inset 0 2px #fff6c8}
+.sp-milestone{position:relative;display:grid;place-items:center;width:40px;height:40px;background:#8b6f55;color:#d8c6ad;border:3px solid #3d2412;border-radius:9px;font-size:22px;line-height:1;box-shadow:inset 0 2px #ffffff30}
+.sp-milestone.earned{background:#ffcf4b;color:#412311;box-shadow:inset 0 2px #fff3b5}
+.sp-milestone.current{outline:3px solid #fff0a0;outline-offset:2px}
+/* 보상 줄 마스킹 = 나무 판자(.sp-track) 안쪽 가장자리(2026-10-07): 카드는 판자 테두리에서 바로 잘린다. 페이드 없음.
+   보상 줄(.sp-carousel)을 판자의 안쪽 여백(14px)만큼 좌우로 넓히고, 판자가 넘치는 부분을 둥근 모서리째 잘라 낸다. 노란 바탕과 레벨 길도 판자 끝까지 이어진다. */
+.sp-track{overflow:hidden}
+.sp-carousel{margin:0 -14px}
+.sp-carousel::before{content:'';position:absolute;left:0;right:0;top:229px;bottom:0;z-index:0;border-top:3px solid #c79437;border-bottom:3px solid #c79437;background:linear-gradient(#ffe087,#edbe52);box-shadow:inset 0 3px 0 #ffe7a5}
+.sp-premium-label{position:absolute;left:14px;top:193px;z-index:2;height:34px;margin:0;padding:0 25px;font-size:24px;line-height:34px;font-weight:900;color:#fff1d4;background:url('../assets/shop/parts/header-wood.svg') center/100% 100%;-webkit-text-stroke:4px #502c18;paint-order:stroke fill;pointer-events:none}
+/* 오늘의 임무(2026-10-07): 종류 탭 + 오늘 단계 3줄. 프리미엄 별 표시, 받을 수 있는 줄은 밝게, 다시받기는 노란 줄. */
+.sp-quest-heading{height:40px;margin-bottom:5px}
+.sp-qtabs{display:flex;gap:6px}
+.sp-qtab{position:relative;height:34px;min-width:86px;padding:0 14px 3px;border:3px solid #4f2c1a;border-radius:11px;background:#7a5030;color:#f2dcc0;font-size:20px;font-weight:900;line-height:1;cursor:pointer;box-shadow:0 3px 0 #2f1a0e}
+.sp-qtab.on{background:#ffcf4b;color:#412311;box-shadow:0 3px 0 #2f1a0e,inset 0 2px #fff3b5}
+.sp-qtab.has::after{content:'';position:absolute;right:-5px;top:-6px;width:14px;height:14px;border-radius:50%;background:#ff4d4d;border:2px solid #fff3d6}
+.sp-quest{height:84px;grid-template-columns:78px minmax(0,1fr) 108px 132px}
+.sp-quest-icon{position:relative}
+.sp-quest-icon .icon{width:70px;height:68px}
+.sp-quest-detail h4{display:flex;align-items:baseline;gap:8px;font-size:22px;line-height:24px;margin:0 0 1px}
+.sp-quest-detail h4 em{font-style:normal;font-size:16px;color:#9a7553}
+.sp-quest-detail p{margin:0 0 3px;font-size:16px;line-height:18px;color:#6b4c33;font-weight:700}
+.sp-small-meter{height:14px}
+.sp-quest-detail small{font-size:15px;line-height:17px}
+.sp-quest.locked .sp-quest-icon .icon{filter:grayscale(.5) brightness(.9)}
+.sp-quest.ready{background:#fff7e0;border-color:#c08a2e;box-shadow:inset 0 0 0 3px #ffe9a8,0 4px 0 #291d16}
+.sp-quest.again{background:#fff0a8;border-color:#d99b2b;box-shadow:inset 0 0 0 3px #ffe36b,0 4px 0 #291d16}
+.sp-quest.done,.sp-quest.claimed{background:#f1e2c6}
+.season-modal .sp-button.again{background:linear-gradient(#ffe97a,#ffb62b)}
+.sp-day-note{display:block;text-align:center;margin-top:4px;font-size:17px;color:#ffe2b6}
+.sp-day-note.done{color:#ffd96a;font-weight:900}
+.sp-quest{height:80px}
+.sp-meter-line{display:flex;align-items:center;gap:8px}
+.sp-meter-line .sp-small-meter{flex:1;min-width:0}
+.sp-meter-line small{flex:none;min-width:92px;text-align:left;font-size:16px;line-height:16px}
+.sp-quest-detail p{margin:0 0 4px}
+.sp-banner{height:112px}

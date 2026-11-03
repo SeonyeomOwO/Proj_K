@@ -1,0 +1,133 @@
+/* Shop scope only; main scene and other popups retain their existing styles.
+   조립 원칙(2026-10-06 다시 조립):
+   1) 틀(패널·버튼·가격 받침)은 ::before 층에 CSS 테두리·배경·아래 그림자로 그린다(2026-10-08). 예전의 SVG 9분할(border-image)은 화면이 소수 배율로 줄었을 때
+      조각 이음매가 가는 줄무늬로 비쳐 이 방식으로 바꿨다. 나무 머리글·닫기 버튼은 그림 한 장을 통째로 쓴다. 틀은 ::before 층에만 그려서
+      안쪽 글자·그림의 자리 계산에는 영향이 없다.
+   2) 팝업 높이는 탭과 상관없이 고정(탭 줄이 위아래로 튀지 않게).
+   3) 카드 안은 절대 좌표 대신 위→아래 흐름(제목 · 그림 · 버튼)으로 쌓아 서로 겹치지 않게 한다. */
+.shop-modal *{box-sizing:border-box}
+.shop-button,.shop-bundle,.shop-ribbon,.shop-reward,.shop-section,.shop-supply,.shop-pack,.shop-pack-price{position:relative;isolation:isolate}
+.shop-button::before,.shop-bundle::before,.shop-ribbon::before,.shop-reward::before,.shop-supply::before,.shop-pack::before,.shop-pack-price::before{content:"";position:absolute;inset:0 0 5px 0;z-index:-1;pointer-events:none;background:var(--fill);border:var(--edge,6px) solid #482919;border-radius:var(--r,18px);box-shadow:0 5px 0 #291d16}
+.shop-modal.modal{width:880px;height:1318px;max-height:1318px;border:7px solid #2d1b13;border-radius:29px;background:#593b29;box-shadow:0 0 0 3px #8a5a38,0 0 24px 6px #000a;overflow:hidden}
+.shop-modal .modal-header{height:104px;min-height:104px;padding:0 90px;border:0;background:url('../assets/shop/parts/header-wood.svg') center/100% 100% no-repeat;flex-shrink:0;font-size:56px;justify-content:center;position:relative;isolation:isolate}
+.shop-modal #modal-title{display:flex;align-items:center;gap:16px;line-height:1.15}
+
+/* 전역 .close의 translateY(-50%)를 그대로 받으므로 top:50%로 가운데에 둔다 */
+.shop-modal .close{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:68px;height:68px;border:0;box-shadow:none;border-radius:0;background:url('../assets/shop/parts/button-close.svg') center/100% 100% no-repeat;padding:0;display:grid;place-items:center;isolation:isolate}
+.shop-modal .close .icon{width:36px;height:36px}
+/* 본문은 위아래로 스크롤된다. 끝이 잘려 보이도록 위·아래에 어두운 그림자를 깔고(스크롤 그림자), 스크롤 막대는 눈에 띄는 나무색으로 둔다. */
+.shop-modal .modal-body{margin:8px 5px 5px;padding:10px 14px 22px;border:4px solid #2d1b13;border-radius:16px;box-shadow:inset 0 0 0 2px #7b5334;flex:1;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;scrollbar-width:auto;scrollbar-color:#d9a05b #3a2418;color:#482819;font-size:30px;background:linear-gradient(#4f3322 30%,#4f332200) center top/100% 44px no-repeat local,linear-gradient(#4f332200,#4f3322 70%) center bottom/100% 44px no-repeat local,radial-gradient(farthest-side at 50% 0,#1c1008b0,#0000) center top/100% 16px no-repeat scroll,radial-gradient(farthest-side at 50% 100%,#1c1008b0,#0000) center bottom/100% 16px no-repeat scroll,#4f3322}
+.shop-content{display:grid;gap:8px}
+.shop-art{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.shop-modal button{font:inherit;font-weight:900;cursor:pointer}
+.shop-modal button:disabled{cursor:default;filter:saturate(.3) brightness(.8);opacity:.85}
+.shop-modal button:active:not(:disabled){transform:translateY(3px)}
+/* 닫기 버튼은 세로 가운데 맞춤용 translateY(-50%)를 쓰므로, 눌렀을 때 그 값을 덮어쓰면 위로 튄다. 가운데 맞춤에 3px만 더한다. */
+.shop-modal .close:active:not(:disabled){transform:translateY(calc(-50% + 3px))}
+.shop-modal button:focus-visible{outline:5px solid #fff0a8;outline-offset:-6px}
+.shop-modal .close:focus-visible{outline:0}
+.shop-button{border:0;border-radius:0;min-height:72px;background:none;color:white;text-shadow:0 3px #62331c;paint-order:stroke fill;-webkit-text-stroke:4px #60331f;display:inline-flex;justify-content:center;align-items:center;gap:10px;padding:2px 22px 9px;line-height:1.1;white-space:nowrap;--fill:linear-gradient(#ffdc62,#ffc22b 55%,#f59e17);--r:18px;--edge:6px}
+.shop-button.blue{--fill:linear-gradient(#38d5ff,#009de1);--r:18px;--edge:6px}
+.shop-button.ad-draw{--fill:linear-gradient(#ffe84d,#ffcf2d 55%,#f5ac16);--r:18px;--edge:6px;color:#fff9ed}
+.shop-button.cream{--fill:#ffedba;--r:18px;--edge:6px;color:#573521;-webkit-text-stroke:0;text-shadow:none}
+.shop-button .icon{width:46px;height:46px;margin:0;flex:none}
+
+/* 초보 꾸러미: 왼쪽 그림 · 오른쪽 제목+보상 · 아래 가격 막대 */
+.shop-bundle{height:356px;overflow:hidden;border-radius:20px;--fill:#eea039;--r:20px;--edge:7px}
+.shop-title{font-size:40px;text-align:center;color:#fff2d9;-webkit-text-stroke:7px #512b1b;paint-order:stroke fill;text-shadow:0 5px #512b1b;margin:9px 0 0;position:relative;z-index:1;line-height:1.35}
+.shop-bundle .shop-title{position:absolute;left:440px;right:24px;top:12px;margin:0;font-size:46px}
+.shop-bundle .bundle-art{position:absolute;width:440px;height:232px;left:20px;top:46px}
+.shop-ribbon{position:absolute;left:26px;top:20px;font-size:20px;color:#fff1d3;width:112px;height:44px;display:flex;align-items:center;justify-content:center;padding:0 0 4px;line-height:1;text-shadow:0 2px #792630;z-index:2;--fill:#d95365;--r:12px;--edge:4px}
+.shop-rewards{position:absolute;right:40px;top:80px;display:flex;gap:16px}
+.shop-reward{width:170px;height:158px;display:flex;flex-direction:column;align-items:center;padding:10px 7px 4px;--fill:#ffedce;--r:18px;--edge:6px}
+.shop-reward .shop-art,.shop-reward .icon{width:128px;height:98px;flex:none;margin:0}
+.shop-reward b{font-size:36px;line-height:1.1}
+.bundle-price{position:absolute;left:34px;right:34px;bottom:20px;height:70px;font-size:42px!important}
+/* 세 제목은 같은 원본·높이·9분할 값을 쓴다. 짧은 구분선 원본을 세로로 늘리면 나사와 테두리가 뭉개진다. */
+.shop-section{height:104px;margin:10px 0 2px;padding:0 32px;font-size:42px;line-height:1;color:#fff4dc;-webkit-text-stroke:8px #3b2113;paint-order:stroke fill;text-shadow:0 4px #3b2113;letter-spacing:1px;display:flex;justify-content:center;align-items:center;background:url('../assets/shop/parts/header-wood.svg') center/100% 100% no-repeat}
+
+/* 보급소 카드: 제목 / 그림(+확률 보기) / 버튼 묶음 */
+.shop-supply-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.shop-supply{height:340px;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;padding:14px 26px 26px;--fill:#139798;--r:20px;--edge:6px}
+.hamster-supply{--fill:#9851c3;--r:20px;--edge:6px}
+.shop-supply .shop-title{font-size:40px;margin:0;flex:none}
+.shop-stage{flex:1;min-height:0;position:relative;margin:-12px 0 4px}
+.shop-stage>.shop-art{position:absolute;inset:0}
+.shop-rate{position:absolute;right:0;bottom:0;z-index:2;color:#fff8e6;background:#49321fdb;border:2px solid #b39168;border-radius:14px;padding:3px 10px;font-size:20px!important;text-shadow:0 2px #341b10}
+.shop-bottom{flex:none;display:flex;flex-direction:column;gap:8px}
+.shop-actions{display:flex;gap:10px}
+.shop-actions .shop-button{flex:1;min-width:0;flex-direction:column;gap:2px;padding:2px 6px 10px;height:90px}
+.shop-actions .bl{font-size:28px;line-height:1.05}
+.shop-actions .bs{display:inline-flex;align-items:center;gap:5px;font-size:23px;line-height:1;-webkit-text-stroke:3px #60331f}
+.shop-actions .cream .bs{-webkit-text-stroke:0}
+.shop-actions .bs .icon{width:30px;height:30px}
+
+
+.shop-actions .cream{font-size:23px;line-height:1.1}
+.shop-actions small{font-size:23px;display:block}
+.shop-actions .ad-play{display:block;width:32px;height:26px;object-fit:contain;flex:none}
+.shop-hamster-action{display:flex;flex-direction:column;gap:6px}
+.shop-hamster-action .shop-button{height:78px;font-size:36px}
+.shop-hamster-action small{display:none;font-size:25px;text-align:center;line-height:30px;color:#fff4d7;text-shadow:0 2px #56311a}
+
+/* 다이아 충전 카드: 이름 · 금테 그림 칸 · 수량 · 노란 가격 버튼, 바탕은 단색 크림 패널 */
+.shop-packs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 12px;padding-top:4px}
+.shop-pack{position:relative;border:0;background:none;height:330px;padding:16px 14px 18px;display:flex;flex-direction:column;align-items:center;--fill:#ffedce;--r:18px;--edge:6px}
+.pack-frame{flex:none;width:148px;height:124px;margin-top:8px;padding:6px;border:5px solid #ffd043;outline:4px solid #5a2f12;border-radius:14px;background:radial-gradient(circle at 50% 42%,#ffd07a 0,#ea8a2d 72%);box-shadow:inset 0 0 0 3px #8a4b17;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pack-frame>.shop-art{width:100%;height:100%}
+.pack-frame .art-stack{display:flex;justify-content:center;align-items:center;width:100%;height:100%}
+.pack-frame .art-stack .shop-art{width:64%;height:100%;flex:none;margin:0 -13%}
+.pack-frame .art-stack.n3 .shop-art{width:56%;margin:0 -13%}
+.pack-frame .art-stack .shop-art:nth-child(2){position:relative;z-index:1;transform:translateY(-3px)}
+.shop-pack b{flex:none;height:50px;margin:10px 0 6px;display:flex;align-items:center;gap:8px;color:#4a2a16;-webkit-text-stroke:0;text-shadow:none;font-size:38px;line-height:1}
+.shop-pack b .icon{width:42px;height:42px}
+.shop-pack-price{flex:none;width:100%;height:62px;margin-top:auto;padding:0 0 8px;display:flex;align-items:center;justify-content:center;color:#fff;-webkit-text-stroke:5px #60331f;paint-order:stroke fill;text-shadow:0 3px #62331c;font-size:30px;line-height:1;--fill:linear-gradient(#ffdc62,#ffc22b 55%,#f59e17);--r:18px;--edge:6px;position:relative;isolation:isolate}
+
+.shop-product-detail{text-align:center}
+.shop-product-detail .shop-art{height:300px}
+.shop-product-detail h3{margin:10px 0;font-size:36px}
+.shop-product-detail small{font-size:25px}
+.shop-product-detail .shop-art{height:280px}
+.shop-product-detail .art-stack{display:flex;justify-content:center;height:280px}
+.shop-product-detail .art-stack .shop-art{width:52%;margin:0 -7%}
+.shop-product-detail .art-stack.n3 .shop-art{width:44%}
+.shop-product-detail p{margin:8px 0;font-size:30px}
+.shop-product-detail b{font-size:40px;display:block;margin:6px 0}
+/* 상점이 열려 있어도 위쪽 막대와 아래 메뉴는 그대로 쓴다: 어두운 덮개는 가운데 구간(위 115 ~ 아래 206)만 가리고 클릭도 거기서만 막는다 */
+.shade.hud-live{background:none;pointer-events:none}
+.shade.hud-live::before{content:"";position:absolute;left:0;right:0;top:115px;bottom:206px;background:#0009;pointer-events:auto}
+.shade.hud-live .modal{position:relative;z-index:1;pointer-events:auto;margin-bottom:95px}
+/* 위 막대(~115)와 아래 메뉴(1462) 사이 띠의 한가운데에 놓이도록 95px 올린다 */
+.shop-note{font-size:24px;text-align:center;color:#e8ceaa;margin:14px 0 0;text-shadow:0 2px #2d1b13}
+
+/* 30일 상품: 기존 꾸러미와 같은 가로 배너, 그림·혜택·가격을 각각 분리한다. */
+.shop-pass{height:374px}
+.shop-pass.diamond-pass{--fill:#299bcc;--r:20px;--edge:7px}
+.shop-pass.comfort-pass{--fill:#9463c4;--r:20px;--edge:7px}
+.shop-pass .shop-title{left:334px;right:22px;top:16px;font-size:40px}
+.pass-badge{position:absolute;left:24px;top:18px;border:3px solid #52352b;border-radius:12px;background:#fff0bf;color:#57361f;box-shadow:0 3px #0004;font-size:23px;padding:2px 14px;z-index:2}
+.shop-pass .pass-art{position:absolute;width:326px;height:220px;left:18px;top:66px}
+.pass-benefits{position:absolute;left:350px;right:26px;top:86px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pass-benefit{height:155px;background:#fff0d3;border:4px solid #593820;border-radius:16px;box-shadow:inset 0 0 0 3px #fffc,0 4px #34231b66;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.pass-benefit small{font-size:25px;line-height:1.1;font-weight:900}
+.pass-benefit strong{display:flex;align-items:center;gap:8px;font-size:33px;line-height:1.1}
+.pass-benefit .benefit-art{width:118px;height:76px;flex:none}
+.comfort-pass .benefit-art{width:130px;height:98px;margin-bottom:3px}
+.comfort-pass .pass-benefit strong{font-size:24px;white-space:nowrap}
+.pass-note{position:absolute;left:330px;right:22px;top:243px;margin:0!important;text-align:center;color:#fff5d6;font-size:23px!important;text-shadow:0 2px 2px #20374c;font-weight:900;line-height:1.2}
+.shop-pass .bundle-price{bottom:19px;height:74px;gap:8px}
+.shop-pass .bundle-price small{font-size:25px}
+.pass-detail .shop-art{height:245px}
+.pass-detail .pass-valid{padding:12px;border:3px solid #a77642;background:#fff1d8;border-radius:14px;color:#4e3525}
+.pass-detail .pass-receipt{color:#177854}
+
+/* 마우스로 끌어 스크롤(drag-scroll.js): 터치는 세로 스크롤을 브라우저에 맡기고, 끄는 동안 글자·그림 선택을 막는다 */
+.drag-scroll{touch-action:pan-y;overscroll-behavior-y:contain;cursor:grab;user-select:none;-webkit-user-select:none}
+.drag-scroll img,.drag-scroll canvas{-webkit-user-drag:none;user-drag:none}
+.drag-scroll.dragging,.drag-scroll.dragging *{cursor:grabbing!important}
+
+/* 꾸러미·이용권 패널의 햇살: 틀 그림(9분할)에 넣으면 늘어나는 가운데와 가장자리 띠의 이음매가 가로줄로 보여, 안쪽에 CSS 그라데이션으로 따로 깐다 */
+.shop-bundle{--rays:#ffeb9c4d}
+.shop-bundle.diamond-pass{--rays:#8ee9ff4d}
+.shop-bundle.comfort-pass{--rays:#d5b5fc4d}
+.shop-bundle::after{content:"";position:absolute;inset:12px;z-index:-1;border-radius:12px;pointer-events:none;background:repeating-conic-gradient(from 0deg at 31% 42%,var(--rays) 0 12deg,transparent 12deg 24deg)}

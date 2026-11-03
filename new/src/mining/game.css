@@ -1,0 +1,39 @@
+@font-face{font-family:Game;src:url('../../assets/fonts/NotoSansKR-game.woff2') format('woff2');font-weight:400 900;font-display:swap}
+/* A scaled canvas must never become a scroll target when a modal field gains focus. */
+#viewport{overflow:clip}
+.renewal-game #hud > :not(.mine-controls){display:none}
+.mine-controls{position:absolute;inset:0;pointer-events:none}
+.mine-controls button{position:absolute;bottom:24px;min-width:140px;min-height:76px;padding:10px 24px;font-size:28px;border-width:4px;border-radius:24px;pointer-events:auto}
+.mine-controls [data-act="mine-menu"]{left:24px}
+.mine-controls [data-act="mine-return"],.mine-controls [data-act="mine-prepare"]{right:24px}
+.renewal-game.legacy-subscene #hud>:not(.mine-controls){display:revert}
+.legacy-subscene .mine-controls{display:none}
+.renewal-game .shade.hud-live{inset:0;background:#0009}
+.renewal-game .modal{max-height:1510px}
+.renewal-game .modal-body{overscroll-behavior:contain}
+.seed-icon{width:64px;height:64px;object-fit:contain;vertical-align:middle}
+.seed-bank{display:flex;align-items:center;justify-content:center;gap:16px;background:#e6d4ae;border-radius:22px;padding:16px;font-size:34px;margin-bottom:20px;color:#573722}
+.seed-bank b{color:#8d5727}
+.mine-menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.mine-menu-grid .cta{margin:0;min-height:120px;font-size:31px}
+.mine-form,.mine-traits{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:18px 0}
+.mine-form label,.mine-traits label{display:grid;gap:10px;font-size:27px;color:#76543d}
+.mine-form select,.mine-traits select,.mine-form input{font:inherit;font-size:30px;font-weight:800;color:#432c20;background:#fff9e7;border:3px solid #b69770;border-radius:14px;padding:14px;width:100%;min-height:72px}
+.mine-form .seed-pack{grid-column:1/-1;grid-template-columns:1fr 170px;align-items:center}
+.mine-traits{border-top:2px solid #d7c3a2;padding-top:20px}
+.mine-result .amount{display:flex;justify-content:center;align-items:center;gap:10px;font-size:60px}
+.mine-forge{text-align:center}
+.mine-forge>.icon{width:160px;height:160px}
+.mine-forge h2{margin:0;font-size:45px}
+.mine-odds{text-align:center;font-size:26px}
+.renewal-game #toast{top:auto;bottom:140px;max-width:820px;font-size:28px}
+.village-controls{display:none;position:absolute;inset:0;pointer-events:none}
+.village-scene .village-controls{display:block}
+.village-controls [data-act="village-travel"]{left:calc(50% - 90px);min-width:180px}
+.village-controls [data-act="village-home"]{right:24px;bottom:200px;min-width:100px;font-size:25px}
+.village-zoom{position:absolute;right:24px;bottom:300px;display:grid;gap:8px}
+.village-zoom button{position:static;min-width:100px;min-height:80px;font-size:40px;padding:4px}
+.village-hint{position:absolute;bottom:105px;left:0;right:0;text-align:center;color:#fff8df;text-shadow:0 2px 3px #3f382a,0 0 3px #3f382a;font:700 24px Game,sans-serif;pointer-events:none}
+.village-scene #world{cursor:grab;touch-action:none}
+.village-scene #world:active{cursor:grabbing}
+.mine-controls button[hidden]{display:none}
