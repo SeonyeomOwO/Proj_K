@@ -146,15 +146,14 @@ export class VillageWorld{
  // 씨앗이 모여 곡괭이를 강화할 수 있으면 대장간 화덕에서 불길이 '확' 뿜어져 나와 알려 준다(글 안내 없이).
  forgeReady(s){const q=enhancementQuote(s);return !!q&&s.renewal.seeds>=q.cost&&(!s.renewal.run||s.renewal.run.phase==='ended');}
  forgeFlame(c,b,motion){
-  const fx=b.x+55,fy=b.y-50,cycle=motion?(this.time%1.6)/1.6:.2,burst=cycle<.35?Math.sin(cycle/.35*Math.PI):0;
+  const fx=b.x+61,fy=b.y-50,cycle=motion?(this.time%1.6)/1.6:.2,burst=cycle<.35?Math.sin(cycle/.35*Math.PI):0;
   c.save();c.globalCompositeOperation='lighter';
   const glow=c.createRadialGradient(fx,fy,2,fx,fy,34+burst*16);glow.addColorStop(0,'#ffd36acc');glow.addColorStop(1,'#ff7a2a00');
   c.fillStyle=glow;c.beginPath();c.arc(fx,fy,34+burst*16,0,Math.PI*2);c.fill();
   // 화덕 입구에서 위로 솟는 불혀 세 개(터질 때 크게, 평소엔 작게 일렁). 마을 원화처럼 진한 테두리를 둔다.
   c.globalCompositeOperation='source-over';c.lineJoin='round';
-  // 불혀는 화덕 입구 안에서만 일렁인다(건물 밖으로 삐져나오지 않게 높이를 묶음). 터지는 느낌은 빛과 불티가 맡는다.
   for(const i of [0,2,1]){
-   const sway=motion?Math.sin(this.time*9+i*2.1)*2:0,hgt=(8+burst*11)*(i===1?1:.75),x=fx-8+i*8+sway,wide=i===1?6:4.8;
+   const sway=motion?Math.sin(this.time*9+i*2.1)*3:0,hgt=(10+burst*28)*(i===1?1:.78),x=fx-9+i*9+sway,wide=i===1?7:5.5;
    c.globalAlpha=.95;c.fillStyle=i===1?'#ffd84a':'#ff8a2e';c.strokeStyle='#9c3f17';c.lineWidth=1.8;
    c.beginPath();c.moveTo(x-wide,fy+4);c.quadraticCurveTo(x-wide-1,fy-hgt*.45,x,fy-hgt);c.quadraticCurveTo(x+wide+1,fy-hgt*.45,x+wide,fy+4);c.closePath();c.fill();c.stroke();
    if(i===1){c.fillStyle='#fff6c4';c.beginPath();c.moveTo(x-2.5,fy+2);c.quadraticCurveTo(x-3,fy-hgt*.3,x,fy-hgt*.55);c.quadraticCurveTo(x+3,fy-hgt*.3,x+2.5,fy+2);c.closePath();c.fill();}
