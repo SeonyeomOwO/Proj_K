@@ -4,6 +4,7 @@
 import {ORIGIN,TILE,RISE,center,isMineable} from './grid.js';
 import {ballWorldContact,terrainContact} from './terrain-collision.js';
 import {navigation,bodyClear,clearSegment} from './navigation.js';
+import {WATER,inWater} from './map-layouts.js';
 export const FLING={
  hamster:{grab:27,maxPull:105,power:4.6,drag:1.7,radius:15,stop:30,speed:430,minTime:.3,maxTime:.75,arc:.24,maxArc:72,land:.18},
  cart:{grab:40,maxPull:95,power:4.4,drag:2.4,bounce:.38,stop:10}
@@ -105,8 +106,8 @@ function cartContact(s,x,y,r){
  return null;
 }
 function stepCart(s,c,dt){
- const C=FLING.cart,k=travel(C.drag,dt),x=c.x+c.vx*k,y=c.y+c.vy*k,hit=cartContact(s,x,y,c.radius-6);
- const decay=Math.exp(-C.drag*dt);
+ const C=FLING.cart,k=travel(C.drag+(inWater(s,c.x,c.y)?WATER.drag:0),dt),x=c.x+c.vx*k,y=c.y+c.vy*k,hit=cartContact(s,x,y,c.radius-6);
+ const decay=Math.exp(-(C.drag+(inWater(s,c.x,c.y)?WATER.drag:0))*dt);
  // 이미 맞닿아 있어도 떨어지는 쪽으로는 움직인다
  if(hit&&c.vx*hit.nx+c.vy*hit.ny<0){const dot=c.vx*hit.nx+c.vy*hit.ny;c.vx-=(1+C.bounce)*dot*hit.nx;c.vy-=(1+C.bounce)*dot*hit.ny;c.vx*=decay;c.vy*=decay;return hit;}
  c.x=x;c.y=y;c.vx*=decay;c.vy*=decay;c.tilt=(c.tilt??0)*.9+Math.max(-.16,Math.min(.16,c.vx/1100));

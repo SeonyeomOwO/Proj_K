@@ -1,6 +1,6 @@
-import {COLS,ROWS,TILE,ORIGIN,center,noise,holeMarker,isMineable} from './model.js';
+import {COLS,ROWS,TILE,ORIGIN,RISE,center,noise,holeMarker,isMineable} from './model.js';
 import {drawActor} from './animation/motion.js';
-import {paintWaveTerrain,waveContours,traceWave} from './terrain-wave.js';
+import {paintWaveTerrain,waveContours,traceWave,wavePoint} from './terrain-wave.js';
 import {contours} from './terrain-geometry.js';
 import {drawHoleBase,drawHoleMarker} from './hole-marker.js';
 import {getMineral} from './mineral-themes.js';
@@ -22,7 +22,55 @@ function paintOutside(c,s){
  traceWave(c,loops);c.lineJoin='round';c.strokeStyle='#1d1513';c.lineWidth=6;c.stroke();c.strokeStyle='#5b4334';c.lineWidth=2;c.stroke();
  c.restore();
 }
-export function paintTerrain(c,s,options){paintWaveTerrain(c,s,options);paintOutside(c,s);}
+// 물길: 뚫린 바닥 위의 청록 물(바위 덩어리와 그 벽면 아래로는 칠하지 않는다). 지나가면 느려진다.
+function paintWater(c,s){
+ if(!s.cells.some(x=>x.water))return;
+ const water=waveContours(contours(s.cells.map(x=>({...x,solid:!!x.water})))),rock=waveContours(contours(s.cells));
+ c.save();
+ for(const dy of [0,RISE]){c.beginPath();c.rect(0,0,450,800);for(const pts of rock){pts.forEach(([x,y],i)=>{const[a,b]=wavePoint(x,y+dy);i?c.lineTo(a,b):c.moveTo(a,b);});c.closePath();}c.clip('evenodd');}
+ traceWave(c,water,4);c.fillStyle='#3f9c98';c.fill('evenodd');
+ traceWave(c,water);c.fillStyle='#62c6bd';c.fill('evenodd');c.strokeStyle='#2f7f7d';c.lineWidth=3;c.lineJoin='round';c.stroke();
+ c.strokeStyle='#bff0e2';c.lineWidth=2;c.lineCap='round';
+ for(const cell of s.cells)if(cell.water){const[x,y]=center(cell.id);for(const[dx,dy,w]of[[-10,-4,9],[6,6,7]]){c.beginPath();c.moveTo(x+dx-w,y+dy);c.quadraticCurveTo(x+dx,y+dy-4,x+dx+w,y+dy);c.stroke();}}
+ c.restore();
+}
+export function paintTerrain(c,s,options){paintWaveTerrain(c,s,options);paintWater(c,s);paintOutside(c,s);}
+// 바위 체력 숫자 표시 배율(레퍼런스처럼 블록마다 숫자). 남은 타격 수 × 10으로 보여 준다.
+const HP_LABEL=10;
+function drawRockHp(c,s){
+ const hits=new Map();for(const e of s.events)if(e.type==='hit')hits.set(e.id,e.time);
+ c.save();c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
+ for(const cell of s.cells){if(!isMineable(cell))continue;
+  const[x,y]=center(cell.id),age=hits.has(cell.id)?s.time-hits.get(cell.id):1,k=age<.22?1-age/.22:0,v=String(Math.ceil(cell.hp*HP_LABEL-1e-6));
+  c.font=`900 ${11+k*5}px Game, sans-serif`;c.lineWidth=3.2;c.strokeStyle='#5a3b26';c.fillStyle=k?'#ffe27a':'#fff4d6';
+  c.strokeText(v,x,y+1);c.fillText(v,x,y+1);
+ }
+ c.restore();
+}
+// 층 목표(왼쪽 위): 광석 캐기(구멍이 풀리는 조건) + 이 층의 황금 상자. 다 채우면 체크.
+function drawFloorGoals(c,s,rig){
+ if(!s.holeNeed)return;
+ const crates=s.cells.filter(x=>x.crate||x.opened),opened=crates.filter(x=>x.opened).length;
+ const rows=[[`광석 캐기 ${Math.min(s.floorBroken??0,s.holeNeed)}/${s.holeNeed}`,(s.floorBroken??0)>=s.holeNeed]];
+ if(crates.length)rows.push([`황금 상자 ${opened}/${crates.length}`,opened>=crates.length]);
+ frame(c,rig,'panel_brown',13,62,128,14+rows.length*20,12);
+ c.save();c.font='900 12px Game, sans-serif';c.textBaseline='middle';c.lineJoin='round';
+ rows.forEach(([label,done],i)=>{const y=79+i*20;
+  c.beginPath();c.arc(29,y,6,0,Math.PI*2);c.fillStyle=done?'#8fd06e':'#f2e3c2';c.fill();c.lineWidth=1.6;c.strokeStyle='#5a3b26';c.stroke();
+  if(done){c.strokeStyle='#2e5a22';c.lineWidth=2;c.beginPath();c.moveTo(26,y);c.lineTo(28.5,y+2.5);c.lineTo(32.5,y-3);c.stroke();}
+  c.textAlign='left';c.lineWidth=3;c.strokeStyle='#3c261b';c.strokeText(label,41,y+1);c.fillStyle=done?'#c9f0b0':'#ffebbb';c.fillText(label,41,y+1);
+ });
+ c.restore();
+}
+// 층에 들어서자마자 황금 상자가 여러 개면 알림(3개 이상이면 잭팟)
+function drawJackpot(c,s,rig,reducedMotion){
+ const n=s.cells.filter(x=>x.crate||x.opened).length,age=s.time-(s.floorStart??0);
+ if(n<2||age>2.6||s.phase!=='mining')return;
+ const pop=reducedMotion?1:age<.25?.6+age/.25*.5:age<.4?1.1-(age-.25)/.15*.1:1,fade=age>2.2?1-(age-2.2)/.4:1;
+ c.save();c.globalAlpha=fade;c.translate(225,150);c.scale(pop,pop);
+ frame(c,rig,'panel_brown',-120,-26,240,52,16);text(c,n>=3?`잭팟! 황금 상자 ${n}개`:`황금 상자 ${n}개!`,0,9,20);
+ c.restore();
+}
 function line(c,points,color,width=1){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.stroke();}
 export function frame(c,rig,id,x,y,w,h,edge=14){const f=rig.manifest.frames[id],im=rig.images[f.sheet],cap=Math.floor(Math.min(f.w,f.h)*.34),d=Math.min(edge,w/3,h/3),sx=[f.x,f.x+cap,f.x+f.w-cap],sy=[f.y,f.y+cap,f.y+f.h-cap],sw=[cap,f.w-2*cap,cap],sh=[cap,f.h-2*cap,cap],dx=[x,x+d,x+w-d],dy=[y,y+d,y+h-d],dw=[d,w-2*d,d],dh=[d,h-2*d,d];for(let j=0;j<3;j++)for(let i=0;i<3;i++)c.drawImage(im,sx[i],sy[j],sw[i],sh[j],dx[i],dy[j],dw[i],dh[j]);}
 function text(c,value,x,y,size=18){c.font=`900 ${size}px Game, sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#3c261b';c.strokeText(value,x,y+1);c.fillStyle='#ffebbb';c.fillText(value,x,y);}
@@ -49,6 +97,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   }
   c.restore();
  }
+ drawRockHp(c,s);
  if(s.focus!==null&&isMineable(s.cells[s.focus])){const[x,y]=center(s.focus),age=s.time-(s.focusAt??-1),pulse=Math.max(0,1-age/.65),r=24+pulse*5;c.save();c.globalAlpha=.3+pulse*.65;c.strokeStyle='#fff3bb';c.lineWidth=1.5+pulse;for(const[dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.beginPath();c.moveTo(x+dx*(r-7),y+dy*r);c.lineTo(x+dx*r,y+dy*r);c.lineTo(x+dx*r,y+dy*(r-7));c.stroke();}c.restore();}
  const delivery=s.events.findLast(e=>e.type==='deposit'),deliveryAge=delivery?s.time-delivery.time:1;
  const bounce=deliveryAge<.35?Math.sin(deliveryAge/.35*Math.PI*2)*2*(1-deliveryAge/.35):0;
@@ -127,6 +176,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  frame(c,res.rig,'panel_brown',13,16,108,42);text(c,`지하 ${s.depth??1}층`,67,44);
  frame(c,res.rig,'panel_brown',342,16,95,42);res.draw(c,'seed',364,37,14,21);text(c,String(ball.seeds??0),402,44,17);
  if(s.crew?.length)drawTeamEnergy(c,s,{frame,rig:res.rig,text});
+ drawFloorGoals(c,s,res.rig);drawJackpot(c,s,res.rig,reducedMotion);
  // 이번 탐사에서 수레에 담은 황금 해바라기씨(상자를 열었을 때부터 보인다). 담길 때마다 톡 튄다.
  if(s.goldenFound){const got=s.events.findLast(e=>e.type==='deposit'&&e.golden),k=got&&s.time-got.time<.3&&!reducedMotion?1+.25*Math.sin((s.time-got.time)/.3*Math.PI):1;
   frame(c,res.rig,'panel_brown',342,62,95,34);c.save();c.translate(364,79);c.scale(k,k);res.draw(c,'golden-seed',0,0,22,22);c.restore();text(c,String(s.securedGolden??0),402,86,15);}

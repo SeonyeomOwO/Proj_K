@@ -1,4 +1,5 @@
 import {ballWorldContact} from './terrain-collision.js';
+import {WATER,inWater} from './map-layouts.js';
 export const BALL={radius:18,grabRadius:36,maxPull:105,power:5.6,drag:1.35,bounce:.68,wallBounce:.42,stop:9};
 export const ballSpeed=b=>Math.hypot(b.vx??0,b.vy??0);
 export function beginAim(s,p){
@@ -67,6 +68,8 @@ export function updateBall(s,dt,onHit,onHole){
  while(remaining>1e-8){
   const step=Math.min(1/120,remaining);remaining-=step;
   const hits=stepBall(s,b,step);
+  // 물길을 지나면 더 빨리 멈춘다
+  if(inWater(s,b.x,b.y)){const k=Math.exp(-WATER.drag*step);b.vx*=k;b.vy*=k;if(ballSpeed(b)<BALL.stop)b.vx=b.vy=0;}
   b.contacts=b.contacts.filter(id=>{const h=s.crew.find(h=>h.id===id);return h&&Math.hypot(h.x-b.x,h.y-b.y)<b.radius+23;});
   for(const hit of hits)if(!b.contacts.includes(hit)){b.contacts.push(hit);onHit(s.crew.find(h=>h.id===hit));}
   if(holeContains(s,b)){b.vx=b.vy=0;onHole();return;}
@@ -78,6 +81,7 @@ export function predictBall(s){
  if(ballSpeed(b)<BALL.stop)return points;
  for(let i=0;i<180;i++){
   const hits=stepBall(s,b,1/120);
+  if(inWater(s,b.x,b.y)){const k=Math.exp(-WATER.drag/120);b.vx*=k;b.vy*=k;if(ballSpeed(b)<BALL.stop)b.vx=b.vy=0;}
   if(i%8===0)points.push({x:b.x,y:b.y});
   if(hits.length||holeContains(s,b)||!ballSpeed(b)){points.push({x:b.x,y:b.y,target:hits.length?'hamster':holeContains(s,b)?'hole':null});break;}
  }

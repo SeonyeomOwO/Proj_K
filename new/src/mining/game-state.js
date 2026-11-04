@@ -29,7 +29,7 @@ export function validRun(m){
  if(!m.cart||!m.ball||!whole(m.ball.seeds,ECONOMY.ballCapacity)||!whole(m.secured)||!whole(m.securedValue)||!whole(m.mined)||!whole(m.lostOre)||!whole(m.lostValue))return false;
  const finiteTree=v=>typeof v==='number'?Number.isFinite(v):v&&typeof v==='object'?Object.values(v).every(finiteTree):true;
  if(!finiteTree(m))return false;
- const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m)});
+ const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m),depth:m.depth});
  if(m.cells.some((c,i)=>!c||c.id!==i||c.kind!==base.cells[i].kind||typeof c.solid!=='boolean'||c.unbreakable!==base.cells[i].unbreakable||(c.unbreakable&&!c.solid)||!(c.hp>=0&&c.hp<=c.maxHp&&c.maxHp<=5)))return false;
  if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=100)||!(h.fullness>=0&&h.fullness<=3)||h.cargo&&!h.cargoDrop))return false;
  // 주인 없는 드롭(owner=null): 상자에서 튄 황금 해바라기씨는 가까운 햄찌가 나중에 맡는다.
@@ -66,7 +66,7 @@ export function startMining(s,{seeds=ECONOMY.ballCapacity,themeId,layoutId,trait
  if(traits)r.traits=safeTraits(traits);
  const packed=Math.min(r.seeds,ECONOMY.ballCapacity,Math.max(0,Math.floor(Number(seeds)||0)));
  r.seeds-=packed;r.runId++;r.result=null;
- const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
+ const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits,depth:s.floor});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
  // Snapshot growth on departure; changing menus never resets an active swing.
  const {power,speed,reward}=miningGrowth(s);
  for(const h of m.crew){h.power=power;h.period/=speed;}
