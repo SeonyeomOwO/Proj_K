@@ -3,6 +3,19 @@
 #viewport{overflow:clip}
 .renewal-game #hud > :not(.mine-controls){display:none}
 .mine-controls{position:absolute;inset:0;pointer-events:none}
+/* 마을 공 위 씨앗 말풍선: ◀ 씨앗 개수 ▶ · MAX (화면 크기에 맞춰 커진 게임 단위라 px가 크다) */
+.pack-bubble{position:absolute;z-index:40;transform:translate(-50%,-100%);display:none;grid-template-columns:auto auto auto auto auto;align-items:center;gap:10px;padding:16px 18px 12px;background:#fff6dc;border:5px solid #6b4a30;border-radius:30px;box-shadow:0 8px 0 #6b4a3055;font-family:Game,sans-serif;color:#4a3122;touch-action:manipulation}
+.pack-bubble.open{display:grid}
+.pack-bubble[hidden]{display:none}
+.pack-bubble img{width:34px;height:52px;object-fit:contain}
+.pack-bubble input{width:120px;height:70px;font:900 40px Game,sans-serif;text-align:center;color:#4a3122;background:#fffdf3;border:4px solid #b69770;border-radius:18px;-moz-appearance:textfield}
+.pack-bubble input::-webkit-outer-spin-button,.pack-bubble input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.pack-bubble button{width:70px;height:70px;padding:0;display:grid;place-items:center;background:#f6c945;border:4px solid #6b4a30;border-radius:20px;box-shadow:0 5px 0 #a8792d}
+.pack-bubble button:active{transform:translateY(4px);box-shadow:0 1px 0 #a8792d}
+.pack-bubble button svg{width:34px;height:34px;fill:#6b4a30}
+.pack-bubble .pack-max{width:auto;padding:0 16px;font:900 28px Game,sans-serif;color:#4a3122;background:#ffe08a}
+.pack-bubble small{grid-column:1/-1;text-align:center;font-size:22px;color:#8a6a4a}
+.pack-bubble .pack-tail{position:absolute;left:50%;bottom:-22px;width:30px;height:30px;transform:translateX(-50%) rotate(45deg);background:#fff6dc;border-right:5px solid #6b4a30;border-bottom:5px solid #6b4a30}
 .mine-controls button{position:absolute;bottom:24px;min-width:140px;min-height:76px;padding:10px 24px;font-size:28px;border-width:4px;border-radius:24px;pointer-events:auto}
 .mine-controls [data-act="mine-menu"]{left:24px}
 .mine-controls [data-act="mine-return"],.mine-controls [data-act="mine-prepare"]{right:24px}

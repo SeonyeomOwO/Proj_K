@@ -1055,7 +1055,8 @@ async function start() {
     world = new World($('world'), a, mineralPreview);
     if(renewalMode){
       mine=await new GameMine($('world'),a,{getState:()=>s,blocked:()=>!!modal||paused||prologueActive||gachaOn||dungeonLoading||sceneChanging,notify,onChange:save,onEnd:backToVillage}).load();
-      village=await new VillageWorld($('world'),mine.res,{getState:()=>s,blocked:()=>!!modal||prologueActive||gachaOn||dungeonLoading||sceneChanging,open,notify,onEnter:enterFromVillage,onChange:save}).load();
+      // onPack: 공 위 말풍선에서 정한 씨앗 개수로 탐사 준비를 마친다(광산 테마·특성은 그대로)
+      village=await new VillageWorld($('world'),mine.res,{getState:()=>s,blocked:()=>!!modal||prologueActive||gachaOn||dungeonLoading||sceneChanging,open,notify,onEnter:enterFromVillage,onChange:save,onPack:n=>{Village.prepareVillage(s,{seeds:n,themeId:s.renewal.themeId});save();}}).load();
       const legacyRender=world.render.bind(world);world.render=(state,dt)=>village.active()?village.render():mine.active()?mine.render(state):legacyRender(state,dt);
       if(fixture){paused=false;$('pause').checked=false;}
     }

@@ -1,7 +1,7 @@
 import {drawActor} from '../mining/animation/motion.js';
 import {frame} from '../mining/renderer.js';
 import {fatigueState,canDepart,equipVillageTrait,villageCrew,traitUnlocked} from './state.js';
-import {enhancementQuote} from '../mining/game-state.js';
+import {enhancementQuote,ballCapacity} from '../mining/game-state.js';
 import {TRAITS} from '../mining/mining-rules.js';
 import {TIERS} from '../../data/config.js';
 import {HOME,WORLD,worldPoint,pan,zoomAt,pinch} from './camera.js';
@@ -42,8 +42,42 @@ function path(c,points,width,color){c.beginPath();c.moveTo(...points[0]);for(con
 const rand=n=>{const r=Math.sin(n*127.1+41.7)*43758.5453;return r-Math.floor(r);};
 
 export class VillageWorld{
- constructor(canvas,res,{getState,blocked,open,notify,onEnter,onChange}){
-  Object.assign(this,{canvas,res,getState,blocked,open,notify,onEnter,onChange});
+ // ── 공 위 씨앗 말풍선: ◀ 개수 ▶ · 숫자 직접 입력 · MAX. 정한 개수는 onPack으로 저장(탐사 준비 완료 상태가 된다) ──
+ packMax(){const s=this.getState();return Math.max(0,Math.min(ballCapacity(s),s.renewal.seeds));}
+ packValue(){const v=this.getState().renewal.village?.pack;return Math.min(this.packMax(),Number.isFinite(v)?v:this.packMax());}
+ // 최대(공 용량과 가진 씨앗 중 작은 쪽)보다 크게 적으면 최대만큼만 담긴다
+ setPack(n){const v=Math.max(0,Math.min(this.packMax(),Math.floor(Number(n)||0)));this.onPack?.(v);this.syncPackText(v,true);}
+ syncPackText(v=this.packValue(),force=false){if(!this.pack)return;const input=this.pack.querySelector('input');if(force||document.activeElement!==input)input.value=String(v);this.pack.querySelector('[data-pack-max-label]').textContent=`최대 ${this.packMax()}개`;}
+ togglePack(){if(this.pack?.classList.contains('open'))this.hidePack();else this.showPack();}
+ showPack(){if(!this.pack)return;this.pack.classList.add('open');this.syncPackText();this.onPack?.(this.packValue());}
+ hidePack(){if(this.pack?.classList.contains('open')){this.pack.classList.remove('open');this.pack.querySelector('input').blur();}}
+ buildPack(){
+  const host=this.canvas.parentElement,el=document.createElement('div');el.className='pack-bubble';el.setAttribute('role','group');el.setAttribute('aria-label','공에 챙길 해바라기씨');
+  const arrow=d=>`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="${d}"/></svg>`;
+  el.innerHTML=`<button type="button" data-pack="-" aria-label="하나 덜 챙기기">${arrow('M13 3 L5 10 L13 17 Z')}</button><img src="assets/mining/web/props/seed.webp" alt=""><input type="number" inputmode="numeric" min="0" step="1" aria-label="챙길 해바라기씨 개수"><button type="button" data-pack="+" aria-label="하나 더 챙기기">${arrow('M7 3 L15 10 L7 17 Z')}</button><button type="button" class="pack-max" data-pack="max">MAX</button><small data-pack-max-label></small><i class="pack-tail"></i>`;
+  // 누르고 있으면 계속 오르내린다
+  let hold=null;const stop=()=>{clearTimeout(hold);hold=null;};
+  el.addEventListener('pointerdown',e=>{const b=e.target.closest('[data-pack]');e.stopPropagation();if(!b)return;const k=b.dataset.pack;
+   if(k==='max'){this.setPack(this.packMax());return;}
+   const step=()=>{this.setPack(this.packValue()+(k==='+'?1:-1));hold=setTimeout(step,hold?70:380);};step();});
+  for(const ev of ['pointerup','pointerleave','pointercancel'])el.addEventListener(ev,stop);
+  const input=el.querySelector('input');
+  input.addEventListener('change',()=>this.setPack(input.value));
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){this.setPack(input.value);input.blur();}e.stopPropagation();});
+  input.addEventListener('blur',()=>this.setPack(input.value));
+  host.appendChild(el);this.pack=el;
+ }
+ // 말풍선을 공 바로 위에 붙인다(카메라를 움직여도 따라감)
+ placePack(){
+  const el=this.pack;if(!el)return;const show=el.classList.contains('open')&&this.active()&&!this.blocked()&&!this.suction&&canDepart(this.getState());
+  el.hidden=!show;if(!show)return;
+  // 게임 화면(#game)이 CSS로 축소돼 있어 화면 px를 그 축소 배율로 나눠 부모 안 좌표로 바꾼다
+  const c=this.canvas,host=c.parentElement,r=c.getBoundingClientRect(),hr=host.getBoundingClientRect(),scale=hr.width/(host.offsetWidth||hr.width),k=r.width/450,cam=this.camera;
+  const x=(this.ball.x-cam.x)*cam.zoom+225,y=(this.ball.y-cam.y)*cam.zoom+400-26*cam.zoom;
+  el.style.left=`${(r.left-hr.left+x*k)/scale}px`;el.style.top=`${(r.top-hr.top+y*k)/scale}px`;
+ }
+ constructor(canvas,res,{getState,blocked,open,notify,onEnter,onChange,onPack}){
+  Object.assign(this,{canvas,res,getState,blocked,open,notify,onEnter,onChange,onPack});
   this.context=canvas.getContext('2d');this.camera={...HOME};this.time=0;this.pointers=new Map();this.reset();
  }
  async load(){
@@ -52,11 +86,11 @@ export class VillageWorld{
   const manifest=await fetch(new URL('manifest.web.json',base)).then(r=>{if(!r.ok)throw Error('마을 리소스를 열 수 없어요');return r.json();});
   this.sprites={};await Promise.all(manifest.assets.map(async p=>{this.sprites[p.id]={...p,image:await this.res.rig.image(new URL(p.path,base))};}));
   this.background=document.createElement('canvas');this.background.width=WORLD.width;this.background.height=WORLD.height;
-  this.paintGround(this.background.getContext('2d'));this.bind();return this;
+  this.paintGround(this.background.getContext('2d'));this.bind();if(typeof document!=='undefined'&&this.canvas.parentElement)this.buildPack();return this;
  }
  active(){const s=this.getState();return s.renewal?.village.scene==='village'&&!s.dungeon&&!s.rubyStage;}
  reset(){this.cancel();this.ball=freshBall();this.suction=null;this.camera={...HOME};this.wasResting=null;this.flights=new Map();this.dummyHit={};this.rebuild={};this.seen=null;}
- cancel(){this.aim=null;this.fling=null;this.gesture=null;this.pointers.clear();if(this.ball)this.ball.vx=this.ball.vy=0;}
+ cancel(){this.aim=null;this.fling=null;this.gesture=null;this.pointers.clear();if(this.ball)this.ball.vx=this.ball.vy=0;this.hidePack?.();}
  skin(s,i){return TRAITS[s.renewal.traits?.[i]]?.skin??baseSkin(i);}
  crewCount(){return villageCrew(this.getState());}
  // 날아가는 중이 아닌 햄찌 중 손가락에 가장 가까운 한 마리
@@ -125,10 +159,12 @@ export class VillageWorld{
    if(hamster&&(!near||hamster.d<ballDistance)){this.fling={i:hamster.i,origin:{x:hamster.x,y:hamster.y},pointer:w};this.gesture={type:'fling'};return;}
    if(near){
     const s=this.getState();this.ball.vx=this.ball.vy=0;
-    if(!s.renewal.village.prepared||!canDepart(s)){
+    if(!canDepart(s)){
      // Defer opening a panel until release so a pinch may start over the ball.
      this.gesture={type:'pan',start:p,moved:false};return;
     }
+    // 공은 바로 당길 수 있다(챙길 씨앗은 공을 톡 눌러 나오는 말풍선에서 정함). 준비 안 된 상태면 지금 개수로 준비해 둔다.
+    if(!s.renewal.village.prepared)this.onPack?.(this.packValue());
     this.aim={origin:w,pointer:w};this.gesture={type:'aim'};
    }else this.gesture={type:'pan',start:p,moved:false};
   });
@@ -141,7 +177,7 @@ export class VillageWorld{
    else if(this.gesture?.type==='fling'&&this.fling){this.fling.pointer=worldPoint(this.camera,p);}
    else if(this.gesture?.type==='pan'){
     const g=this.gesture;
-    if(!g.moved&&Math.hypot(p.x-g.start.x,p.y-g.start.y)>5){g.moved=true;pan(this.camera,p.x-g.start.x,p.y-g.start.y);}
+    if(!g.moved&&Math.hypot(p.x-g.start.x,p.y-g.start.y)>5){g.moved=true;this.hidePack();pan(this.camera,p.x-g.start.x,p.y-g.start.y);}
     else if(g.moved)pan(this.camera,p.x-old.x,p.y-old.y);
    }
    e.preventDefault();
@@ -152,7 +188,8 @@ export class VillageWorld{
    if(!cancelled&&this.active()&&!this.blocked()&&this.pointers.size===1){
     if(g?.type==='aim'&&this.aim){
      const velocity=aimVelocity(this.aim.origin,worldPoint(this.camera,p));
-     if(velocity.pull>6)Object.assign(this.ball,{vx:velocity.vx,vy:velocity.vy});
+     if(velocity.pull>6){Object.assign(this.ball,{vx:velocity.vx,vy:velocity.vy});this.hidePack();}
+     else this.togglePack();   // 공을 톡 누르면 씨앗 말풍선
     }else if(g?.type==='fling'&&this.fling){
      const f=this.fling,velocity=aimVelocity(f.origin,worldPoint(this.camera,p));
      if(velocity.pull>6)this.flights.set(f.i,{x:f.origin.x,y:f.origin.y,vx:velocity.vx,vy:velocity.vy,t:0,phase:'fly',hit:null});
@@ -175,7 +212,8 @@ export class VillageWorld{
   });
  }
  tap(p){
-  if(Math.hypot(p.x-this.ball.x,p.y-this.ball.y)<34/this.camera.zoom){this.open(canDepart(this.getState())?'mine-prepare':'village-rest');return;}
+  if(Math.hypot(p.x-this.ball.x,p.y-this.ball.y)<34/this.camera.zoom){if(canDepart(this.getState()))this.togglePack();else this.open('village-rest');return;}
+  this.hidePack();
   const d=dummiesFor(this.getState()).find(d=>Math.hypot(p.x-d.x,p.y-(d.y+DUMMY_HIT.dy))<DUMMY_HIT.r+6);
   if(d){const t=TRAITS[d.trait],who=wornBy(this.getState(),d.trait);this.notify(`${t.name} 허수아비 · ${t.description}${who>=0?` · 지금 햄찌 ${who+1}`:''} — 햄찌를 던져 맞히면 껴요.`);return;}
   if(Math.hypot((p.x-HOLE.x), (p.y-HOLE.y)*1.6)<70){this.open('mine-prepare');return;}
@@ -328,7 +366,7 @@ export class VillageWorld{
   objects.push({depth:this.ball.y+20,draw:()=>{
    if(this.suction)return;c.save();c.translate(this.ball.x,this.ball.y);c.rotate(this.ball.angle);
    this.res.draw(c,'ball-full',0,0,42,42);c.restore();
-   if(!this.aim&&Math.hypot(this.ball.vx,this.ball.vy)<9)label(c,tired?'햄찌들이 지쳤어요':s.renewal.village.prepared?'당겨서 구멍으로!':'눌러서 탐사 준비',this.ball.x,this.ball.y+37,13);
+   if(!this.aim&&Math.hypot(this.ball.vx,this.ball.vy)<9)label(c,tired?'햄찌들이 지쳤어요':s.renewal.village.prepared?'당겨서 구멍으로!':'톡! 씨앗 챙기기',this.ball.x,this.ball.y+37,13);
   }});
   objects.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
   if(this.fling){
@@ -352,6 +390,7 @@ export class VillageWorld{
   const left=Math.ceil(f.nextMs/1000),time=`${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`;
   label(c,f.count?`${tired?'지쳤어요':'피곤함'} · ${time}`:'쌩쌩해요!',275,90,13);
   c.restore();
+  this.placePack();
   const desc=`햄찌 마을 · 피곤함 ${f.count}/${f.max}${f.count?' · 1칸 회복까지 '+time:''} · 씨앗 ${s.renewal.seeds}개 · 확대 ${Math.round(cam.zoom*100)}%`;
   if(this.canvas.getAttribute('aria-label')!==desc)this.canvas.setAttribute('aria-label',desc);
  }
