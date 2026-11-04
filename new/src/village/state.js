@@ -1,4 +1,4 @@
-import {ECONOMY,startMining,settleMining} from '../mining/game-state.js';
+import {ECONOMY,startMining,settleMining,ballCapacity} from '../mining/game-state.js';
 import {THEMES} from '../mining/mineral-themes.js';
 import {MAPS as LAYOUTS} from '../mining/map-layouts.js';
 import {TRAITS} from '../mining/mining-rules.js';
@@ -37,7 +37,7 @@ export function initializeVillage(s,now=Date.now()){
  v.fatigue=count(v.fatigue,FATIGUE.max);
  v.fatigueSince=Number.isFinite(v.fatigueSince)?Math.min(Math.max(0,v.fatigueSince),now):now;
  v.lastReturnId=count(v.lastReturnId,r.runId);
- v.pack=count(v.pack??ECONOMY.ballCapacity,ECONOMY.ballCapacity);
+ v.pack=count(v.pack??ballCapacity(s),ballCapacity(s));
  v.prepared=!!v.prepared;
  // An existing expedition always wins over a stale scene flag.
  v.scene=r.run&&r.run.phase!=='ended'?'mine':'village';
@@ -51,7 +51,7 @@ export function canDepart(s,now=Date.now()){
 // traits를 넘기지 않으면 지금 특성을 그대로 둔다(특성은 마을 광장의 허수아비에 햄찌를 던져 바꾼다).
 export function prepareVillage(s,{seeds,themeId,layoutId,traits=s.renewal.traits}){
  const r=s.renewal;if(r.village.scene!=='village')return false;
- r.village.pack=count(seeds,ECONOMY.ballCapacity);
+ r.village.pack=count(seeds,ballCapacity(s));
  if(THEMES.some(x=>x.id===themeId))r.themeId=themeId;
  if(LAYOUTS.some(x=>x.id===layoutId))r.layoutId=layoutId;
  const seen=new Set();r.traits=Array.from({length:Math.min(6,Math.max(4,traits.length))},(_,i)=>{

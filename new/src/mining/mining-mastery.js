@@ -19,7 +19,7 @@ export const MINE_EFFECTS={
  carry2:{name:'두 개 나르기',unit:'개',scale:1,icon:'cart',value:1,max:1},
  stamina:{name:'기운 최대치',unit:'',scale:1,icon:'mastery',value:10,max:5},
  thrift:{name:'기운 아끼기',unit:'%',icon:'mastery',value:.06,max:5},
- ballSize:{name:'공 크기',unit:'%',icon:'stone',value:.1,max:3},
+ ballCap:{name:'공 용량',unit:'개',scale:1,icon:'stone',value:2,max:5},
  feed:{name:'씨앗 회복량',unit:'',scale:1,icon:'stone',value:8,max:5},
  ballBounce:{name:'공 튕김',unit:'%p',icon:'amplify',value:.08,max:3},
  fullness:{name:'배부름 한도',unit:'칸',scale:1,icon:'stone',value:1,max:2},
@@ -42,7 +42,7 @@ export const MINE_EFFECTS={
 export const MINE_BRANCHES=[
  {id:'throw',name:'날아라 햄찌',color:'#eab45d',angle:-90,effects:['throwRange','impact','combo','bounce','landShock','pierce','shadow']},
  {id:'crew',name:'튼튼한 햄찌',color:'#74c6ea',angle:-30,effects:['damage','speed','walk','stamina','thrift','wade','carry2','crew']},
- {id:'care',name:'공과 씨앗',color:'#9ecd87',angle:30,effects:['feed','ballSize','ballBounce','fullness']},
+ {id:'care',name:'공과 씨앗',color:'#9ecd87',angle:30,effects:['feed','ballCap','ballBounce','fullness']},
  {id:'cart',name:'든든한 수레',color:'#c3a0ea',angle:90,effects:['cartRange','cartRam','magnet','cartAura']},
  {id:'mine',name:'반짝이는 광산',color:'#ef9699',angle:150,effects:['stones','holeEase','rare','crateChance','crateSeeds','descendSeeds','windfall']},
  {id:'gear',name:'햄찌 장비',color:'#80cabc',angle:210,effects:['traitCharge','traitLevel','traitSlot']}

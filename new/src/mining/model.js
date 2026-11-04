@@ -64,7 +64,7 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
  // 동굴: 수레는 처음 공간 왼쪽 아래, 공은 오른쪽 아래(벽에서 몸 반지름+여유만큼 띄움)
  const pocket=cave&&{left:ORIGIN+cave.pocket.x*TILE,right:ORIGIN+(cave.pocket.x+cave.pocket.w)*TILE,top:ORIGIN+cave.pocket.y*TILE,bottom:ORIGIN+(cave.pocket.y+cave.pocket.h)*TILE};
  const cart=pocket?{x:pocket.left+50,y:pocket.bottom-42}:{x:177,y:653},ballAt=pocket?{x:pocket.right-28,y:pocket.bottom-28}:{x:283,y:704};
- const s={seed,careEnabled,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{...cart,radius:34,vx:0,vy:0},ball:{...ballAt,radius:BALL.radius*(1+mod('ballSize')),vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds},holeNeed,floorBroken:0,floorStart:0,
+ const s={seed,careEnabled,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{...cart,radius:34,vx:0,vy:0},ball:{...ballAt,radius:BALL.radius,vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds},holeNeed,floorBroken:0,floorStart:0,
   mods:{...mods},shadows:[],windfallAt:mod('windfall')?windfallEvery(mod('windfall')):null,lastFlingAt:-9};
  // 동굴의 처음 공간은 좁아서 햄찌끼리 조금 붙어 서도 된다(겹쳐 지나가기 규칙과 같은 이유). 증원된 햄찌(5·6번째)는 둘째 줄.
  const count=Math.min(6,4+mod('crew'));

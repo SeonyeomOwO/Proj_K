@@ -11,9 +11,10 @@ import {MINE_TREE,MINE_EFFECTS,miningMods} from './mining-mastery.js';
 // First integrated playtest economy. Centralized so review values can change.
 // 황금 해바라기씨(마스터리·가챠 재화)는 층마다 있는 상자에서만 나온다: 상자를 캐서 연 뒤 수레에 담은 만큼 정산된다
 // (상자 수·개수는 model.js의 CRATE, 검토용 임시 값).
-// ballCapacity: 공에는 가진 해바라기씨를 전부 넣을 수 있다(2026-11-04 결정: 씨앗은 대장간 강화 재료이자 햄찌를 계속 일하게 하는 연료라,
-// '강화할지 / 전부 들고 더 깊이 갈지'를 고르게 한다). 숫자는 지갑 한도와 같다.
-export const ECONOMY={initialSeeds:24,ballCapacity:CONFIG.walletCap,seedsPerValue:1};
+// ballCapacity: 공에 담을 수 있는 해바라기씨 기본 개수. 마스터리 '공 용량'으로 단계마다 +2(2026-11-04 사용자 결정, 원래 안).
+// 씨앗은 대장간 강화 재료이자 광산 연료라 '강화할지 / 공에 담아 더 깊이 갈지'를 고르게 한다.
+export const ECONOMY={initialSeeds:24,ballCapacity:8,seedsPerValue:1};
+export const ballCapacity=s=>ECONOMY.ballCapacity+(masteryBonus(s,'ballCap')||0);
 export const GOLDEN_NAME='황금 해바라기씨';
 // 마스터리 결제는 루비 대신 황금 해바라기씨(뉴 햄찌 광산). mastery-state.js의 buyNode/absorbPage에 넘긴다.
 export const GOLDEN_PURSE={get:s=>s.renewal.golden,spend:(s,n)=>{s.renewal.golden-=n;}};
@@ -35,7 +36,7 @@ const safeTraitPair=(first,second)=>{const used=new Set(),a=safeTraits(first,use
 export function validRun(m){
  if(!m||!validId(THEMES,m.themeId)||!validId(LAYOUTS,m.layoutId)||!whole(m.seed,1e6)||!whole(m.depth,100000)||m.depth<1||!['mining','transition','ended'].includes(m.phase))return false;
  if(!Array.isArray(m.cells)||m.cells.length!==170||!Array.isArray(m.crew)||m.crew.length<4||m.crew.length>6||!Array.isArray(m.drops)||m.drops.length>170||!Array.isArray(m.seeds)||m.seeds.length>100||!Array.isArray(m.events))return false;
- if(!m.cart||!m.ball||!whole(m.ball.seeds,ECONOMY.ballCapacity)||!whole(m.secured)||!whole(m.securedValue)||!whole(m.mined)||!whole(m.lostOre)||!whole(m.lostValue))return false;
+ if(!m.cart||!m.ball||!whole(m.ball.seeds,CONFIG.walletCap)||!whole(m.secured)||!whole(m.securedValue)||!whole(m.mined)||!whole(m.lostOre)||!whole(m.lostValue))return false;
  const finiteTree=v=>typeof v==='number'?Number.isFinite(v):v&&typeof v==='object'?Object.values(v).every(finiteTree):true;
  if(!finiteTree(m))return false;
  const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m),depth:m.depth,mods:m.mods});
@@ -70,11 +71,11 @@ export function initializeMining(s){
  if(r.result&&!['id','seeds','returned','secured','depth','value','lost'].every(k=>whole(r.result[k])))r.result=null;
  return r;
 }
-export function startMining(s,{seeds=ECONOMY.ballCapacity,themeId,layoutId,traits}={}){
+export function startMining(s,{seeds=ballCapacity(s),themeId,layoutId,traits}={}){
  const r=s.renewal;if(r.run&&r.run.phase!=='ended')return false;
  if(themeId&&validId(THEMES,themeId))r.themeId=themeId;if(layoutId&&validId(LAYOUTS,layoutId))r.layoutId=layoutId;
  if(traits)[r.traits,r.traits2]=safeTraitPair(traits,r.traits2);
- const packed=Math.min(r.seeds,ECONOMY.ballCapacity,Math.max(0,Math.floor(Number(seeds)||0)));
+ const packed=Math.min(r.seeds,ballCapacity(s),Math.max(0,Math.floor(Number(seeds)||0)));
  r.seeds-=packed;r.runId++;r.result=null;
  // 마스터리 효과를 출발할 때 한 번 모아 탐사에 넣는다(탐사 중에 배운 것은 다음 탐사부터)
  const mods=miningMods(k=>masteryBonus(s,k));
