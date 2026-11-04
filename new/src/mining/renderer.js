@@ -11,6 +11,7 @@ import {MINING_WEAPON_SCALE} from './mining-contact.js';
 import {drawAim,visualWorker,drawFloorSeeds,drawTired,drawFloorTransition,drawTeamEnergy} from './interaction-renderer.js';
 import {drawTerrainImpacts,breakBurst,hitDebris} from './terrain-impact.js';
 import {ballHint,BALL_HINT} from './ball-hint.js';
+import {drawToolIcon,drawCrown} from './tool-art.js';
 // 동굴 맵 바깥(캘 수 없는 칸)은 어둠으로 덮어, 작은 맵 덩어리가 떠 있는 모양이 보이게 한다(레퍼런스 맵 연출).
 function paintOutside(c,s){
  if(!s.cells.some(x=>x.outside))return;
@@ -107,6 +108,10 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   }
   c.restore();
  }
+ // 바위 속 도구·화분이 비쳐 보인다(살짝 맥박). 시큼 열매로 무른 바위는 연두빛.
+ for(const cell of s.cells){if(!cell.solid||cell.unbreakable)continue;const[x,y]=center(cell.id);
+  if(cell.soft){c.save();c.globalAlpha=.28;c.fillStyle='#b5e27a';c.beginPath();c.ellipse(x,y+8,24,18,0,0,Math.PI*2);c.fill();c.restore();}
+  const buried=cell.tool??(cell.pot?'pot':null);if(buried){c.save();c.globalAlpha=.55+.15*Math.sin(s.time*3+cell.id);drawToolIcon(c,buried,x+13,y-9,16,s.time);c.restore();}}
  drawRockHp(c,s);
  if(s.focus!==null&&isMineable(s.cells[s.focus])){const[x,y]=center(s.focus),age=s.time-(s.focusAt??-1),pulse=Math.max(0,1-age/.65),r=24+pulse*5;c.save();c.globalAlpha=.3+pulse*.65;c.strokeStyle='#fff3bb';c.lineWidth=1.5+pulse;for(const[dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.beginPath();c.moveTo(x+dx*(r-7),y+dy*r);c.lineTo(x+dx*r,y+dy*r);c.lineTo(x+dx*r,y+dy*(r-7));c.stroke();}c.restore();}
  const delivery=s.events.findLast(e=>e.type==='deposit'),deliveryAge=delivery?s.time-delivery.time:1;
@@ -136,8 +141,17 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   drawActor(c,actorRes,{x:h.x,y:h.y+FOOT_OFFSET,size:ACTOR_SIZE,clip:h.clip,skin:h.skin,t:h.motion,index:0,face:h.face,showTool:!h.cargo&&!h.care&&(!h.sleeping||h.clip==='pajamas'),emote:!!h.care||h.sleeping,prop:'fragment:'+(h.cargo??'stone'),poseOverride:p,carryOverride,weaponScale:MINING_WEAPON_SCALE});
   // 두 개 나르기: 둘째 짐은 머리 위에 하나 더 얹어 보인다
   const x2=original.extraDrop;if(x2&&h.cargo&&!h.action){const sock=carrySocket(h,p);drawFragment(c,x2.kind,sock.x+3*h.face,sock.y-15,x2.width*.8,{variant:x2.variant,angle:x2.angle*.2});}
+  // 대장 햄찌 왕관, 꿀물 마신 햄찌 주변 반짝임
+  if(original.leader&&!s.transition)drawCrown(c,h.x,h.y-38,s.time+h.id);
+  if(original.honeyUntil>s.time&&!reducedMotion){c.save();c.fillStyle='#f6c945';for(let i=0;i<3;i++){const a=s.time*3+i*2.1;c.globalAlpha=.7;c.beginPath();c.arc(h.x+Math.cos(a)*16,h.y-10+Math.sin(a)*6,2,0,Math.PI*2);c.fill();}c.restore();}
   drawTired(c,s,h);
  }});}
+ // 바닥의 층 도구(깃발·폭탄 등): 그림자 + 그림, 날아가는 동안은 떠 있다
+ for(const t of s.tools??[])objects.push({depth:t.y+6,draw(){
+  c.save();c.fillStyle='#3a24182e';c.beginPath();c.ellipse(t.x,t.y+10,10,3.5,0,0,Math.PI*2);c.fill();c.restore();
+  const pop=t.born&&s.time-t.born<.4&&!reducedMotion?1+Math.sin((s.time-t.born)/.4*Math.PI)*.4:1;
+  drawToolIcon(c,t.type,t.x,t.y-(t.z??0)-2,24*pop,t.type==='woodpecker'&&t.pecked&&s.time-t.pecked<.25?s.time:s.time*.2);
+ }});
  // 그림자 햄찌(마스터리): 반투명하게 바위를 함께 캔다
  for(const g of s.shadows??[])objects.push({depth:g.y+FOOT_OFFSET,draw(){
   const left=g.until-s.time;c.save();c.globalAlpha=Math.min(.5,left*1.2,(s.time-(g.until-(s.mods?.shadow??3)))*2);
@@ -157,6 +171,15 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   }
   if(e.type==='deposit'){
    if(age<.3){c.save();c.globalAlpha=(1-age/.3)*.6;for(let i=0;i<4;i++){c.fillStyle='#e4cda0';c.beginPath();c.ellipse(cart.x+(i-1.5)*(7+age*23),cart.y-16-age*18,3+age*4,2+age*3,0,0,Math.PI*2);c.fill();}c.restore();}continue;
+  }
+  if(e.type==='hit'&&e.crit&&age<.35){
+   // 반짝 일격: 큰 별이 번쩍
+   const k=age/.35;c.save();c.globalAlpha=1-k;c.fillStyle='#fff3a0';c.translate(e.x,e.y);c.rotate(k);c.beginPath();for(let i=0;i<10;i++){const r=i%2?5:16+k*10;c.lineTo(Math.cos(i*Math.PI/5)*r,Math.sin(i*Math.PI/5)*r);}c.closePath();c.fill();c.restore();
+  }
+  if(e.type==='honey'||e.type==='sour'||e.type==='pot'){
+   // 꿀물·시큼 열매·화분: 퍼지는 고리(노랑·연두·초록)
+   if(age<.6){const k=age/.6;c.save();c.globalAlpha=(1-k)*.6;c.fillStyle=e.type==='honey'?'#f6c945':e.type==='sour'?'#b5e27a':'#8fd06e';c.beginPath();c.ellipse(e.x,e.y+8,(e.r??70)*k,(e.r??70)*k*.5,0,0,Math.PI*2);c.fill();c.restore();}
+   continue;
   }
   if(e.type==='shock'){
    // 착지 충격(마스터리): 땅을 따라 퍼지는 고리

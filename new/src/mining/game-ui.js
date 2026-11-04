@@ -13,6 +13,8 @@ function fatigueLine(s){
 }
 // 마스터리 화면에 넘기는 결제 재화 표시(mastery-ui.js의 options.currency)
 export const GOLDEN_UI={amount:s=>s.renewal.golden,icon:goldenIcon,name:GOLDEN_NAME};
+// 햄찌 능력 나무(햄찌의 집·쉼터)는 해바라기씨로 배운다
+export const SEED_UI={amount:s=>s.renewal.seeds,icon:seedIcon.replace('class="seed-icon"','class="icon seed-icon"'),name:'해바라기씨'};
 const options=(items,id)=>items.map(x=>`<option value="${x.id}" ${x.id===id?'selected':''}>${x.name}</option>`).join('');
 export function miningModal(name,s,{B,I,fmt}){
  const r=s.renewal,active=r.run&&r.run.phase!=='ended',seedBank=`<div class="seed-bank">${seedIcon}<span>해바라기씨 <b>${fmt(r.seeds)}</b></span>${goldenIcon}<span>${GOLDEN_NAME} <b>${fmt(r.golden??0)}</b></span></div>`;

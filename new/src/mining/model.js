@@ -18,6 +18,7 @@ const cartAura=(s,h)=>s.mods?.cartAura&&Math.hypot(h.x-s.cart.x,h.y-s.cart.y)<13
 export const windfallEvery=level=>Math.max(12,40-6*level);
 import {updateBlastFlight,updateSleepMining,updateBomb} from './trait-actions.js';
 import {updateFlight,updateCart} from './fling.js';
+import {TOOL,buryTools,startTools,openBuried,updateTools,honeyWork,flagWork} from './tools.js';
 export {equipTrait};
 export {COLS,ROWS,TILE,ORIGIN,RISE,key,xy,center,hitCell,noise,neighbors,isMineable};
 // 층마다 박혀 있는 상자(검토용 임시 값). 캐서 열면 황금 해바라기씨가 튀어나오고, 햄찌가 수레에 담아야 확보된다.
@@ -61,6 +62,8 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
  cells.filter(c=>isMineable(c)&&!c.hole&&(cave?!touchesOpen(c):c.y>=2&&c.y<=11&&touchesOpen(c)))
   .sort((a,b)=>noise(a.x,a.y,seed+77)-noise(b.x,b.y,seed+77)).slice(0,cave?crateCount(seed,depth,mod('crateChance')):CRATE.perFloor)
   .forEach(c=>{c.crate=true;c.hp=c.maxHp=CRATE.hits;});
+ // 동굴: 해금한 층 도구·화분을 바위 속에 묻는다(tools.js)
+ if(cave)buryTools(cells,seed,mods);
  // 동굴: 수레는 처음 공간 왼쪽 아래, 공은 오른쪽 아래(벽에서 몸 반지름+여유만큼 띄움)
  const pocket=cave&&{left:ORIGIN+cave.pocket.x*TILE,right:ORIGIN+(cave.pocket.x+cave.pocket.w)*TILE,top:ORIGIN+cave.pocket.y*TILE,bottom:ORIGIN+(cave.pocket.y+cave.pocket.h)*TILE};
  const cart=pocket?{x:pocket.left+50,y:pocket.bottom-42}:{x:177,y:653},ballAt=pocket?{x:pocket.right-28,y:pocket.bottom-28}:{x:283,y:704};
@@ -78,6 +81,10 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
  for(const h of s.crew){h.baseSkin=h.skin;h.trait='none';equipTrait(s,h.id,traits[h.id]??'none');
   // 둘째 특성 칸(마스터리 '특성 칸'): 첫째 칸과 다른 특성만
   const second=traits2?.[h.id];h.trait2=TRAITS[second]&&second!=='none'&&second!==h.trait?second:null;h.traitLevel=mod('traitLevel');}
+ // 대장 햄찌(레퍼런스의 '선택받은 미니오'): 탐사마다 한 마리가 왕관을 쓴다. 힘은 출발할 때(startMining) 더한다.
+ s.crew[Math.floor(noise(seed,depth,301)*s.crew.length)].leader=true;
+ // 해바라기 깃발은 처음부터 하나, 수레 옆에 꽂혀 있다
+ startTools(s,{x:s.cart.x+58,y:s.cart.y-6});
  return s;
 }
 export function selectCell(s,id){if(s.phase!=='mining'||id===null||!isMineable(s.cells[id]))return false;s.focusAt=s.time;if(s.focus===id)return true;s.focus=id;s.commandRevision++;return true;}
@@ -91,7 +98,12 @@ function countBroken(s){
  const hole=s.cells.find(c=>c.hole&&c.locked);
  if(hole&&s.floorBroken>=(s.holeNeed??0)){hole.locked=false;s.navRevision++;const[x,y]=center(hole.id);s.events.push({type:'unlock',id:hole.id,time:s.time,x,y});}
 }
-export function strike(s,id,worker=null){const c=s.cells[id];if(s.phase!=='mining'||!isMineable(c))return false;c.hp=Math.max(0,c.hp-(worker?.power??1));s.revision++;const contact=worker?.contact??{x:center(id)[0],y:center(id)[1]};s.events.push({type:'hit',id,time:s.time,kind:c.kind,worker:worker?.id,...contact});if(c.hp<=0&&c.crate){
+export function strike(s,id,worker=null){const c=s.cells[id];if(s.phase!=='mining'||!isMineable(c))return false;
+ // 시큼 열매로 무른 바위는 더 아프게, 반짝 일격(치명타)은 확률로 크게
+ let damage=(worker?.power??1)*(c.soft?1+TOOL.sour.extra+(s.mods?.sourPower??0):1);const crit=worker&&s.mods?.crit&&noise(s.time*97,id,s.seed+(s.revision%977))<s.mods.crit;if(crit)damage*=1.5+(s.mods.critDamage??0);
+ c.hp=Math.max(0,c.hp-damage);s.revision++;const contact=worker?.contact??{x:center(id)[0],y:center(id)[1]};s.events.push({type:'hit',id,time:s.time,kind:c.kind,worker:worker?.id,crit:!!crit,...contact});
+ if(c.hp<=0&&(c.tool||c.pot))openBuried(s,c);
+ if(c.hp<=0&&c.crate){
   // 상자: 광물 집계에 넣지 않고 황금 해바라기씨를 흩뿌린다. 깬 햄찌가 하나씩 수레로 나른다.
   c.hp=0;c.solid=false;c.crate=false;c.opened=true;s.navRevision++;const golden=CRATE.golden+(s.mods?.crateSeeds??0);s.goldenFound+=golden;countBroken(s);
   s.events.push({type:'crate',id,time:s.time,worker:worker?.id,...contact});
@@ -100,7 +112,13 @@ export function strike(s,id,worker=null){const c=s.cells[id];if(s.phase!=='minin
   if(worker){worker.pickup=drops[0].id;worker.recover=.4;worker.work=null;worker.goal=null;worker.route=[];}
   if(s.focus===id)s.focus=null;return true;
  }
- if(c.hp<=0){c.hp=0;c.solid=false;s.mined++;s.minedValue+=c.value??1;s.navRevision++;if(!c.hole)countBroken(s);s.events.push({type:'break',id,time:s.time,kind:c.kind,worker:worker?.id,...contact});const drop=spawnMinedDrop(s,c,worker?.id??null);if(worker){worker.pickup=drop.id;worker.recover=worker.trait==='drill'?.1:.32;worker.work=null;worker.goal=null;worker.route=[];}if(c.hole){s.hole=id;s.holeAt=placeHole(s,id);}if(s.focus===id)s.focus=null;}return true;}
+ if(c.hp<=0){c.hp=0;c.solid=false;s.mined++;s.minedValue+=c.value??1;s.navRevision++;if(!c.hole)countBroken(s);s.events.push({type:'break',id,time:s.time,kind:c.kind,worker:worker?.id,...contact});const drop=spawnMinedDrop(s,c,worker?.id??null);if(worker){worker.pickup=drop.id;worker.recover=hasTrait(worker,'drill')?.1:.32;worker.work=null;worker.goal=null;worker.route=[];}if(c.hole){s.hole=id;s.holeAt=placeHole(s,id);if(s.mods?.vacuum)vacuumFloor(s);}if(s.focus===id)s.focus=null;}return true;}
+// 수레 청소기(마스터리 vacuum): 구멍이 열리면 바닥에 남은 조각을 한꺼번에 수레에 담는다
+function vacuumFloor(s){
+ for(const d of [...s.drops]){if(d.confined)continue;s.drops.splice(s.drops.indexOf(d),1);if(d.golden)s.securedGolden++;else{s.secured++;s.securedValue+=d.value??1;}
+  for(const h of s.crew)if(h.pickup===d.id)h.pickup=null;}
+ s.events.push({type:'deposit',time:s.time,kind:'stone',value:0,golden:false,dropId:-1,worker:null,owner:null,x:s.cart.x,y:s.cart.y});
+}
 export function pathTo(s,start,goal,{throughRock=false}={}){
  if(start===null||goal===null||!s.cells[start]||!s.cells[goal]||s.cells[start].unbreakable||s.cells[goal].unbreakable)return null;
  const dist=new Map([[start,0]]),prev=new Map(),open=new Set([start]);
@@ -245,7 +263,7 @@ function updateWorker(s,h,dt){
  if(Math.hypot(h.x-h.stand.x,h.y-h.stand.y)>1){h.goal={...h.stand};h.route=[];moveWorker(s,h,dt);return;}
  if(updateBomb(s,h,dt,strike))return;
  h.clip=hasTrait(h,'drill')?'drill':'mine';h.face=h.workFace;
- const period=miningPeriod(h,s.cells[h.work]),old=Math.floor(h.mineTime/period);h.mineTime+=dt*(s.careEnabled?workRate(h):1)*cartAura(s,h);h.motion=hasTrait(h,'drill')?h.mineTime:(h.mineTime/period%1)*2.1;
+ const period=miningPeriod(h,s.cells[h.work]),old=Math.floor(h.mineTime/period);h.mineTime+=dt*(s.careEnabled?workRate(h):1)*cartAura(s,h)*honeyWork(s,h)*flagWork(s,h);h.motion=hasTrait(h,'drill')?h.mineTime:(h.mineTime/period%1)*2.1;
  // 충전 곡괭이: 쌓인 만큼 이번 타격만 세게
  if(Math.floor(h.mineTime/period)>old){const p=h.power,boost=chargeBonus(h);if(boost)h.power=(p??1)*(1+boost);strike(s,h.work,h);h.power=p;h.lastHit=s.time;}
 }
@@ -256,7 +274,7 @@ export function update(s,dt){
  updateBall(s,dt,h=>hitWithBall(s,h),()=>beginDescent(s));if(s.phase!=='mining')return;
  updateCart(s,dt,strike);
  for(const d of s.seeds)d.age+=dt;updateMinedDrops(s,dt);
- updateMagnet(s,dt);updateShadows(s,dt);updateWindfall(s);
+ updateMagnet(s,dt);updateShadows(s,dt);updateWindfall(s);updateTools(s,dt,strike);
  assignFocusWork(s);
  // Rotate update order so the same hamster does not win every open footstep.
  const offset=Math.floor(s.time*2)%s.crew.length;
@@ -338,12 +356,14 @@ function nextFloor(s){
  for(const h of fresh.crew){
   const prior=old.find(o=>o.id===h.id);
   // 충전 곡괭이(charge)는 층마다 처음부터라 넘기지 않는다
-  for(const field of ['stamina','maxStamina','fullness','fullCap','skin','baseSkin','trait','trait2','traitLevel','period','power','speed','gait','delivered','mineTime','sleepHitsRemaining'])h[field]=prior[field];
+  for(const field of ['stamina','maxStamina','fullness','fullCap','skin','baseSkin','trait','trait2','traitLevel','period','power','speed','gait','delivered','mineTime','sleepHitsRemaining','leader'])h[field]=prior[field];
+  // 내려갈 때 기운 회복(쉼터 나무 descendRest)
+  if(s.mods?.descendRest)h.stamina=Math.min(h.maxStamina??CARE.maxStamina,h.stamina+s.mods.descendRest);
   h.sleeping=h.stamina<=0;h.sleepTime=0;h.clip=h.sleeping?'sleep':'idle';
  }
  const carried={time:s.time,depth:s.depth+1,rewardMultiplier:s.rewardMultiplier,mined:s.mined,minedValue:s.minedValue,secured:s.secured,securedValue:s.securedValue,lostOre:s.lostOre,lostValue:s.lostValue,goldenFound:s.goldenFound??0,securedGolden:s.securedGolden??0,lostGolden:s.lostGolden??0,nextDrop:s.nextDrop,nextSeed:s.nextSeed,grid:s.grid,paused:s.paused,transition:s.transition,phase:'transition',revision,navRevision};
  // 내려갈 때 씨앗(마스터리 descendSeeds): 공에 해바라기씨가 더 들어온다
- Object.assign(s,fresh,carried);s.ball.seeds=seeds+(s.mods?.descendSeeds??0);s.floorStart=s.time;
+ Object.assign(s,fresh,carried);s.ball.seeds=seeds+(s.mods?.descendSeeds??0);s.floorStart=s.time;s.flagAt=null;
 }
 function updateTransition(s,dt){
  const t=s.transition;t.time+=dt;

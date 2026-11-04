@@ -19,7 +19,9 @@ import { IrisOverlay, PROLOGUE_IRIS, transitionIris } from './intro/iris-transit
 import { playPrologue } from './intro/prologue.js';
 import {GameMine} from './mining/game-world.js';
 import * as Mining from './mining/game-state.js';
-import {miningModal,syncTraitOptions,GOLDEN_UI} from './mining/game-ui.js';
+import {miningModal,syncTraitOptions,GOLDEN_UI,SEED_UI} from './mining/game-ui.js';
+import {treeOf} from './mining/mining-mastery.js';
+let masteryTree = 'mastery';   // 뉴 햄찌 광산: 지금 열린 성장 나무(마을 건물)
 import {VillageWorld} from './village/world.js';
 import * as Village from './village/state.js';
 import {villageModal,fatigueBlock} from './village/ui.js';
@@ -182,6 +184,9 @@ function stackOverShop(name) {
 function open(name) {
   mine?.cancel();
   village?.cancel();
+  // 뉴 햄찌 광산: 마을 건물마다 성장 나무(tree-home/tree-care/tree-mastery/tree-tools)는 같은 마스터리 지도 창으로 연다
+  if (renewalMode && name === 'mastery') masteryTree = 'mastery';
+  if (renewalMode && name.startsWith('tree-')) { masteryTree = name.slice(5); name = 'mastery'; }
   // 던전이 진행 중이면 던전 창 대신 "나갈까요?" 카드만 띄운다(무대는 그대로 보인다)
   if (name === 'dungeon' && s.dungeon) {
     dungeonPage = s.dungeon.kind;
@@ -444,7 +449,9 @@ function renderModal() {
     case 'mastery':
       title = '마스터리';
       // 연출(말풍선 또잉·구매 반동)은 이번 그리기 한 번에만 쓴다
-      body = MU.masteryBody(s,chosenNode,mapOverview,s.settings.motion?mapFx:{},renewalMode?{canLearn:Mining.miningMasteryAvailable,effectLabels:{stones:'정산 씨앗'},currency:GOLDEN_UI}:{});
+      // 뉴 햄찌 광산: 건물 나무 하나만, 그 나무의 재화(해바라기씨/황금 해바라기씨)로 표시
+      if (renewalMode) { const t = treeOf(masteryTree) ?? treeOf('mastery'); title = t.name; }
+      body = MU.masteryBody(s,chosenNode,mapOverview,s.settings.motion?mapFx:{},renewalMode?{canLearn:Mining.miningMasteryAvailable,effectLabels:{stones:'정산 씨앗'},currency:(treeOf(masteryTree)?.currency==='seeds'?SEED_UI:GOLDEN_UI),tree:masteryTree,treeName:treeOf(masteryTree)?.title,treeTitle:treeOf(masteryTree)?.name}:{});
       mapFx = {};
       break;
     case 'profile':
@@ -624,6 +631,8 @@ function handle(e) {
       const prepared=Village.prepareVillage(s,{seeds:$('mine-pack').value,themeId:$('mine-theme').value});
       if(prepared){paused=false;$('pause').checked=false;close(true);village.focusEntrance();save();updateHud();notify(Village.canDepart(s)?'공을 아래로 당겼다 놓아 광산 구멍에 넣어 주세요.':'햄찌들이 너무 지쳤어요. 피곤함이 1칸 풀리면 출발할 수 있어요.');}return;
     }
+    // 성장 나무 버튼(쉼터의 돌봄 나무 등)
+    if(act.startsWith('tree-')){open(act);return;}
     if(act==='village-rest-ad'){
       // 광고 보고 회복 자리: 실제 광고 없이 테스트로 1칸만 푼다
       if(Village.recoverFatigue(s,1)){save();notify('테스트: 광고 없이 피곤함 1칸을 풀었어요.');renderModal();updateHud();}return;
@@ -827,7 +836,7 @@ function handle(e) {
       }
       else {
         const n = M.nodes(s).find(x => x.id === id), lv = M.nodeLevel(s, id);
-        notify(!n ? '이 노드는 지금 배울 수 없어요.' : lv >= n.max ? '이미 최고 레벨이에요.' : !M.reachable(s, n) ? '앞 노드를 최고 레벨까지 올려야 해요.' : (renewalMode ? Mining.GOLDEN_NAME + '가' : '루비가') + ' 부족해요.');
+        notify(!n ? '이 노드는 지금 배울 수 없어요.' : lv >= n.max ? '이미 최고 레벨이에요.' : !M.reachable(s, n) ? '앞 노드를 최고 레벨까지 올려야 해요.' : (renewalMode ? (n.currency === 'seeds' ? '해바라기씨가' : Mining.GOLDEN_NAME + '가') : '루비가') + ' 부족해요.');
         mapFx = { bump: id };
       }
       break;

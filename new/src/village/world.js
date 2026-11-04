@@ -9,12 +9,14 @@ import {HOLE,PLAZA,freshBall,aimVelocity,stepBall,trajectory} from './plaza.js';
 
 const BUILDINGS=[
  {id:'forge',x:480,y:820,w:185,h:185,label:'대장간',action:'mine-forge'},
- {id:'mastery',x:920,y:820,w:185,h:185,label:'마스터리',action:'mastery'},
+ // 성장 나무(2026-11-04): 마스터리 = 특별한 힘(황금), 햄찌의 집 = 햄찌 능력(해바라기씨), 쉼터 = 피곤함 + 돌봄 나무(해바라기씨),
+ // 놀이터 = 층 도구(황금). 대장간은 곡괭이 강화 그대로.
+ {id:'mastery',x:920,y:820,w:185,h:185,label:'마스터리',action:'tree-mastery'},
  {id:'care-house',x:480,y:1130,w:195,h:180,label:'쉼터',action:'village-rest'},
- {id:'home',x:930,y:1150,w:190,h:185,label:'햄찌의 집',action:'village-rest'},
+ {id:'home',x:930,y:1150,w:190,h:185,label:'햄찌의 집',action:'tree-home'},
+ {id:'playground',x:700,y:410,w:200,h:180,label:'도구 놀이터',action:'tree-tools'},
 ];
 const DECOR=[
- {id:'playground',x:700,y:410,w:200,h:180},
  {id:'bench',x:500,y:460,w:110,h:70},{id:'bench',x:910,y:480,w:110,h:70},
  {id:'flowerbed',x:520,y:590,w:120,h:85},{id:'flowerbed',x:895,y:590,w:120,h:85},
  {id:'flowerbed',x:440,y:940,w:100,h:70},{id:'flowerbed',x:970,y:940,w:100,h:70},
@@ -72,8 +74,9 @@ export class VillageWorld{
  }
  // 마을 건물의 '단계': 바뀌면 공사 연출(먼지·통통 튐)이 한 번 나온다. 아직 단계별 건물 그림은 없어 깃발 글씨로 보여 준다.
  levels(s){
-  const pick=s.renewal.pick,book=s.masteryBook,mastery=book?Object.values(book.levels??{}).reduce((a,b)=>a+b,0):0;
-  return{forge:pick?`${TIERS[pick.tier]}+${pick.level}`:'',mastery:`Lv ${mastery}`};
+  // 나무마다 배운 단계 합(노드 id 앞머리 = 나무, 마스터리 뿌리는 'root')
+  const pick=s.renewal.pick,levels=Object.entries(s.masteryBook?.levels??{}),sum=pre=>levels.filter(([id])=>id.startsWith(pre)||pre==='mastery_'&&id==='root').reduce((a,[,v])=>a+v,0);
+  return{forge:pick?`${TIERS[pick.tier]}+${pick.level}`:'',mastery:`Lv ${sum('mastery_')}`,home:`Lv ${sum('home_')}`,'care-house':`Lv ${sum('care_')}`,playground:`Lv ${sum('tools_')}`};
  }
  home(){this.cancel();this.camera={...HOME};}
  focusEntrance(){this.cancel();this.camera={x:700,y:795,zoom:.92};this.ball=freshBall();}

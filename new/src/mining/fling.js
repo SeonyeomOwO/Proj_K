@@ -4,6 +4,7 @@
 import {ORIGIN,TILE,RISE,center,isMineable} from './grid.js';
 import {ballWorldContact,terrainContact} from './terrain-collision.js';
 import {navigation,bodyClear,clearSegment} from './navigation.js';
+import {TOOL,grabTool,launchTool} from './tools.js';
 import {WATER,inWater} from './map-layouts.js';
 export const FLING={
  hamster:{grab:27,maxPull:105,power:4.6,drag:1.7,radius:15,stop:30,speed:430,minTime:.3,maxTime:.75,arc:.24,maxArc:72,land:.18},
@@ -16,12 +17,15 @@ const travel=(drag,dt)=>-Math.expm1(-drag*dt)/drag;
 export function grabTarget(s,p){
  const h=s.crew.map(h=>({h,d:Math.hypot(h.x-p.x,h.y-p.y)})).filter(o=>o.d<FLING.hamster.grab).sort((a,b)=>a.d-b.d)[0];
  if(h)return{what:'hamster',h:h.h,d:h.d};
+ // 바닥의 층 도구(깃발·폭탄 등)
+ const tool=grabTool(s,p);if(tool)return{what:'tool',t:tool.t,d:tool.d};
  const d=Math.hypot(s.cart.x-p.x,s.cart.y-p.y);
  return d<FLING.cart.grab?{what:'cart',d}:null;
 }
 export function beginFling(s,p,target){
  if(s.phase!=='mining'||s.aim||!target)return false;
  if(target.what==='hamster'){if(!canFling(target.h))return false;s.aim={what:'hamster',id:target.h.id,x:target.h.x,y:target.h.y,pointerX:p.x,pointerY:p.y,dx:0,dy:0,maxPull:FLING.hamster.maxPull};return true;}
+ if(target.what==='tool'){s.aim={what:'tool',id:target.t.id,x:target.t.x,y:target.t.y,pointerX:p.x,pointerY:p.y,dx:0,dy:0,maxPull:FLING.hamster.maxPull};return true;}
  s.cart.vx=s.cart.vy=0;s.aim={what:'cart',x:s.cart.x,y:s.cart.y,pointerX:p.x,pointerY:p.y,dx:0,dy:0,maxPull:FLING.cart.maxPull};return true;
 }
 // 'tap'(거의 안 당김) · true(날림) · false
@@ -29,10 +33,12 @@ export function launchFling(s){
  const a=s.aim;s.aim=null;if(!a||s.phase!=='mining')return false;
  if(Math.hypot(a.dx,a.dy)<6)return 'tap';
  if(a.what==='cart'){const p=power(s,'cart');s.cart.vx=a.dx*p;s.cart.vy=a.dy*p;s.cart.rammed=[];s.navRevision++;return true;}
+ if(a.what==='tool')return launchTool(s,a);
  const h=s.crew.find(o=>o.id===a.id);if(!h||!canFling(h))return false;
  // 연속 던지기(마스터리 combo): 3초 안에 다시 던지면 더 빨리 날아간다
  const quick=s.time-(s.lastFlingAt??-9)<3?1+(s.mods?.combo??0):1;
- const p=power(s,'hamster');if(!startFlight(s,h,a.dx*p,a.dy*p,{bounce:s.mods?.bounce??0,pierce:s.mods?.pierce??0,quick}))return false;
+ // 대장 햄찌는 더 멀리(마스터리 '대장 던지기')
+ const p=power(s,'hamster')*(h.leader?1+(s.mods?.leaderThrow??0):1);if(!startFlight(s,h,a.dx*p,a.dy*p,{bounce:s.mods?.bounce??0,pierce:s.mods?.pierce??0,quick}))return false;
  s.lastFlingAt=s.time;h.work=null;h.stand=null;h.goal=null;h.route=[];h.yieldGoal=null;h.yieldFor=null;h.order=null;h.wait=0;h.recover=0;h.foodTarget=null;
  h.face=a.dx>=0?1:-1;s.events.push({type:'fling',time:s.time,x:h.x,y:h.y,worker:h.id});
  return true;
@@ -101,7 +107,8 @@ export function updateFlight(s,h,dt,strike){
  if(f.cell!=null&&isMineable(s.cells[f.cell])){
   const[cx,cy]=center(f.cell);h.anchor={x:cx,y:cy};
   // 쾅! 부딪힌 힘으로 한 번 친다(부딪힘 피해 마스터리만큼 세게)
-  h.contact=f.contact;const p=h.power;h.power=(p??1)*(1+(s.mods?.impact??0));strike(s,f.cell,h);h.power=p;
+  // 멀리 날수록 세게(마스터리 farHit): 날아간 100px마다 더한다
+  h.contact=f.contact;const p=h.power;h.power=(p??1)*(1+(s.mods?.impact??0)+(s.mods?.farHit??0)*(f.length??0)/100);strike(s,f.cell,h);h.power=p;
   const broke=!isMineable(s.cells[f.cell]),v=f.vEnd??{vx:0,vy:0};
   // 관통: 깨뜨리면 같은 방향으로 계속 날아간다
   if(broke&&chain.pierce>0&&speed(v)>FLING.hamster.stop&&startFlight(s,h,v.vx*.8,v.vy*.8,{...chain,pierce:chain.pierce-1}))return true;
@@ -110,7 +117,7 @@ export function updateFlight(s,h,dt,strike){
    if(speed(rv)>FLING.hamster.stop*1.5&&startFlight(s,h,rv.vx,rv.vy,{...chain,bounce:chain.bounce-1}))return true;}
   h.order=broke?null:f.cell;
  }else h.anchor={x:h.x,y:h.y};
- landingShock(s,h,strike);summonShadow(s,h);
+ landingShock(s,h,strike);summonShadow(s,h);if(h.leader)leaderLanding(s,h);
  return true;
 }
 // 착지 충격(마스터리 landShock): 내려앉은 자리 주변 바위에 작은 피해
@@ -156,8 +163,21 @@ export function updateCart(s,dt,strike=null){
  }
 }
 // 조준선: 공과 같은 모양으로 그린다. 햄찌는 맞을 바위(target)도 돌려준다.
+// 대장 햄찌가 내려앉을 때: 대장의 함성(주변 잠든 햄찌를 기운과 함께 깨움), 대장의 그림자(그림자 햄찌 소환)
+function leaderLanding(s,h){
+ const wake=s.mods?.leaderWake,shadows=s.mods?.leaderShadow;
+ if(wake){for(const o of s.crew)if(o!==h&&o.sleeping&&Math.hypot(o.x-h.x,o.y-h.y)<140){o.stamina=Math.min(o.maxStamina??100,o.stamina+wake);o.sleeping=false;o.clip='startle';o.care='startle';o.careTime=0;}s.events.push({type:'shock',time:s.time,x:h.x,y:h.y});}
+ if(shadows){const rocks=s.cells.filter(isMineable).map(c=>({c,d:Math.hypot(center(c.id)[0]-h.x,center(c.id)[1]-h.y)})).filter(o=>o.d<110).sort((a,b)=>a.d-b.d);
+  for(let i=0;i<shadows&&rocks.length;i++)(s.shadows??=[]).push({x:h.x+(i?18:-18),y:h.y+6,cell:rocks[i%rocks.length].c.id,until:s.time+4,next:s.time+.4+i*.2,power:(h.power??1)*.6,face:i?-1:1});}
+}
 export function predictFling(s){
  const a=s.aim;if(!a||a.what==='ball'||!a.what)return null;
+ if(a.what==='tool'){
+  // 도구는 tools.js와 같은 감속으로 미끄러진다(벽에 닿거나 멈추는 곳에서 터짐)
+  const t={x:a.x,y:a.y,vx:a.dx*TOOL.power,vy:a.dy*TOOL.power},points=[{x:t.x,y:t.y}];
+  for(let i=0;i<300&&speed(t)>=TOOL.stop;i++){const k=travel(TOOL.drag,1/120),x=t.x+t.vx*k,y=t.y+t.vy*k,hit=ballWorldContact(s,x,y,TOOL.radius);if(hit&&(hit.nx*t.vx+hit.ny*t.vy<0||!hit.nx&&!hit.ny))break;t.x=x;t.y=y;const d=Math.exp(-TOOL.drag/120);t.vx*=d;t.vy*=d;if(i%6===0)points.push({x,y});}
+  points.push({x:t.x,y:t.y});return{points,cell:null};
+ }
  if(a.what==='hamster'){
   const h=s.crew.find(o=>o.id===a.id);if(!h)return null;
   const p=power(s,'hamster'),plan=planFlight(s,h,a.dx*p,a.dy*p);if(!plan)return{points:[{x:h.x,y:h.y}],cell:null};

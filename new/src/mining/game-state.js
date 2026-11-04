@@ -20,8 +20,13 @@ export const GOLDEN_NAME='황금 해바라기씨';
 export const GOLDEN_PURSE={get:s=>s.renewal.golden,spend:(s,n)=>{s.renewal.golden-=n;}};
 // 뉴 햄찌 광산 전용 마스터리 지도를 끼운다(효과 31종, mining-mastery.js). 지도의 노드는 모두 배울 수 있다.
 useMasteryTree(MINE_TREE);
-export const miningMasteryAvailable=node=>!!node&&(node.id==='root'||!!MINE_EFFECTS[node.effect]);
-export const buyMiningMastery=(s,id)=>miningMasteryAvailable(nodes(s).find(n=>n.id===id))&&buyNode(s,id,GOLDEN_PURSE);
+export const miningMasteryAvailable=node=>!!node&&!!MINE_EFFECTS[node.effect];
+// 나무마다 재화가 다르다: 햄찌 능력(햄찌의 집·쉼터)은 해바라기씨, 특별한 힘(마스터리·도구 놀이터)은 황금 해바라기씨
+// 대장 햄찌 기본 보너스(검토용 값)
+export const LEADER={power:.25};
+export const SEED_PURSE={get:s=>s.renewal.seeds,spend:(s,n)=>{s.renewal.seeds-=n;}};
+export const purseFor=node=>node?.currency==='seeds'?SEED_PURSE:GOLDEN_PURSE;
+export const buyMiningMastery=(s,id)=>{const n=nodes(s).find(x=>x.id===id);return miningMasteryAvailable(n)&&buyNode(s,id,purseFor(n));};
 export const absorbMiningMastery=s=>absorbPage(s,GOLDEN_PURSE);
 export function miningGrowth(s){
  const {tier,level}=s.renewal.pick;
@@ -42,7 +47,7 @@ export function validRun(m){
  const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m),depth:m.depth,mods:m.mods});
  if(m.cells.some((c,i)=>!c||c.id!==i||c.kind!==base.cells[i].kind||typeof c.solid!=='boolean'||c.unbreakable!==base.cells[i].unbreakable||(c.unbreakable&&!c.solid)||!(c.hp>=0&&c.hp<=c.maxHp&&c.maxHp<=5)))return false;
  // 기운 최대치·배부름 한도는 마스터리로 늘어난다(햄찌마다 maxStamina·fullCap)
- if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||h.trait2!=null&&!TRAITS[h.trait2]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=Math.min(200,h.maxStamina??100))||!(h.fullness>=0&&h.fullness<=Math.min(6,h.fullCap??3))||h.cargo&&!h.cargoDrop))return false;
+ if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||h.trait2!=null&&!TRAITS[h.trait2]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=Math.min(400,h.maxStamina??100))||!(h.fullness>=0&&h.fullness<=Math.min(8,h.fullCap??3))||h.cargo&&!h.cargoDrop))return false;
  // 주인 없는 드롭(owner=null): 상자에서 튄 황금 해바라기씨는 가까운 햄찌가 나중에 맡는다.
  if(m.drops.some(d=>!whole(d.id)||d.owner!=null&&!whole(d.owner,m.crew.length-1)||!whole(d.value,5)))return false;
  if(m.phase==='transition'&&(!m.transition||!['suction','close','covered','open'].includes(m.transition.stage)||m.transition.from?.length!==m.crew.length))return false;
@@ -82,7 +87,8 @@ export function startMining(s,{seeds=ballCapacity(s),themeId,layoutId,traits}={}
  const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits,traits2:mods.traitSlot?r.traits2:[],depth:s.floor,mods});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
  // Snapshot growth on departure; changing menus never resets an active swing.
  const {power,speed,reward}=miningGrowth(s);
- for(const h of m.crew){h.power=power;h.period/=speed;h.speed*=1+mods.walk;}
+ // 대장 햄찌는 기본 +25%에 '대장의 힘'을 더해 더 세게 캔다
+ for(const h of m.crew){h.power=power*(h.leader?1+LEADER.power+mods.leaderPower:1);h.period/=speed;h.speed*=1+mods.walk;}
  m.rewardMultiplier=reward;r.run=m;return true;
 }
 export function settleMining(s){

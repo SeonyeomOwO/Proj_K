@@ -66,15 +66,17 @@ function bubble(s,selected,all,ready,page,fx,options){
 }
 
 // selected: 말풍선이 열린 노드 id(없으면 null). fx: 이번 그리기에만 쓰는 연출 {pop, bump}
+// options.tree: 뉴 햄찌 광산은 마을 건물마다 나무가 따로라 그 나무의 노드만 보인다(진행률도 그 나무만, 흡수 없음)
 export function masteryBody(s,selected=null,overview=false,fx={},options={}){
- const b=M.book(s),all=M.nodes(s),ns=overview?all:M.visibleNodes(s),p=M.progress(s),ready=p.ready;
+ const inTree=n=>!options.tree||n.tree===options.tree,b=M.book(s),all=M.nodes(s).filter(inTree),ns=(overview?M.nodes(s):M.visibleNodes(s)).filter(inTree);
+ const p=options.tree?{maxed:all.filter(n=>M.nodeLevel(s,n.id)>=n.max).length,total:all.length,levels:all.reduce((a,n)=>a+M.nodeLevel(s,n.id),0),maxLevels:all.reduce((a,n)=>a+n.max,0),ready:false}:M.progress(s),ready=p.ready;
  const lines=ns.flatMap(n=>n.parents.map(id=>{const parent=ns.find(x=>x.id===id);return parent?`<path class="${M.nodeLevel(s,n.id)?'lit':''}" d="M ${parent.x} ${parent.y} Q ${parent.x} ${n.y} ${n.x} ${n.y}"/>`:''})).join('');
  const nodes=ns.filter(n=>!(ready&&n.id==='root')).map(n=>{const lv=M.nodeLevel(s,n.id),state=lv===n.max?'max':lv?'owned':M.reachable(s,n)?'available':'locked';
   return B('node',I(n.icon)+`<span class="map-level">${n.unlock?(lv?'해금':'빌드'):lv+'/'+n.max}</span>`,`data-id="${n.id}" data-x="${n.x}" data-y="${n.y}" aria-label="${n.name} ${lv}/${n.max}" aria-pressed="${n.id===selected}" style="left:${n.x}px;top:${n.y}px"`,`map-node ${state} ${n.unlock?'unlock':''} ${n.id===selected?'selected':''} ${fx.bump===n.id?'bump':''}`);}).join('');
  const seal=ready?B('node',I('rebirth')+'<span class="seal-label">기억의 심장</span>',`data-id="seal" data-x="920" data-y="920" aria-label="기억의 심장" aria-pressed="${selected==='seal'}" style="left:920px;top:920px"`,`map-node final-node ${selected==='seal'?'selected':''} ${fx.bump==='seal'?'bump':''}`):'';
  const info=selected?bubble(s,selected,ns,ready,b.page,fx,options):{bubble:'',cta:''};
  const transform=view.ready?`transform:translate(${view.x}px,${view.y}px) scale(${view.zoom})`:'';
- return `<div class="mastery-top"><div><small>${b.page===1?'발견의 지도':'성장의 지도'}</small><strong>PAGE ${String(b.page).padStart(2,'0')}</strong></div><div class="map-progress"><span>완성한 노드 <b>${p.maxed} / ${p.total}</b></span><div><i style="width:${p.levels/p.maxLevels*100}%"></i></div><span>${Math.floor(p.levels/p.maxLevels*100)}%</span></div><div class="mastery-wallet">${(options.currency??RUBY).icon}${num((options.currency??RUBY).amount(s))}</div></div>`
+ return `<div class="mastery-top"><div><small>${options.treeTitle??(b.page===1?'발견의 지도':'성장의 지도')}</small><strong>${options.treeName??'PAGE '+String(b.page).padStart(2,'0')}</strong></div><div class="map-progress"><span>완성한 노드 <b>${p.maxed} / ${p.total}</b></span><div><i style="width:${p.levels/p.maxLevels*100}%"></i></div><span>${Math.floor(p.levels/p.maxLevels*100)}%</span></div><div class="mastery-wallet">${(options.currency??RUBY).icon}${num((options.currency??RUBY).amount(s))}</div></div>`
   +`<div class="constellation" id="mastery-scroll" tabindex="0" role="application" aria-label="마스터리 지도. 끌어서 이동하고, 두 손가락이나 마우스 휠로 확대·축소해요. 아이콘을 누르면 설명이 나오고 한 번 더 누르면 배워요."><div class="map-space" style="${transform}"><svg class="map-paths" viewBox="0 0 1840 1840" aria-hidden="true">${lines}</svg>${nodes}${seal}</div><div class="map-overlay">${info.bubble}${info.cta}</div></div>`
   +`<div class="mastery-bottom">${B('profile','누적 능력치 보기','','map-tool')}<span>${ready?'가운데 최종 노드를 눌러 흡수해요':'아이콘을 누르면 설명 · 한 번 더 누르면 배우기<br>끌어서 이동 · 두 손가락/휠로 확대'}</span></div>`;
 }

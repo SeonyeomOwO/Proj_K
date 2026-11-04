@@ -12,6 +12,8 @@ function resetRoute(h){h.goal=null;h.route=[];h.yieldGoal=null;h.yieldFor=null;h
 function setCare(h,kind){resetRoute(h);h.recover=0;h.wait=0;h.care=kind;h.careTime=0;h.clip=kind;h.motion=0;}
 export function hitWithBall(s,h){
  if(!h||!s.careEnabled)return;
+ // 딸랑이 공(쉼터 나무 rattle): 줄 씨앗이 없거나 배가 불러도, 공에 맞은 잠든 햄찌가 기운을 조금 얻어 깬다
+ if(s.mods?.rattle&&h.sleeping&&!h.care&&(s.ball.seeds===0||!canEat(h))){h.stamina=Math.min(maxOf(h),h.stamina+s.mods.rattle);h.pendingStartle=true;s.events.push({type:'fed',time:s.time,x:h.x,y:h.y,worker:h.id});return;}
  if(s.ball.seeds>0){
   s.ball.seeds--;let p={x:h.x,y:h.y};
   // Place the seed beside the body, on real floor, including near walls.
@@ -85,7 +87,8 @@ export function drainStamina(s,h,dt,distance){
 // 소화: 배부름이 천천히 꺼져 다시 씨앗을 먹을 수 있다(잠든 동안에도 꺼진다 → 공에 씨앗이 남아 있으면 언제든 다시 깨울 수 있음)
 export function digest(s,h,dt){
  if(!s.careEnabled||!(h.fullness>0)||h.care==='eat')return;
- h.digest=(h.digest??0)+dt;if(h.digest>=CARE.digest){h.digest=0;h.fullness--;}
+ // 소화 속도(쉼터 나무 digestFast)만큼 빨리 꺼진다
+ h.digest=(h.digest??0)+dt;if(h.digest>=CARE.digest*(1-Math.min(.8,s.mods?.digestFast??0))){h.digest=0;h.fullness--;}
 }
 export function cannotContinue(s){
  if(!s.careEnabled||!s.crew.every(h=>h.sleeping)||s.crew.some(h=>h.care||h.action||h.pendingStartle||h.sleepHitsRemaining>0||h.blastTime!=null))return false;

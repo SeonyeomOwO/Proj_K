@@ -1,6 +1,7 @@
 import {ORIGIN,TILE,RISE,center,isMineable} from './grid.js';
 import {floorIsClear} from './loot/loot-motion.js';
 import {WATER,inWater} from './map-layouts.js';
+import {flagWalk} from './tools.js';
 import {miningContact,MAX_MINING_DISTANCE} from './mining-contact.js';
 
 // Coordinates are body centres, not feet. Include the waviness of the wall in
@@ -155,7 +156,7 @@ export function moveWorker(s,h,dt){
  }
  // 물길 위에서는 느리게 걷는다(동굴 맵 방해 요소)
  const wade=inWater(s,h.x,h.y)?Math.min(1,WATER.walk+(s.mods?.wade??0)):1;   // 물길 걷기(마스터리 wade)
- const dx=next.x-h.x,dy=next.y-h.y,d=Math.hypot(dx,dy),step=Math.min(d,h.speed*(h.cargo?.77:1)*wade*dt),x=h.x+dx/d*step,y=h.y+dy/d*step;
+ const dx=next.x-h.x,dy=next.y-h.y,d=Math.hypot(dx,dy),step=Math.min(d,h.speed*(h.cargo?.77:1)*wade*flagWalk(s,h)*dt),x=h.x+dx/d*step,y=h.y+dy/d*step;
  if(bodyClear(s,h,x,y)&&clearSegment(s,h,{x,y})&&trafficSegment(s,h,h,{x,y})){
   h.x=x;h.y=y;h.stuck=0;h.clip=h.cargo?'carry':'walk';h.motion+=dt*h.gait;if(Math.abs(dx)>.1)h.face=dx>0?1:-1;
  }else{h.stuck+=dt;h.clip=h.cargo?'carry':'idle';h.motion+=dt*.25;if(h.stuck>.7)yieldSpace(s,h);}
