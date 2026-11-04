@@ -137,7 +137,11 @@ function renderUpgrades() {
   a.apply($('upgrades'));
 }
 
+// 체감 테스트용 치트: 켜져 있으면 두 재화를 늘 가득 채운다(실서비스 전 제거)
+const CHEAT_AMOUNT = 9999999;
+function topUpCheat() { const r = s?.renewal; if (r?.cheatInfinite) { r.seeds = CHEAT_AMOUNT; r.golden = CHEAT_AMOUNT; } }
 function updateHud() {
+  topUpCheat();
   if(mine){
     game.classList.toggle('legacy-subscene',!!s.dungeon||!!s.rubyStage);
     game.classList.toggle('village-scene',!!village?.active());
@@ -633,6 +637,10 @@ function handle(e) {
     }
     // 성장 나무 버튼(쉼터의 돌봄 나무 등)
     if(act.startsWith('tree-')){open(act);return;}
+    if(act==='cheat-infinite'){
+      s.renewal.cheatInfinite=!s.renewal.cheatInfinite;topUpCheat();save();open('mine-menu');updateHud();
+      notify(s.renewal.cheatInfinite?'테스트: 해바라기씨·황금 해바라기씨가 계속 가득 차요.':'테스트: 무한 재화를 껐어요.');return;
+    }
     if(act==='village-rest-ad'){
       // 광고 보고 회복 자리: 실제 광고 없이 테스트로 1칸만 푼다
       if(Village.recoverFatigue(s,1)){save();notify('테스트: 광고 없이 피곤함 1칸을 풀었어요.');renderModal();updateHud();}return;

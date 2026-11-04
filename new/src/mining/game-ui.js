@@ -18,7 +18,9 @@ export const SEED_UI={amount:s=>s.renewal.seeds,icon:seedIcon.replace('class="se
 const options=(items,id)=>items.map(x=>`<option value="${x.id}" ${x.id===id?'selected':''}>${x.name}</option>`).join('');
 export function miningModal(name,s,{B,I,fmt}){
  const r=s.renewal,active=r.run&&r.run.phase!=='ended',seedBank=`<div class="seed-bank">${seedIcon}<span>해바라기씨 <b>${fmt(r.seeds)}</b></span>${goldenIcon}<span>${GOLDEN_NAME} <b>${fmt(r.golden??0)}</b></span></div>`;
- if(name==='mine-menu')return {title:'햄찌 광산',body:seedBank+`<div class="mine-menu-grid">${active?B('close','광산으로 돌아가기'):B('mine-prepare','탐사 준비')}${B('mine-forge',I('pickaxe')+' 대장간')}${B('mastery',I('mastery')+' 마스터리')}${B('settings',I('settings')+' 설정')}${r.village&&!active?B('village-travel','마을 빠른 이동')+B('village-rest','햄찌 쉼터'):''}</div>`+`<p class="footnote">${active?'수레 '+r.run.secured+'개 · 귀환하면 해바라기씨로 정산해요.':'공에 씨앗을 챙기고 햄찌들과 출발해요.'}</p>`};
+ if(name==='mine-menu')return {title:'햄찌 광산',body:seedBank+`<div class="mine-menu-grid">${active?B('close','광산으로 돌아가기'):B('mine-prepare','탐사 준비')}${B('mine-forge',I('pickaxe')+' 대장간')}${B('mastery',I('mastery')+' 마스터리')}${B('settings',I('settings')+' 설정')}${r.village&&!active?B('village-travel','마을 빠른 이동')+B('village-rest','햄찌 쉼터'):''}</div>`+`<p class="footnote">${active?'수레 '+r.run.secured+'개 · 귀환하면 해바라기씨로 정산해요.':'공에 씨앗을 챙기고 햄찌들과 출발해요.'}</p>`
+  // 체감 테스트용 치트(실서비스 전 제거): 켜 두면 해바라기씨·황금 해바라기씨가 계속 가득 찬다
+  +B('cheat-infinite',r.cheatInfinite?'치트: 무한 재화 끄기 (테스트)':'치트: 무한 재화 켜기 (테스트)','cta secondary')};
  if(name==='mine-profile'){
   const g=miningGrowth(s),rows=[['pickaxe','공통 곡괭이',TIERS[r.pick.tier]+'+'+r.pick.level],['pickaxe','일반 타격 채굴력',g.power.toFixed(2)],['fast','일반 채굴 속도',g.speed.toFixed(2)+'배'],['stone','정산 씨앗 배율',g.reward.toFixed(2)+'배']];
   return {title:'햄찌들의 성장',body:seedBank+`<div class="profile-stats">${rows.map(([icon,label,value])=>`<div>${I(icon)}<span>${label}</span><strong>${value}</strong></div>`).join('')}</div><p class="footnote">곡괭이와 마스터리를 반영한 다음 탐사 기준이에요.<br>체력과 특성에 따라 실제 타격 속도는 달라져요.</p><p class="footnote">새 광산에는 채굴력·속도·정산 씨앗 효과가 적용돼요. 다른 효과의 기존 레벨도 보관돼요.</p>`+B('mastery','마스터리로')};
