@@ -5,7 +5,9 @@ const I=id=>`<span class="icon" data-icon="${id}"></span>`;
 const B=(act,text,extra='',cls='cta')=>`<button type="button" class="${cls}" data-act="${act}" ${extra}>${text}</button>`;
 const pct=n=>(100*n).toLocaleString('ko-KR',{maximumFractionDigits:1});
 const num=n=>Math.round(n).toLocaleString('ko-KR');
-export const effectText=(k,v)=>`${EFFECTS[k].name} +${pct(v)}${EFFECTS[k].unit}`;
+// scale: 효과 값을 화면에 보일 때 곱하는 수(기본 100 = %). 뉴 햄찌 광산의 개수·초 효과는 1.
+const shown=(k,v)=>((EFFECTS[k].scale??100)*v).toLocaleString('ko-KR',{maximumFractionDigits:1});
+export const effectText=(k,v)=>`${EFFECTS[k].name} +${shown(k,v)}${EFFECTS[k].unit}`;
 
 // ── 지도 보기(이동·확대) 계산: DOM과 분리해 테스트할 수 있게 순수 함수로 둔다 ──────────────────
 export const MAP_SIZE=1840, MIN_ZOOM=.4, MAX_ZOOM=1.8, TILE=96;
@@ -57,7 +59,7 @@ function bubble(s,selected,all,ready,page,fx,options){
  const n=all.find(x=>x.id===selected);if(!n)return {bubble:'',cta:''};
  const a=action(s,n,page,cur),branch=BRANCHES.find(x=>x.id===n.branch)?.name||'성장의 시작',r=n.id==='root'&&ready?91:58;
  const available=!options.canLearn||options.canLearn(n),label=options.effectLabels?.[n.effect];
- const desc=n.unlock?`${UNLOCK_SKILLS.find(k=>k.id===n.unlock).desc}<small>다음 환생부터 선택지에 등장 · 영구 유지</small>`:`${label?label+' +'+pct(n.value)+EFFECTS[n.effect].unit:effectText(n.effect,n.value)} / 레벨<small>현재 +${pct(n.value*a.lv)}${EFFECTS[n.effect].unit}${a.maxed?'':` → +${pct(n.value*(a.lv+1))}${EFFECTS[n.effect].unit}`}</small>`;
+ const desc=n.unlock?`${UNLOCK_SKILLS.find(k=>k.id===n.unlock).desc}<small>다음 환생부터 선택지에 등장 · 영구 유지</small>`:`${label?label+' +'+shown(n.effect,n.value)+EFFECTS[n.effect].unit:effectText(n.effect,n.value)} / 레벨<small>현재 +${shown(n.effect,n.value*a.lv)}${EFFECTS[n.effect].unit}${a.maxed?'':` → +${shown(n.effect,n.value*(a.lv+1))}${EFFECTS[n.effect].unit}`}</small>`;
  if(!available)return {bubble:`<div class="map-bubble${pop}" data-x="${n.x}" data-y="${n.y}" data-r="${r}"><div class="bubble-head">${I(n.icon)}<div><small>${a.lv}/${n.max}</small><strong>${n.name}</strong></div></div><p>새 광산에서 사용할 수 있도록 준비 중이에요.<small>기존에 배운 레벨은 보관돼요. 지금은 구매할 수 없어요.</small></p><i class="tail"></i></div>`,cta:`<div class="node-cta locked" data-x="${n.x}" data-y="${n.y}">준비 중</div>`};
  return {bubble:`<div class="map-bubble${pop}" data-x="${n.x}" data-y="${n.y}" data-r="${r}"><div class="bubble-head">${I(n.icon)}<div><small>${n.unlock?'새 빌드 해금':branch} · ${a.lv}/${n.max}</small><strong>${n.name}</strong></div></div><p>${desc}</p>${a.maxed?'':`<div class="bubble-cost ${a.afford?'':'short'}">${cur.icon}<b>${num(a.cost)}</b></div>`}<div class="bubble-hint ${a.state}">${hint(a,cur)}</div><i class="tail"></i></div>`,
   cta:`<div class="node-cta ${a.state}" data-x="${n.x}" data-y="${n.y}">${a.label}</div>`};

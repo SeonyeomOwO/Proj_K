@@ -48,7 +48,7 @@ export class GameMine {
   c.addEventListener('pointercancel',()=>this.cancel());c.addEventListener('lostpointercapture',()=>{if(this.pointer!=null)this.cancel();});
   c.addEventListener('keydown',e=>{if(e.key==='Escape')this.cancel();});
  }
- info(h){return `햄찌 ${h.id+1} · ${TRAITS[h.trait].name} · 체력 ${Math.ceil(h.stamina)} · 배부름 ${h.fullness}/3`+(h.cargo?' · 수레로 나르는 중':h.sleeping?' · 쿨쿨':'');}
+ info(h){return `햄찌 ${h.id+1} · ${TRAITS[h.trait].name}${h.trait2?' · '+TRAITS[h.trait2].name:''} · 체력 ${Math.ceil(h.stamina)}/${h.maxStamina??100} · 배부름 ${h.fullness}/${h.fullCap??3}`+(h.cargo?' · 수레로 나르는 중':h.sleeping?' · 쿨쿨':'');}
  step(dt){
   for(let remaining=Math.min(.1,Math.max(0,dt));remaining>1e-7;remaining-=1/60){
    const result=stepMining(this.getState(),Math.min(remaining,1/60));if(result){this.cancel();this.onEnd(result);break;}

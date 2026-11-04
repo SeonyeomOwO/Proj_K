@@ -1,6 +1,6 @@
 import {drawActor} from '../mining/animation/motion.js';
 import {frame} from '../mining/renderer.js';
-import {fatigueState,canDepart,equipVillageTrait} from './state.js';
+import {fatigueState,canDepart,equipVillageTrait,villageCrew,traitUnlocked} from './state.js';
 import {enhancementQuote} from '../mining/game-state.js';
 import {TRAITS} from '../mining/mining-rules.js';
 import {TIERS} from '../../data/config.js';
@@ -21,11 +21,14 @@ const DECOR=[
  {id:'bench',x:760,y:1290,w:110,h:70},
  ...[[250,340],[1100,350],[220,680],[1180,720],[240,1040],[1160,1080],[350,1400],[1000,1470],[600,1510],[740,210],[420,210],[1010,180]].map(([x,y],i)=>({id:'tree',x,y,w:180+i%3*18,h:215+i%3*18})),
 ];
-const REST_SPOTS=[[450,1184],[515,1184],[565,1228],[475,1254]];
-const CREW=4,baseSkin=i=>i===3?'star':'miner';   // 광산과 같은 기본 옷(4번째가 별 잠옷)
+const REST_SPOTS=[[450,1184],[515,1184],[565,1228],[475,1254],[530,1270],[420,1222]];
+const baseSkin=i=>i===3?'star':'miner';   // 광산과 같은 기본 옷(4번째가 별 잠옷)
 // 장비 광장(레퍼런스의 더미 던지기, 검토용 배치): 광장 아래쪽에 특성 허수아비 4개.
 // 햄찌를 당겼다 놓아 허수아비에 맞히면 그 특성을 끼고, 같은 허수아비에 다시 맞히면 뺀다.
-const DUMMIES=[['workwear',612],['drill',671],['dynamite',730],['pajamas',789]].map(([trait,x])=>({trait,x,y:1024}));
+const BASE_DUMMIES=[['workwear',612],['drill',671],['dynamite',730],['pajamas',789]].map(([trait,x])=>({trait,x,y:1024}));
+// 마스터리로 연 특성(충전 곡괭이)은 구멍 왼쪽 아래에 허수아비가 하나 더 선다
+const dummiesFor=s=>[...BASE_DUMMIES,...(traitUnlocked(s,'charge')?[{trait:'charge',x:612,y:715}]:[])];
+const wornBy=(s,trait)=>{const r=s.renewal,i=r.traits.indexOf(trait);return i>=0?i:(r.traits2??[]).indexOf(trait);};
 const DUMMY_HIT={dy:-30,r:25},FLING={grab:30,drag:1.6,stop:14,back:.9};
 const josa=(word,a,b)=>{const c=word.charCodeAt(word.length-1);return c>=0xac00&&c<=0xd7a3&&(c-0xac00)%28?a:b;};
 function label(c,text,x,y,size=17){
@@ -53,6 +56,7 @@ export class VillageWorld{
  reset(){this.cancel();this.ball=freshBall();this.suction=null;this.camera={...HOME};this.wasResting=null;this.flights=new Map();this.dummyHit={};this.rebuild={};this.seen=null;}
  cancel(){this.aim=null;this.fling=null;this.gesture=null;this.pointers.clear();if(this.ball)this.ball.vx=this.ball.vy=0;}
  skin(s,i){return TRAITS[s.renewal.traits?.[i]]?.skin??baseSkin(i);}
+ crewCount(){return villageCrew(this.getState());}
  // 날아가는 중이 아닌 햄찌 중 손가락에 가장 가까운 한 마리
  grabHamster(w){
   const crew=this.crewPositions();let best=null;
@@ -169,8 +173,8 @@ export class VillageWorld{
  }
  tap(p){
   if(Math.hypot(p.x-this.ball.x,p.y-this.ball.y)<34/this.camera.zoom){this.open(canDepart(this.getState())?'mine-prepare':'village-rest');return;}
-  const d=DUMMIES.find(d=>Math.hypot(p.x-d.x,p.y-(d.y+DUMMY_HIT.dy))<DUMMY_HIT.r+6);
-  if(d){const t=TRAITS[d.trait],who=this.getState().renewal.traits.indexOf(d.trait);this.notify(`${t.name} 허수아비 · ${t.description}${who>=0?` · 지금 햄찌 ${who+1}`:''} — 햄찌를 던져 맞히면 껴요.`);return;}
+  const d=dummiesFor(this.getState()).find(d=>Math.hypot(p.x-d.x,p.y-(d.y+DUMMY_HIT.dy))<DUMMY_HIT.r+6);
+  if(d){const t=TRAITS[d.trait],who=wornBy(this.getState(),d.trait);this.notify(`${t.name} 허수아비 · ${t.description}${who>=0?` · 지금 햄찌 ${who+1}`:''} — 햄찌를 던져 맞히면 껴요.`);return;}
   if(Math.hypot((p.x-HOLE.x), (p.y-HOLE.y)*1.6)<70){this.open('mine-prepare');return;}
   const b=[...BUILDINGS].reverse().find(b=>p.x>=b.x-b.w/2&&p.x<=b.x+b.w/2&&p.y>=b.y-b.h&&p.y<=b.y+30);
   if(b)this.open(b.action);
@@ -201,7 +205,7 @@ export class VillageWorld{
  }
  // 특성 허수아비: 나무 기둥 + 짚 몸통 + 자루 머리 + 이름 팻말. 특성마다 소품 하나, 낀 햄찌가 있으면 번호 배지.
  drawDummy(c,d,s){
-  const age=this.time-(this.dummyHit[d.trait]??-9),wob=age<.7&&s.settings.motion?Math.sin(age*22)*(1-age/.7)*.35:0,who=s.renewal.traits.indexOf(d.trait);
+  const age=this.time-(this.dummyHit[d.trait]??-9),wob=age<.7&&s.settings.motion?Math.sin(age*22)*(1-age/.7)*.35:0,who=wornBy(s,d.trait);
   c.save();c.translate(d.x,d.y);
   c.fillStyle='#4a3a2233';c.beginPath();c.ellipse(0,2,18,5,0,0,Math.PI*2);c.fill();
   c.rotate(wob);c.lineJoin='round';c.lineCap='round';
@@ -217,6 +221,7 @@ export class VillageWorld{
   if(d.trait==='drill'){c.fillStyle='#b9c2c9';c.strokeStyle='#5c6670';c.beginPath();c.moveTo(13,-30);c.lineTo(30,-25);c.lineTo(13,-20);c.closePath();c.fill();c.stroke();c.fillStyle='#e0a03c';c.beginPath();c.roundRect(5,-32,10,14,3);c.fill();c.stroke();}
   if(d.trait==='dynamite'){for(const x of [-6,0,6]){c.fillStyle='#d9483b';c.strokeStyle='#7d2a22';c.beginPath();c.roundRect(x-3,-34,6,15,2);c.fill();c.stroke();}c.strokeStyle='#5a4030';c.beginPath();c.moveTo(0,-34);c.quadraticCurveTo(4,-40,9,-38);c.stroke();c.fillStyle='#ffd25a';c.beginPath();c.arc(9,-38,2,0,7);c.fill();}
   if(d.trait==='pajamas'){c.fillStyle='#6d86d6';c.strokeStyle='#3c4f93';c.beginPath();c.moveTo(-10,-55);c.quadraticCurveTo(0,-72,14,-62);c.lineTo(10,-55);c.closePath();c.fill();c.stroke();c.fillStyle='#ffe27a';c.beginPath();c.arc(15,-63,3,0,7);c.fill();}
+  if(d.trait==='charge'){c.fillStyle='#ffd84a';c.strokeStyle='#9c6a17';c.beginPath();c.moveTo(14,-40);c.lineTo(6,-26);c.lineTo(12,-26);c.lineTo(5,-12);c.lineTo(20,-30);c.lineTo(13,-30);c.lineTo(19,-40);c.closePath();c.fill();c.stroke();}
   c.restore();
   // 이름 팻말과 낀 햄찌 번호
   c.save();c.font='900 11px Game, sans-serif';const name=TRAITS[d.trait].name,pw=Math.max(44,c.measureText(name).width+12);
@@ -241,12 +246,13 @@ export class VillageWorld{
  }
  crewPositions(){
   // 피곤할수록 쉼터 앞에서 늘어져 쉬는 햄찌가 늘고(5칸 중 칸 수에 비례), 다 차면 모두 퍼질러 잔다.
-  const f=fatigueState(this.getState()),resting=f.count>=f.max?CREW:Math.floor(f.count/f.max*CREW);
-  return Array.from({length:CREW},(_,i)=>{
+  const f=fatigueState(this.getState()),crew=this.crewCount(),resting=f.count>=f.max?crew:Math.floor(f.count/f.max*4);
+  return Array.from({length:crew},(_,i)=>{
    if(i<resting){const[x,y]=REST_SPOTS[i];return{x,y,clip:f.count>=f.max?'sleep':'rest',t:this.time+i*.71,face:i%2?1:-1};}
    const t=(this.time+i*2.7)%12,moving=t<5,progress=moving?t/5:1;
    // 아래쪽 장비 광장(허수아비 줄)과 겹치지 않게 조금 위에서 오간다
-   const x=620+(i%2)*160,y=850+Math.floor(i/2)*92+(i%2?1:-1)*Math.sin(progress*Math.PI)*30;
+   // 5·6번째(증원) 햄찌는 공 위쪽 가운데 줄에서 오간다
+   const x=i<4?620+(i%2)*160:650+(i-4)*100,y=(i<4?850+Math.floor(i/2)*92:742)+(i%2?1:-1)*Math.sin(progress*Math.PI)*(i<4?30:18);
    return{x,y,clip:moving?'walk':'idle',t:this.time+i*.71,face:i%2?-1:1};
   });
  }
@@ -259,7 +265,7 @@ export class VillageWorld{
      const h=Math.min(left,1/120);f.x+=f.vx*h;f.y+=f.vy*h;
      if(f.x<PLAZA.left||f.x>PLAZA.right){f.x=Math.max(PLAZA.left,Math.min(PLAZA.right,f.x));f.vx*=-.45;}
      if(f.y<PLAZA.top||f.y>PLAZA.bottom){f.y=Math.max(PLAZA.top,Math.min(PLAZA.bottom,f.y));f.vy*=-.45;}
-     if(!f.hit)for(const d of DUMMIES){const dx=f.x-d.x,dy=f.y-(d.y+DUMMY_HIT.dy),dist=Math.hypot(dx,dy);
+     if(!f.hit)for(const d of dummiesFor(this.getState())){const dx=f.x-d.x,dy=f.y-(d.y+DUMMY_HIT.dy),dist=Math.hypot(dx,dy);
       if(dist<DUMMY_HIT.r){f.hit=d.trait;this.hitDummy(i,d);const nx=dx/(dist||1),ny=dy/(dist||1),dot=f.vx*nx+f.vy*ny;if(dot<0){f.vx-=1.4*dot*nx;f.vy-=1.4*dot*ny;}f.vx*=.45;f.vy*=.45;break;}}
      const decay=Math.exp(-FLING.drag*h);f.vx*=decay;f.vy*=decay;
      if(Math.hypot(f.vx,f.vy)<FLING.stop){f.vx=f.vy=0;f.phase='back';f.t=0;f.from={x:f.x,y:f.y};break;}
@@ -300,7 +306,7 @@ export class VillageWorld{
    if(building)this.rebuildDust(c,b,k);
    if(b.id==='forge'&&this.forgeReady(s))this.forgeFlame(c,b,motion);
   }}));
-  for(const d of DUMMIES)objects.push({depth:d.y,draw:()=>this.drawDummy(c,d,s)});
+  for(const d of dummiesFor(s))objects.push({depth:d.y,draw:()=>this.drawDummy(c,d,s)});
   const crew=this.suction?this.suction.crew:this.crewPositions();
   crew.forEach((p,i)=>{
    const f=!this.suction&&this.flights.get(i);let gx=p.x,gy=p.y,lift=0,clip=p.clip,t=p.t,face=p.face;
@@ -312,7 +318,8 @@ export class VillageWorld{
     if(lift>1){c.fillStyle='#4a3a2240';c.beginPath();c.ellipse(x,y+4,17,5,0,0,Math.PI*2);c.fill();}
     drawActor(c,this.res,{x,y:y-lift,size,clip,skin:this.skin(s,i),t:motion?t:0,face,emote:true,showTool:false,loop:true});
     // 낀 특성 이름표
-    const trait=s.renewal.traits?.[i];if(!this.suction&&trait&&trait!=='none')label(c,TRAITS[trait].name,x,y+19-lift,11);
+    // 낀 특성 이름표(둘째 칸까지)
+    const worn=[s.renewal.traits?.[i],s.renewal.traits2?.[i]].filter(t=>t&&t!=='none'&&TRAITS[t]);if(!this.suction&&worn.length)label(c,worn.map(t=>TRAITS[t].name).join('·'),x,y+19-lift,11);
    }});
   });
   objects.push({depth:this.ball.y+20,draw:()=>{

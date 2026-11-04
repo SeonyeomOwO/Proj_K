@@ -19,6 +19,14 @@ export function progress(s){const ns=nodes(s),maxed=ns.filter(n=>nodeLevel(s,n.i
 export const RUBY_PURSE={get:s=>s.wallet.ruby,spend:(s,n)=>{s.wallet.ruby-=n;}};
 export function buyNode(s,id,purse=RUBY_PURSE){const n=nodes(s).find(n=>n.id===id),lv=nodeLevel(s,id);if(!n||!reachable(s,n)||lv>=n.max)return false;const cost=masteryPrice(n,lv,book(s).page);if(purse.get(s)<cost)return false;purse.spend(s,cost);book(s).levels[id]=lv+1;if(n.unlock&&!book(s).unlocked.includes(n.unlock))book(s).unlocked.push(n.unlock);return true;}
 export function absorbPage(s,purse=RUBY_PURSE){if(!progress(s).ready)return false;const b=book(s),cost=sealPrice(b.page);if(purse.get(s)<cost)return false;const gains=pageBonuses(s),page=b.page;purse.spend(s,cost);for(const [k,v] of Object.entries(gains))b.permanent[k]=(b.permanent[k]||0)+v;b.levels={};b.page++;return {page,gains,cost};}
+// 지금 지도에 없는 노드·끊긴 노드·최대치를 넘은 기록을 정리한다(지도 교체 뒤 예전 저장을 읽을 때)
+export function pruneBook(s){
+ const b=book(s);if(!b?.levels||typeof b.levels!=='object')return;
+ const ns=nodes(s);let changed=true;
+ while(changed){changed=false;for(const [id,lv] of Object.entries(b.levels)){const n=ns.find(x=>x.id===id);
+  if(!n||!Number.isInteger(lv)||lv<1||!n.parents.every(p=>(b.levels[p]||0)>=1)){delete b.levels[id];changed=true;}else if(lv>n.max){b.levels[id]=n.max;changed=true;}}}
+ if(b.permanent&&typeof b.permanent==='object')for(const k of Object.keys(b.permanent))if(!EFFECTS[k])delete b.permanent[k];
+}
 export function activateUnlocks(s){book(s).active=[...book(s).unlocked];}
 export function validateBook(s){
  const b=book(s);if(!b||b.version!==2||!Number.isSafeInteger(b.page)||b.page<1||!b.levels||!b.permanent||typeof b.levels!=='object'||typeof b.permanent!=='object'||Array.isArray(b.levels)||Array.isArray(b.permanent))return false;

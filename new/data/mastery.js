@@ -27,7 +27,11 @@ const REPEAT={speed:'damage',crit:'critDamage',offline:'stones'};
 const offsets=[[-32,170],[46,293],[-56,420],[55,548],[0,674]];
 const price=[4,6,9,12,16];
 const cache=new Map();
+// 뉴 햄찌 광산이 자기 마스터리 지도를 끼우는 자리(기존판은 쓰지 않아 null). 효과 이름·갈래는 화면 표시용으로 바꿔 둔다.
+let tree=null;
+export function useMasteryTree(t){tree=t;Object.assign(EFFECTS,t.effects);BRANCHES.splice(0,BRANCHES.length,...t.branches);}
 export function masteryNodes(page=1){
+ if(tree)return tree.nodes(page);
  const key=page===1?1:2;if(cache.has(key))return cache.get(key);
  const nodes=[{id:'root',name:'작은 첫걸음',branch:'root',x:920,y:920,parents:[],max:1,cost:5,effect:'damage',value:.1,icon:'pickaxe'}];
  for(const b of BRANCHES){

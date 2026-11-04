@@ -5,6 +5,8 @@ import {TRAITS} from './mining-rules.js';
 import {CONFIG,TIERS} from '../../data/config.js';
 import {masteryBonus,nodes,buyNode,absorbPage} from '../mastery-state.js';
 import {recordSeason} from '../season-state.js';
+import {useMasteryTree} from '../../data/mastery.js';
+import {MINE_TREE,MINE_EFFECTS,miningMods} from './mining-mastery.js';
 
 // First integrated playtest economy. Centralized so review values can change.
 // 황금 해바라기씨(마스터리·가챠 재화)는 층마다 있는 상자에서만 나온다: 상자를 캐서 연 뒤 수레에 담은 만큼 정산된다
@@ -15,7 +17,9 @@ export const ECONOMY={initialSeeds:24,ballCapacity:CONFIG.walletCap,seedsPerValu
 export const GOLDEN_NAME='황금 해바라기씨';
 // 마스터리 결제는 루비 대신 황금 해바라기씨(뉴 햄찌 광산). mastery-state.js의 buyNode/absorbPage에 넘긴다.
 export const GOLDEN_PURSE={get:s=>s.renewal.golden,spend:(s,n)=>{s.renewal.golden-=n;}};
-export const miningMasteryAvailable=node=>!!node&&['damage','speed','stones'].includes(node.effect);
+// 뉴 햄찌 광산 전용 마스터리 지도를 끼운다(효과 31종, mining-mastery.js). 지도의 노드는 모두 배울 수 있다.
+useMasteryTree(MINE_TREE);
+export const miningMasteryAvailable=node=>!!node&&(node.id==='root'||!!MINE_EFFECTS[node.effect]);
 export const buyMiningMastery=(s,id)=>miningMasteryAvailable(nodes(s).find(n=>n.id===id))&&buyNode(s,id,GOLDEN_PURSE);
 export const absorbMiningMastery=s=>absorbPage(s,GOLDEN_PURSE);
 export function miningGrowth(s){
@@ -24,24 +28,28 @@ export function miningGrowth(s){
 }
 const whole=(v,max=1e12)=>Number.isSafeInteger(v)&&v>=0&&v<=max;
 const validId=(list,id)=>list.some(x=>x.id===id);
-const safeTraits=input=>{const used=new Set();return Array.from({length:4},(_,i)=>{const id=input?.[i];if(!TRAITS[id]||used.has(id))return 'none';if(id!=='none')used.add(id);return id;});};
+// 특성 칸: 햄찌 4~6마리(증원) × 첫째 칸(traits)·둘째 칸(traits2, 마스터리 '특성 칸'). 같은 특성은 한 마리 한 칸에만.
+const traitCount=input=>Math.min(6,Math.max(4,Array.isArray(input)?input.length:4));
+const safeTraits=(input,used=new Set(),n=traitCount(input))=>Array.from({length:n},(_,i)=>{const id=input?.[i];if(!TRAITS[id]||used.has(id))return 'none';if(id!=='none')used.add(id);return id;});
+const safeTraitPair=(first,second)=>{const used=new Set(),a=safeTraits(first,used);return[a,safeTraits(second,used,a.length)];};
 export function validRun(m){
  if(!m||!validId(THEMES,m.themeId)||!validId(LAYOUTS,m.layoutId)||!whole(m.seed,1e6)||!whole(m.depth,100000)||m.depth<1||!['mining','transition','ended'].includes(m.phase))return false;
- if(!Array.isArray(m.cells)||m.cells.length!==170||!Array.isArray(m.crew)||m.crew.length!==4||!Array.isArray(m.drops)||m.drops.length>170||!Array.isArray(m.seeds)||m.seeds.length>100||!Array.isArray(m.events))return false;
+ if(!Array.isArray(m.cells)||m.cells.length!==170||!Array.isArray(m.crew)||m.crew.length<4||m.crew.length>6||!Array.isArray(m.drops)||m.drops.length>170||!Array.isArray(m.seeds)||m.seeds.length>100||!Array.isArray(m.events))return false;
  if(!m.cart||!m.ball||!whole(m.ball.seeds,ECONOMY.ballCapacity)||!whole(m.secured)||!whole(m.securedValue)||!whole(m.mined)||!whole(m.lostOre)||!whole(m.lostValue))return false;
  const finiteTree=v=>typeof v==='number'?Number.isFinite(v):v&&typeof v==='object'?Object.values(v).every(finiteTree):true;
  if(!finiteTree(m))return false;
- const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m),depth:m.depth});
+ const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m),depth:m.depth,mods:m.mods});
  if(m.cells.some((c,i)=>!c||c.id!==i||c.kind!==base.cells[i].kind||typeof c.solid!=='boolean'||c.unbreakable!==base.cells[i].unbreakable||(c.unbreakable&&!c.solid)||!(c.hp>=0&&c.hp<=c.maxHp&&c.maxHp<=5)))return false;
- if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=100)||!(h.fullness>=0&&h.fullness<=3)||h.cargo&&!h.cargoDrop))return false;
+ // 기운 최대치·배부름 한도는 마스터리로 늘어난다(햄찌마다 maxStamina·fullCap)
+ if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||h.trait2!=null&&!TRAITS[h.trait2]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=Math.min(200,h.maxStamina??100))||!(h.fullness>=0&&h.fullness<=Math.min(6,h.fullCap??3))||h.cargo&&!h.cargoDrop))return false;
  // 주인 없는 드롭(owner=null): 상자에서 튄 황금 해바라기씨는 가까운 햄찌가 나중에 맡는다.
- if(m.drops.some(d=>!whole(d.id)||d.owner!=null&&!whole(d.owner,3)||!whole(d.value,5)))return false;
- if(m.phase==='transition'&&(!m.transition||!['suction','close','covered','open'].includes(m.transition.stage)||m.transition.from?.length!==4))return false;
+ if(m.drops.some(d=>!whole(d.id)||d.owner!=null&&!whole(d.owner,m.crew.length-1)||!whole(d.value,5)))return false;
+ if(m.phase==='transition'&&(!m.transition||!['suction','close','covered','open'].includes(m.transition.stage)||m.transition.from?.length!==m.crew.length))return false;
  if(!whole(m.goldenFound??0)||!whole(m.securedGolden??0)||!whole(m.lostGolden??0))return false;
- // 광물과 황금 해바라기씨는 따로 맞아떨어져야 한다(부서진 광물 = 확보 + 잃음 + 바닥 + 운반 중).
- const isGold=d=>!!d?.golden,carrying=m.crew.filter(h=>h.cargo);
- const oreOk=m.mined===m.secured+m.lostOre+m.drops.filter(d=>!isGold(d)).length+carrying.filter(h=>!isGold(h.cargoDrop)).length;
- const goldOk=(m.goldenFound??0)===(m.securedGolden??0)+(m.lostGolden??0)+m.drops.filter(isGold).length+carrying.filter(h=>isGold(h.cargoDrop)).length;
+ // 광물과 황금 해바라기씨는 따로 맞아떨어져야 한다(부서진 광물 = 확보 + 잃음 + 바닥 + 운반 중). '두 개 나르기'의 둘째 짐(extraDrop)도 센다.
+ const isGold=d=>!!d?.golden,loads=m.crew.flatMap(h=>h.cargo?[h.cargoDrop,...(h.extraDrop?[h.extraDrop]:[])]:[]);
+ const oreOk=m.mined===m.secured+m.lostOre+m.drops.filter(d=>!isGold(d)).length+loads.filter(d=>!isGold(d)).length;
+ const goldOk=(m.goldenFound??0)===(m.securedGolden??0)+(m.lostGolden??0)+m.drops.filter(isGold).length+loads.filter(isGold).length;
  return oreOk&&goldOk;
 }
 export function initializeMining(s){
@@ -55,7 +63,7 @@ export function initializeMining(s){
  r.prologueSeen=r.prologueSeen===true;
  r.seeds=whole(r.seeds)?r.seeds:0;r.golden=whole(r.golden)?r.golden:0;r.runId=whole(r.runId)?r.runId:0;r.settledId=whole(r.settledId)?Math.min(r.settledId,r.runId):r.runId;
  // 2026-11-03: 새 탐사는 모두 레퍼런스식 동굴 맵(예전 맵 6종은 개발 검사용으로만 남김)
- r.themeId=validId(THEMES,r.themeId)?r.themeId:'base';r.layoutId=CAVE.id;r.traits=safeTraits(r.traits);
+ r.themeId=validId(THEMES,r.themeId)?r.themeId:'base';r.layoutId=CAVE.id;[r.traits,r.traits2]=safeTraitPair(r.traits,r.traits2);
  if(!r.pick||!whole(r.pick.tier,5)||!whole(r.pick.level,5))r.pick={tier:0,level:0};
  if(r.run&&!validRun(r.run)){r.run=null;r.result=null;r.recoveredInvalidRun=true;}
  if(r.run){r.run.paused=false;r.run.aim=null;r.run.ball.vx=r.run.ball.vy=0;r.run.ball.contacts=[];}
@@ -65,13 +73,15 @@ export function initializeMining(s){
 export function startMining(s,{seeds=ECONOMY.ballCapacity,themeId,layoutId,traits}={}){
  const r=s.renewal;if(r.run&&r.run.phase!=='ended')return false;
  if(themeId&&validId(THEMES,themeId))r.themeId=themeId;if(layoutId&&validId(LAYOUTS,layoutId))r.layoutId=layoutId;
- if(traits)r.traits=safeTraits(traits);
+ if(traits)[r.traits,r.traits2]=safeTraitPair(traits,r.traits2);
  const packed=Math.min(r.seeds,ECONOMY.ballCapacity,Math.max(0,Math.floor(Number(seeds)||0)));
  r.seeds-=packed;r.runId++;r.result=null;
- const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits,depth:s.floor});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
+ // 마스터리 효과를 출발할 때 한 번 모아 탐사에 넣는다(탐사 중에 배운 것은 다음 탐사부터)
+ const mods=miningMods(k=>masteryBonus(s,k));
+ const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits,traits2:mods.traitSlot?r.traits2:[],depth:s.floor,mods});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
  // Snapshot growth on departure; changing menus never resets an active swing.
  const {power,speed,reward}=miningGrowth(s);
- for(const h of m.crew){h.power=power;h.period/=speed;}
+ for(const h of m.crew){h.power=power;h.period/=speed;h.speed*=1+mods.walk;}
  m.rewardMultiplier=reward;r.run=m;return true;
 }
 export function settleMining(s){

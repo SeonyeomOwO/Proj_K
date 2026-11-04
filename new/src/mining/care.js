@@ -1,10 +1,13 @@
 import {floorIsClear} from './loot/loot-motion.js';
+import {hasTrait,TRAIT_LEVEL} from './mining-rules.js';
 import {routesFrom,setDestination,moveWorker,clearSegment} from './navigation.js';
 // Review tuning, not final economy/balance. Fullness is per hamster per trip.
 // digest: 깨어 있는 동안 이 초마다 배부름 1칸이 꺼진다(2026-11-04: 공의 씨앗을 연료처럼 계속 먹일 수 있게)
 export const CARE={maxStamina:100,fullness:3,recovery:55,workDrain:2.3,moveDrain:.7,initialSeeds:8,startle:.72,eat:2.1,digest:20};
-export const canEat=h=>h.fullness<CARE.fullness;
-export const workRate=h=>h.trait==='drill'?1:h.trait==='workwear'?.7+.3*Math.max(0,Math.min(1,h.stamina/CARE.maxStamina)):.35+.65*Math.max(0,Math.min(1,h.stamina/CARE.maxStamina));
+export const canEat=h=>h.fullness<(h.fullCap??CARE.fullness);
+const maxOf=h=>h.maxStamina??CARE.maxStamina;
+export const canEatMore=h=>h.fullness<(h.fullCap??CARE.fullness);
+export const workRate=h=>{const k=Math.max(0,Math.min(1,h.stamina/maxOf(h))),floor=Math.min(.95,.7+TRAIT_LEVEL.workwear*(h.traitLevel??0));return hasTrait(h,'drill')?1:hasTrait(h,'workwear')?floor+(1-floor)*k:.35+.65*k;};
 function resetRoute(h){h.goal=null;h.route=[];h.yieldGoal=null;h.yieldFor=null;h.foodTarget=null;}
 function setCare(h,kind){resetRoute(h);h.recover=0;h.wait=0;h.care=kind;h.careTime=0;h.clip=kind;h.motion=0;}
 export function hitWithBall(s,h){
@@ -44,7 +47,8 @@ export function updateCare(s,h,dt){
  if(h.care==='eat'){
   h.careTime+=dt;h.clip='eat';h.motion=h.careTime;
   if(h.careTime>=CARE.eat){
-   h.fullness=Math.min(CARE.fullness,h.fullness+1);h.stamina=Math.min(CARE.maxStamina,h.stamina+CARE.recovery);
+   // 씨앗 회복량(마스터리 feed)·기운 최대치·배부름 한도는 햄찌/탐사마다 다르다
+   h.fullness=Math.min(h.fullCap??CARE.fullness,h.fullness+1);h.stamina=Math.min(maxOf(h),h.stamina+CARE.recovery+(s.mods?.feed??0));
    h.eatingSeed=null;h.care=null;h.sleeping=false;h.sleepHitsRemaining=null;h.clip='idle';resetRoute(h);
    s.events.push({type:'fed',time:s.time,x:h.x,y:h.y,worker:h.id});
   }
@@ -73,8 +77,10 @@ export function updateCare(s,h,dt){
 }
 export function drainStamina(s,h,dt,distance){
  if(!s.careEnabled||h.sleeping||h.care)return;
- const drain=['mine','drill','bomb'].includes(h.clip)&&!h.goal?CARE.workDrain*(h.trait==='drill'?2.4:1):distance>.01?CARE.moveDrain:0;
- h.stamina=Math.max(0,h.stamina-drain*dt);
+ const drillDrain=Math.max(1.2,2.4-TRAIT_LEVEL.drillDrain*(h.traitLevel??0));
+ const drain=['mine','drill','bomb'].includes(h.clip)&&!h.goal?CARE.workDrain*(hasTrait(h,'drill')?drillDrain:1):distance>.01?CARE.moveDrain:0;
+ // 기운 아끼기(마스터리 thrift)
+ h.stamina=Math.max(0,h.stamina-drain*dt*(1-(s.mods?.thrift??0)));
 }
 // 소화: 배부름이 천천히 꺼져 다시 씨앗을 먹을 수 있다(잠든 동안에도 꺼진다 → 공에 씨앗이 남아 있으면 언제든 다시 깨울 수 있음)
 export function digest(s,h,dt){

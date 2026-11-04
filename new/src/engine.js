@@ -843,6 +843,8 @@ export function parseState(raw, now = Date.now()) {
     if (!Array.isArray(s.mastery) || s.mastery.some(x => !MASTERY.some(n => n.id === x)) || new Set(s.mastery).size !== s.mastery.length)
       return null;
     s.masteryBook ||= M.newMasteryBook();
+    // 마스터리 지도가 바뀌었을 때(뉴 햄찌 광산 지도 교체) 없는 노드 기록만 버리고 저장은 살린다
+    M.pruneBook?.(s);
     if(!M.validateBook(s))return null;
     if(s.draft){s.draft.rerolls??=0;if(!Number.isInteger(s.draft.rerolls)||s.draft.rerolls<0||s.draft.rerolls>3||new Set(s.draft.offers).size!==s.draft.offers.length||s.draft.offers.length!==3||s.draft.step!==s.skills.length||s.draft.offers.some(id=>!draftPool(s).includes(id)))return null;}
     // 의상 시절 저장: 가진 의상을 같은 id의 햄찌 Lv.1로 바꾸고 전부 팀에 넣는다(입던 의상이 앞 순서).

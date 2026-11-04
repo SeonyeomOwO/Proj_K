@@ -2,6 +2,7 @@ import {ECONOMY,startMining,settleMining} from '../mining/game-state.js';
 import {THEMES} from '../mining/mineral-themes.js';
 import {MAPS as LAYOUTS} from '../mining/map-layouts.js';
 import {TRAITS} from '../mining/mining-rules.js';
+import {masteryBonus} from '../mastery-state.js';
 
 // 마을 공통 피곤함(모바일 스테미너, 2026-11-03 확정): 탐사 1번 = 1칸, max칸이 다 차면 광산에 못 들어가고,
 // 시간이 지나면 recoverMs마다 1칸씩 풀린다(앱을 꺼 둔 시간 포함). 숫자는 검토용 임시 값 — 회복 1분은 테스트용이고
@@ -53,7 +54,7 @@ export function prepareVillage(s,{seeds,themeId,layoutId,traits=s.renewal.traits
  r.village.pack=count(seeds,ECONOMY.ballCapacity);
  if(THEMES.some(x=>x.id===themeId))r.themeId=themeId;
  if(LAYOUTS.some(x=>x.id===layoutId))r.layoutId=layoutId;
- const seen=new Set();r.traits=Array.from({length:4},(_,i)=>{
+ const seen=new Set();r.traits=Array.from({length:Math.min(6,Math.max(4,traits.length))},(_,i)=>{
   const id=traits[i];if(!Object.hasOwn(TRAITS,id)||id==='none'||seen.has(id))return 'none';
   seen.add(id);return id;
  });
@@ -61,11 +62,21 @@ export function prepareVillage(s,{seeds,themeId,layoutId,traits=s.renewal.traits
 }
 // 장비 광장(레퍼런스의 더미 던지기): 햄찌 i를 특성 허수아비에 던지면 그 특성을 낀다.
 // 이미 그 특성을 낀 햄찌를 다시 던지면 뺀다. 다른 햄찌가 끼고 있던 특성이면 그 햄찌는 기본으로 돌아간다(특성은 한 마리씩).
+// 마을 햄찌 수(마스터리 '햄찌 증원'으로 4 → 최대 6)
+export const villageCrew=s=>Math.min(6,4+(masteryBonus(s,'crew')||0));
+// 마스터리로 여는 특성(충전 곡괭이 등)은 배운 뒤에만 낄 수 있다. '특성 칸'을 배우면 햄찌마다 둘째 칸(traits2)이 생긴다.
+export const traitUnlocked=(s,trait)=>!TRAITS[trait]?.mastery||masteryBonus(s,TRAITS[trait].mastery)>0;
 export function equipVillageTrait(s,i,trait){
- const r=s.renewal;if(!Object.hasOwn(TRAITS,trait)||trait==='none'||!(i>=0&&i<4)||r.village.scene!=='village')return null;
- if(r.traits[i]===trait){r.traits[i]='none';return{i,trait:'none',removed:trait,from:null};}
- const from=r.traits.findIndex((t,k)=>k!==i&&t===trait);if(from>=0)r.traits[from]='none';
- r.traits[i]=trait;return{i,trait,removed:null,from:from>=0?from:null};
+ const r=s.renewal;if(!Object.hasOwn(TRAITS,trait)||trait==='none'||!(i>=0&&i<villageCrew(s))||r.village.scene!=='village'||!traitUnlocked(s,trait))return null;
+ const second=r.traits2??=[];for(const list of [r.traits,second])for(let k=list.length;k<=i;k++)list[k]='none';
+ // 이미 낀 특성이면 뺀다(첫째 칸이 비면 둘째 칸 것을 당겨 온다)
+ if(r.traits[i]===trait){r.traits[i]=second[i]!=='none'?second[i]:'none';second[i]='none';return{i,trait:'none',removed:trait,from:null};}
+ if(second[i]===trait){second[i]='none';return{i,trait:'none',removed:trait,from:null};}
+ let from=null;for(const list of [r.traits,second]){const k=list.findIndex((t,j)=>j!==i&&t===trait);if(k>=0){list[k]='none';from=k;}}
+ if(r.traits[i]==='none'||masteryBonus(s,'traitSlot')<1)r.traits[i]=trait;
+ else if(second[i]==='none')second[i]=trait;
+ else r.traits[i]=trait;   // 두 칸이 다 차 있으면 첫째 칸을 바꾼다
+ return{i,trait,removed:null,from};
 }
 export function departVillage(s,now=Date.now()){
  if(!canDepart(s,now)||!s.renewal.village.prepared)return false;

@@ -25,8 +25,9 @@ export const CAVE={id:'cave',name:'동굴',sizes:[[6,8],[6,9],[7,10],[7,11],[8,1
 export const MAPS=[{id:CAVE.id,name:CAVE.name},...LAYOUTS];
 export const holeNeedFor=step=>Math.min(CAVE.holeNeed.max,CAVE.holeNeed.base+CAVE.holeNeed.perStep*step);
 export const rareShare=depth=>CAVE.rare.start+(CAVE.rare.deep-CAVE.rare.start)*Math.min(1,Math.max(0,(depth-1)/(CAVE.rare.fullDepth-1)));
-export function crateCount(seed,depth){
- let n=0;for(const [base,per,max] of CAVE.crates){if(roll(seed,depth,90+n)<Math.min(max,base+per*(depth-1)))n++;else break;}
+// bonus: 마스터리 '황금 상자 확률'(%p를 모든 굴림에 더함)
+export function crateCount(seed,depth,bonus=0){
+ let n=0;for(const [base,per,max] of CAVE.crates){if(roll(seed,depth,90+n)<Math.min(max,base+per*(depth-1))+(base||per*(depth-1)>0?bonus:0))n++;else break;}
  return n;
 }
 // 물길: 걷는 햄찌는 이 배율로 느려지고, 공·수레는 추가로 감속한다

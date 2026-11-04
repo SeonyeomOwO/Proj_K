@@ -57,12 +57,12 @@ export function drawTired(c,s,h){
 // 칸 색: 넉넉 초록 · 지침 노랑 · 바닥 빨강, 잠든 햄찌 칸은 회색 z. 팀 합계가 30% 아래면 테두리가 깜빡인다.
 export function drawTeamEnergy(c,s,{frame,rig,text}){
  const x=126,y=16,w=210,h=42,inner={x:x+46,y:y+15,w:w-58,h:13},crew=s.crew,gap=4,cell=(inner.w-gap*(crew.length-1))/crew.length;
- const total=crew.reduce((n,o)=>n+Math.max(0,o.stamina),0)/(crew.length*100);
+ const total=crew.reduce((n,o)=>n+Math.max(0,o.stamina),0)/crew.reduce((n,o)=>n+(o.maxStamina??100),0);
  frame(c,rig,'panel_brown',x,y,w,h);
  if(total<.3&&s.phase==='mining'){c.save();c.globalAlpha=.35+.35*Math.sin(s.time*6);c.strokeStyle='#ff6b4a';c.lineWidth=3;c.beginPath();c.roundRect(x+3,y+3,w-6,h-6,10);c.stroke();c.restore();}
  text(c,'기운',x+25,y+28,14);
  crew.forEach((o,i)=>{
-  const cx=inner.x+i*(cell+gap),k=Math.max(0,Math.min(1,o.stamina/100));
+  const cx=inner.x+i*(cell+gap),k=Math.max(0,Math.min(1,o.stamina/(o.maxStamina??100)));
   c.save();c.fillStyle='#3a261c';c.beginPath();c.roundRect(cx,inner.y,cell,inner.h,4);c.fill();
   if(o.sleeping){c.fillStyle='#8d8378';c.beginPath();c.roundRect(cx+1.5,inner.y+1.5,cell-3,inner.h-3,3);c.fill();
    c.fillStyle='#f3ead8';c.font='900 10px Game, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('z',cx+cell/2,inner.y+inner.h/2+.5);}

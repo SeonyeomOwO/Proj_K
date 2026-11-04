@@ -6,7 +6,7 @@ import {drawHoleBase,drawHoleMarker} from './hole-marker.js';
 import {getMineral} from './mineral-themes.js';
 import {drawFragment,fragmentResources} from './loot/ore-fragments.js';
 import {dropVisual} from './drop-system.js';
-import {workerPose,actionFragment,ACTOR_SIZE,FOOT_OFFSET} from './worker-pose.js';
+import {workerPose,actionFragment,carrySocket,ACTOR_SIZE,FOOT_OFFSET} from './worker-pose.js';
 import {MINING_WEAPON_SCALE} from './mining-contact.js';
 import {drawAim,visualWorker,drawFloorSeeds,drawTired,drawFloorTransition,drawTeamEnergy} from './interaction-renderer.js';
 import {drawTerrainImpacts,breakBurst,hitDebris} from './terrain-impact.js';
@@ -134,8 +134,16 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   const carryOverride=f?.hands?{x:((f.handsX??f.x)-h.x)/ACTOR_SIZE*h.face-(p.shift??0),y:((f.handsY??f.y)-h.y-FOOT_OFFSET)/ACTOR_SIZE-p.bob,angle:f.angle*h.face}:null;
   if(d&&(h.care||h.sleeping))drawFragment(c,d.kind,h.x-18,h.y+19,d.width*.9,{variant:d.variant,angle:d.angle});
   drawActor(c,actorRes,{x:h.x,y:h.y+FOOT_OFFSET,size:ACTOR_SIZE,clip:h.clip,skin:h.skin,t:h.motion,index:0,face:h.face,showTool:!h.cargo&&!h.care&&(!h.sleeping||h.clip==='pajamas'),emote:!!h.care||h.sleeping,prop:'fragment:'+(h.cargo??'stone'),poseOverride:p,carryOverride,weaponScale:MINING_WEAPON_SCALE});
+  // 두 개 나르기: 둘째 짐은 머리 위에 하나 더 얹어 보인다
+  const x2=original.extraDrop;if(x2&&h.cargo&&!h.action){const sock=carrySocket(h,p);drawFragment(c,x2.kind,sock.x+3*h.face,sock.y-15,x2.width*.8,{variant:x2.variant,angle:x2.angle*.2});}
   drawTired(c,s,h);
  }});}
+ // 그림자 햄찌(마스터리): 반투명하게 바위를 함께 캔다
+ for(const g of s.shadows??[])objects.push({depth:g.y+FOOT_OFFSET,draw(){
+  const left=g.until-s.time;c.save();c.globalAlpha=Math.min(.5,left*1.2,(s.time-(g.until-(s.mods?.shadow??3)))*2);
+  drawActor(c,fragmentResources(res,{variant:0,width:null,angle:0,alpha:1,unmirror:g.face}),{x:g.x,y:g.y+FOOT_OFFSET,size:ACTOR_SIZE,clip:'mine',skin:'miner',t:(s.time*1.4)%2.1,index:0,face:center(g.cell)[0]>=g.x?1:-1,showTool:true,emote:false,weaponScale:MINING_WEAPON_SCALE});
+  c.restore();
+ }});
  objects.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
  // The same fragment is lifted into the paws, then tossed into the cart.
  for(const h of s.crew){const d=h.cargoDrop,f=actionFragment(s,h);if(!d||!f)continue;
@@ -149,6 +157,11 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   }
   if(e.type==='deposit'){
    if(age<.3){c.save();c.globalAlpha=(1-age/.3)*.6;for(let i=0;i<4;i++){c.fillStyle='#e4cda0';c.beginPath();c.ellipse(cart.x+(i-1.5)*(7+age*23),cart.y-16-age*18,3+age*4,2+age*3,0,0,Math.PI*2);c.fill();}c.restore();}continue;
+  }
+  if(e.type==='shock'){
+   // 착지 충격(마스터리): 땅을 따라 퍼지는 고리
+   if(age<.4){const k=age/.4;c.save();c.globalAlpha=(1-k)*.7;c.strokeStyle='#fff0bd';c.lineWidth=4*(1-k)+1;c.beginPath();c.ellipse(e.x,e.y+16,12+k*66,6+k*30,0,0,Math.PI*2);c.stroke();c.restore();}
+   continue;
   }
   if(e.type==='unlock'){
    // 구멍이 풀리는 순간: 금빛 고리가 퍼진다

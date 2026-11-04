@@ -51,7 +51,7 @@ function stepBall(s,b,dt){
   const decay=Math.exp(-BALL.drag*lo);b.vx*=decay;b.vy*=decay;remaining-=lo;
   const dot=b.vx*contact.nx+b.vy*contact.ny;
   if(dot>=0||!Number.isFinite(dot)){b.vx=b.vy=0;break;}
-  const bounce=contact.type==='terrain'||contact.type==='boundary'?BALL.wallBounce:BALL.bounce;
+  const bounce=contact.type==='terrain'||contact.type==='boundary'?BALL.wallBounce:Math.min(.95,BALL.bounce+(s.mods?.ballBounce??0));   // 공 튕김(마스터리 ballBounce)
   b.vx-=(1+bounce)*dot*contact.nx;b.vy-=(1+bounce)*dot*contact.ny;
   if(contact.type==='hamster')hits.push(contact.worker);
   const px=b.x+contact.nx*.02,py=b.y+contact.ny*.02;

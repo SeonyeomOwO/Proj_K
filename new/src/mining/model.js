@@ -11,7 +11,11 @@ import {BALL,updateBall,holeContains,ballSpeed} from './ball.js';
 import {ballPositionClear} from './terrain-collision.js';
 import {chooseIrisShape} from '../intro/iris-transition.js';
 import {assignFocusWork} from './focus-command.js';
-import {mineralRule,miningPeriod,equipTrait} from './mining-rules.js';
+import {mineralRule,miningPeriod,equipTrait,TRAITS,hasTrait,chargeBonus} from './mining-rules.js';
+// 수레 곁 채굴 속도(마스터리 cartAura): 수레에서 130px 안에서 일하면 빨라진다
+const cartAura=(s,h)=>s.mods?.cartAura&&Math.hypot(h.x-s.cart.x,h.y-s.cart.y)<130?1+s.mods.cartAura:1;
+// 떨어지는 씨앗(마스터리): 단계가 오를수록 자주(검토용 값)
+export const windfallEvery=level=>Math.max(12,40-6*level);
 import {updateBlastFlight,updateSleepMining,updateBomb} from './trait-actions.js';
 import {updateFlight,updateCart} from './fling.js';
 export {equipTrait};
@@ -21,7 +25,9 @@ export {COLS,ROWS,TILE,ORIGIN,RISE,key,xy,center,hitCell,noise,neighbors,isMinea
 export const CRATE={perFloor:1,hits:4,golden:3};
 // step: 동굴 맵에서 이번 탐사 동안 내려간 층 수(0=첫 층). 맵 크기와 구멍 조건이 여기서 정해진다.
 // depth: 지하 몇 층인지. 동굴 맵의 희귀 광석 비율과 황금 상자 개수가 여기서 정해진다.
-export function createState(seed=1,{themeId='base',layoutId='classic',careEnabled=true,mineralRules='varied',traits=[],step=0,depth=1}={}){
+// mods: 출발할 때 모은 마스터리 효과(mining-mastery.js의 miningMods). 맵·햄찌 수·기운 등에 쓰고 s.mods로 들고 다닌다.
+export function createState(seed=1,{themeId='base',layoutId='classic',careEnabled=true,mineralRules='varied',traits=[],traits2=[],step=0,depth=1,mods={}}={}){
+ const mod=k=>mods?.[k]??0;
  const theme=getTheme(themeId),cave=layoutId===CAVE.id?caveLayout(seed,step):null,map=cave?{id:CAVE.id,rows:cave.rows}:getLayout(layoutId);
  const layout=map.rows.map(row=>[...row].map(v=>v!=='.'&&v!=='~'));
  const cells=layout.flatMap((row,y)=>row.map((solid,x)=>{
@@ -34,7 +40,7 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
   if(cave){
    // 동굴: 희귀 광석(기본 광산은 구리·옥, 테마 광산은 그 테마의 대표 광석)이 2×2칸 무리로 박히고 깊을수록 늘어난다.
    // 나머지는 돌, 테마 광산은 부 광석이 조금 섞인다.
-   const rare=noise(Math.floor(x/2),Math.floor(y/2),seed+31)>1-rareShare(depth)&&noise(x,y,seed+15)>.22;
+   const rare=noise(Math.floor(x/2),Math.floor(y/2),seed+31)>1-(rareShare(depth)+mod('rare'))&&noise(x,y,seed+15)>.22;
    kind=rare?(theme.id==='base'?(noise(Math.floor(x/2),Math.floor(y/2),seed+5)>.5?'copper':'jade'):theme.primary):theme.id!=='base'&&noise(x,y,seed+44)>.86?theme.secondary:'stone';
   }
   const rule=mineralRule(kind,mineralRules),hp=rule.hits;
@@ -48,26 +54,30 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
  }));
  const holeCell=cave?cells[key(cave.hole.x,cave.hole.y)]:cells.find(c=>isMineable(c)&&c.y>=3&&c.y<=6&&neighbors(c.id).some(n=>!cells[n].solid));holeCell.hole=true;
  // 동굴: 바위를 holeNeed개 부숴야 구멍을 캘 수 있다(그 전엔 잠김 → isMineable이 false).
- const holeNeed=cave?holeNeedFor(step):0;if(holeNeed)holeCell.locked=true;
+ const holeNeed=cave?Math.max(2,holeNeedFor(step)-mod('holeEase')):0;if(holeNeed)holeCell.locked=true;
  // 상자는 구멍·수레 근처(아래쪽 줄)를 피해 길에 맞닿은 안쪽 바위에 시드로 정해 박는다. 처음부터 보여서 노릴 수 있다.
  // 동굴에서는 처음 공간에 바로 붙지 않은 바위 속(한 칸 이상 파야 닿음)에 묻는다.
  const touchesOpen=c=>neighbors(c.id).some(n=>!cells[n].solid);
  cells.filter(c=>isMineable(c)&&!c.hole&&(cave?!touchesOpen(c):c.y>=2&&c.y<=11&&touchesOpen(c)))
-  .sort((a,b)=>noise(a.x,a.y,seed+77)-noise(b.x,b.y,seed+77)).slice(0,cave?crateCount(seed,depth):CRATE.perFloor)
+  .sort((a,b)=>noise(a.x,a.y,seed+77)-noise(b.x,b.y,seed+77)).slice(0,cave?crateCount(seed,depth,mod('crateChance')):CRATE.perFloor)
   .forEach(c=>{c.crate=true;c.hp=c.maxHp=CRATE.hits;});
  // 동굴: 수레는 처음 공간 왼쪽 아래, 공은 오른쪽 아래(벽에서 몸 반지름+여유만큼 띄움)
  const pocket=cave&&{left:ORIGIN+cave.pocket.x*TILE,right:ORIGIN+(cave.pocket.x+cave.pocket.w)*TILE,top:ORIGIN+cave.pocket.y*TILE,bottom:ORIGIN+(cave.pocket.y+cave.pocket.h)*TILE};
  const cart=pocket?{x:pocket.left+50,y:pocket.bottom-42}:{x:177,y:653},ballAt=pocket?{x:pocket.right-28,y:pocket.bottom-28}:{x:283,y:704};
- const s={seed,careEnabled,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{...cart,radius:34,vx:0,vy:0},ball:{...ballAt,radius:BALL.radius,vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds},holeNeed,floorBroken:0,floorStart:0};
- // 동굴의 처음 공간은 좁아서 햄찌끼리 조금 붙어 서도 된다(겹쳐 지나가기 규칙과 같은 이유).
- const spots=pocket?Array.from({length:4},(_,i)=>[(pocket.left+30+i*46)/50,(pocket.top+75)/50]):[[2,7],[5,10],[6,6],[4,12]],spacing=pocket?40:BODY_GAP+5;
+ const s={seed,careEnabled,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{...cart,radius:34,vx:0,vy:0},ball:{...ballAt,radius:BALL.radius*(1+mod('ballSize')),vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds},holeNeed,floorBroken:0,floorStart:0,
+  mods:{...mods},shadows:[],windfallAt:mod('windfall')?windfallEvery(mod('windfall')):null,lastFlingAt:-9};
+ // 동굴의 처음 공간은 좁아서 햄찌끼리 조금 붙어 서도 된다(겹쳐 지나가기 규칙과 같은 이유). 증원된 햄찌(5·6번째)는 둘째 줄.
+ const count=Math.min(6,4+mod('crew'));
+ const spots=(pocket?[...Array.from({length:4},(_,i)=>[(pocket.left+30+i*46)/50,(pocket.top+75)/50]),[(pocket.left+60)/50,(pocket.top+125)/50],[(pocket.left+140)/50,(pocket.top+125)/50]]:[[2,7],[5,10],[6,6],[4,12],[3,9],[5,7]]).slice(0,count),spacing=pocket?40:BODY_GAP+5;
  for(const [i,[x,y]]of spots.entries()){
   const node=navigation(s).nodes.filter(n=>s.crew.every(h=>Math.hypot(h.x-n.x,h.y-n.y)>spacing&&(pocket||hitCell(h.x,h.y)!==hitCell(n.x,n.y)))).sort((a,b)=>Math.hypot(a.x-x*50,a.y-y*50)-Math.hypot(b.x-x*50,b.y-y*50))[0];
   const individuality=noise(i,seed,43);
-  s.crew.push({id:i,stamina:CARE.maxStamina,fullness:0,sleeping:false,care:null,careTime:0,foodTarget:null,x:node.x,y:node.y,skin:i===3?'star':'miner',role:'worker',clip:'idle',face:i%2?-1:1,motion:i*.37,walkTime:0,moveBlend:0,breathTime:i*.47,route:[],goal:null,work:null,command:-1,mineTime:.3+i*.29,period:1.8+individuality*.65,speed:76+individuality*18,gait:.88+individuality*.25,cargo:null,wait:i*.19,stuck:0,delivered:0});
+  s.crew.push({id:i,stamina:CARE.maxStamina+mod('stamina'),maxStamina:CARE.maxStamina+mod('stamina'),fullCap:CARE.fullness+mod('fullness'),fullness:0,sleeping:false,care:null,careTime:0,foodTarget:null,x:node.x,y:node.y,skin:i===3?'star':'miner',role:'worker',clip:'idle',face:i%2?-1:1,motion:i*.37,walkTime:0,moveBlend:0,breathTime:i*.47,route:[],goal:null,work:null,command:-1,mineTime:.3+i*.29,period:1.8+individuality*.65,speed:76+individuality*18,gait:.88+individuality*.25,cargo:null,wait:i*.19,stuck:0,delivered:0});
  }
  s.mineralRules=mineralRules;s.minedValue=0;s.securedValue=0;s.lostValue=0;s.goldenFound=0;s.securedGolden=0;s.lostGolden=0;
- for(const h of s.crew){h.baseSkin=h.skin;h.trait='none';equipTrait(s,h.id,traits[h.id]??'none');}
+ for(const h of s.crew){h.baseSkin=h.skin;h.trait='none';equipTrait(s,h.id,traits[h.id]??'none');
+  // 둘째 특성 칸(마스터리 '특성 칸'): 첫째 칸과 다른 특성만
+  const second=traits2?.[h.id];h.trait2=TRAITS[second]&&second!=='none'&&second!==h.trait?second:null;h.traitLevel=mod('traitLevel');}
  return s;
 }
 export function selectCell(s,id){if(s.phase!=='mining'||id===null||!isMineable(s.cells[id]))return false;s.focusAt=s.time;if(s.focus===id)return true;s.focus=id;s.commandRevision++;return true;}
@@ -83,10 +93,10 @@ function countBroken(s){
 }
 export function strike(s,id,worker=null){const c=s.cells[id];if(s.phase!=='mining'||!isMineable(c))return false;c.hp=Math.max(0,c.hp-(worker?.power??1));s.revision++;const contact=worker?.contact??{x:center(id)[0],y:center(id)[1]};s.events.push({type:'hit',id,time:s.time,kind:c.kind,worker:worker?.id,...contact});if(c.hp<=0&&c.crate){
   // 상자: 광물 집계에 넣지 않고 황금 해바라기씨를 흩뿌린다. 깬 햄찌가 하나씩 수레로 나른다.
-  c.hp=0;c.solid=false;c.crate=false;c.opened=true;s.navRevision++;s.goldenFound+=CRATE.golden;countBroken(s);
+  c.hp=0;c.solid=false;c.crate=false;c.opened=true;s.navRevision++;const golden=CRATE.golden+(s.mods?.crateSeeds??0);s.goldenFound+=golden;countBroken(s);
   s.events.push({type:'crate',id,time:s.time,worker:worker?.id,...contact});
   // 깬 햄찌가 첫 알을 맡고, 나머지는 주인 없이 떨어져 가까운 햄찌들이 하던 일을 멈추고 먼저 주워 간다.
-  const drops=Array.from({length:CRATE.golden},(_,i)=>spawnMinedDrop(s,c,i===0?worker?.id??null:null,{golden:true}));
+  const drops=Array.from({length:golden},(_,i)=>spawnMinedDrop(s,c,i===0?worker?.id??null:null,{golden:true}));
   if(worker){worker.pickup=drops[0].id;worker.recover=.4;worker.work=null;worker.goal=null;worker.route=[];}
   if(s.focus===id)s.focus=null;return true;
  }
@@ -175,6 +185,8 @@ function finishAction(s,h,dt){
   if(before<ACTION.land&&h.actionTime>=ACTION.land){
    const value=h.cargoDrop.value??1,golden=!!h.cargoDrop.golden;
    if(golden)s.securedGolden++;else{s.secured++;s.securedValue+=value;}
+   // 두 개 나르기(마스터리 carry2): 둘째 짐도 함께 담는다
+   const extra=h.extraDrop;if(extra){if(extra.golden)s.securedGolden++;else{s.secured++;s.securedValue+=extra.value??1;}h.extraDrop=null;}
    h.delivered++;s.events.push({type:'deposit',time:s.time,kind:h.cargo,value,golden,dropId:h.cargoDrop.id,worker:h.id,owner:h.cargoDrop.owner,x:s.cart.x,y:s.cart.y});h.cargo=null;
   }
   if(h.actionTime>=ACTION.deposit){h.cargoDrop=null;h.releaseFrom=null;h.pickup=null;h.action=null;h.clip='idle';}
@@ -193,7 +205,7 @@ function updateWorker(s,h,dt){
   h.clip='carry';h.action='deposit';h.actionTime=0;h.face=s.cart.x>=h.x?1:-1;return;
  }
  if(h.yieldGoal){moveWorker(s,h,dt);return;}
- if(h.recover>0){h.recover-=dt;h.clip=h.trait==='drill'?'drill':'mine';h.motion+=dt*2.1/h.period;return;}
+ if(h.recover>0){h.recover-=dt;h.clip=hasTrait(h,'drill')?'drill':'mine';h.motion+=dt*2.1/h.period;return;}
  if(h.wait>0){h.wait-=dt;h.motion+=dt;return;}
  // Carried and reserved ore take priority over a new command. A different
  // worker breaking a cell never resets this worker's swing or its route.
@@ -214,7 +226,9 @@ function updateWorker(s,h,dt){
   if(!d){h.pickup=null;h.goal=null;h.route=[];return;}
   if(canPickDrop(d)&&Math.hypot(d.x-h.x,d.y-h.y)<=38&&clearSegment(s,h,d,1)){
    h.goal=null;h.route=[];
-   h.cargo=d.kind;h.cargoDrop={...d};s.drops.splice(s.drops.indexOf(d),1);h.pickup=null;h.action='pickup';h.actionTime=0;h.clip='carry';h.face=d.x>=h.x?1:-1;
+   h.cargo=d.kind;h.cargoDrop={...d};s.drops.splice(s.drops.indexOf(d),1);h.pickup=null;h.action='pickup';h.actionTime=0;h.clip='carry';
+   // 두 개 나르기: 바로 옆(45px)에 주인 없거나 내 몫인 조각이 있으면 같이 든다
+   if(s.mods?.carry2){const near=s.drops.find(o=>canPickDrop(o)&&(o.owner==null||o.owner===h.id)&&Math.hypot(o.x-d.x,o.y-d.y)<45);if(near){h.extraDrop={...near};s.drops.splice(s.drops.indexOf(near),1);}}h.face=d.x>=h.x?1:-1;
    return;
   }
   if(d.confined){h.clip='idle';return;}
@@ -230,17 +244,19 @@ function updateWorker(s,h,dt){
  if(h.goal){moveWorker(s,h,dt);return;}
  if(Math.hypot(h.x-h.stand.x,h.y-h.stand.y)>1){h.goal={...h.stand};h.route=[];moveWorker(s,h,dt);return;}
  if(updateBomb(s,h,dt,strike))return;
- h.clip=h.trait==='drill'?'drill':'mine';h.face=h.workFace;
- const period=miningPeriod(h,s.cells[h.work]),old=Math.floor(h.mineTime/period);h.mineTime+=dt*(s.careEnabled?workRate(h):1);h.motion=h.trait==='drill'?h.mineTime:(h.mineTime/period%1)*2.1;
- if(Math.floor(h.mineTime/period)>old){strike(s,h.work,h);h.lastHit=s.time;}
+ h.clip=hasTrait(h,'drill')?'drill':'mine';h.face=h.workFace;
+ const period=miningPeriod(h,s.cells[h.work]),old=Math.floor(h.mineTime/period);h.mineTime+=dt*(s.careEnabled?workRate(h):1)*cartAura(s,h);h.motion=hasTrait(h,'drill')?h.mineTime:(h.mineTime/period%1)*2.1;
+ // 충전 곡괭이: 쌓인 만큼 이번 타격만 세게
+ if(Math.floor(h.mineTime/period)>old){const p=h.power,boost=chargeBonus(h);if(boost)h.power=(p??1)*(1+boost);strike(s,h.work,h);h.power=p;h.lastHit=s.time;}
 }
 export function update(s,dt){
  if(s.paused)return;dt=Math.max(0,Math.min(dt,.05));s.time+=dt;s.events=s.events.filter(e=>s.time-e.time<.8);
  if(s.phase==='transition'){updateTransition(s,dt);return;}if(s.phase==='ended')return;
  syncSleepingPasses(s);
  updateBall(s,dt,h=>hitWithBall(s,h),()=>beginDescent(s));if(s.phase!=='mining')return;
- updateCart(s,dt);
+ updateCart(s,dt,strike);
  for(const d of s.seeds)d.age+=dt;updateMinedDrops(s,dt);
+ updateMagnet(s,dt);updateShadows(s,dt);updateWindfall(s);
  assignFocusWork(s);
  // Rotate update order so the same hamster does not win every open footstep.
  const offset=Math.floor(s.time*2)%s.crew.length;
@@ -252,8 +268,34 @@ export function update(s,dt){
   h.stepOverHeight=lift;
   h.stepOverDepth=lift>0?Math.max(h.y,...over.filter(o=>Math.hypot(h.x-o.x,h.y-o.y)<46).map(o=>o.y+1)):h.y;
   h.moveBlend+=((distance>.01?1:0)-h.moveBlend)*(1-Math.exp(-18*dt));h.breathTime+=dt;drainStamina(s,h,dt,distance);digest(s,h,dt);
+  if(!h.sleeping&&hasTrait(h,'charge'))h.charge=(h.charge??0)+dt;
  }
  if(cannotContinue(s)&&!ballSpeed(s.ball))finishExpedition(s,'exhausted');
+}
+// 수레 자석(마스터리 magnet, 칸 단위): 바닥에 내려앉은 조각을 수레 쪽으로 끌어오고, 닿으면 그대로 수레에 담긴다
+function updateMagnet(s,dt){
+ const reach=s.mods?.magnet;if(!reach)return;const c=s.cart,R=c.radius+20+reach*TILE;
+ for(const d of [...s.drops]){if(!canPickDrop(d))continue;const dx=c.x-d.x,dy=c.y-d.y,dist=Math.hypot(dx,dy);if(dist>R)continue;
+  if(dist<c.radius+8){s.drops.splice(s.drops.indexOf(d),1);if(d.golden)s.securedGolden++;else{s.secured++;s.securedValue+=d.value??1;}
+   s.events.push({type:'deposit',time:s.time,kind:d.kind,value:d.value??1,golden:!!d.golden,dropId:d.id,worker:null,owner:d.owner,x:c.x,y:c.y});continue;}
+  const step=Math.min(dist,70*dt);d.x+=dx/dist*step;d.y+=dy/dist*step;d.vx=d.vy=0;
+ }
+}
+// 그림자 햄찌(마스터리 shadow): 날려 보낸 자리에서 잠깐 그 바위를 함께 캐다 사라진다(본 햄찌 채굴력의 60%)
+const SHADOW={every:.9,power:.6};
+function updateShadows(s,dt){
+ s.shadows=(s.shadows??[]).filter(g=>s.time<g.until);
+ for(const g of s.shadows){
+  if(!isMineable(s.cells[g.cell])){const next=s.cells.filter(isMineable).sort((a,b)=>Math.hypot(...center(a.id).map((v,i)=>v-[g.x,g.y][i]))-Math.hypot(...center(b.id).map((v,i)=>v-[g.x,g.y][i])))[0];if(!next||Math.hypot(center(next.id)[0]-g.x,center(next.id)[1]-g.y)>90){g.until=s.time;continue;}g.cell=next.id;}
+  if(s.time>=g.next){g.next=s.time+SHADOW.every;const[x,y]=center(g.cell);strike(s,g.cell,{id:null,power:g.power,contact:{x:(x+g.x)/2,y:(y+g.y)/2}});}
+ }
+}
+// 떨어지는 씨앗(마스터리 windfall): 정해진 시간마다 열린 바닥에 해바라기씨 하나 → 배고픈 햄찌가 주워 먹는다
+function updateWindfall(s){
+ if(s.windfallAt==null||s.time-(s.floorStart??0)<s.windfallAt)return;
+ s.windfallAt+=windfallEvery(s.mods?.windfall??1);
+ const nodes=navigation(s).nodes;if(!nodes.length)return;const n=nodes[Math.floor(noise(s.time,s.seed,131)*nodes.length)];
+ s.seeds.push({id:s.nextSeed++,x:n.x,y:n.y,age:0,reserved:null});s.events.push({type:'seed',time:s.time,x:n.x,y:n.y,worker:null});
 }
 function placeHole(s,id){
  const [x,y]=center(id);let best=null,cost=Infinity;
@@ -267,12 +309,13 @@ function placeHole(s,id){
 }
 function discardUnsecured(s){
  // 바닥·손에 남은 것은 잃는다. 황금 해바라기씨는 광물과 따로 센다.
- const ore=s.drops.filter(d=>!d.golden),carried=s.crew.filter(h=>h.cargo&&!h.cargoDrop?.golden);
- s.lostGolden=(s.lostGolden??0)+s.drops.filter(d=>d.golden).length+s.crew.filter(h=>h.cargo&&h.cargoDrop?.golden).length;
- s.lostValue+=ore.reduce((v,d)=>v+(d.value??1),0)+carried.reduce((v,h)=>v+(h.cargoDrop.value??1),0);
- s.lostOre+=ore.length+carried.length;s.drops=[];
+ // 손에 든 짐은 둘째 짐(두 개 나르기)까지 함께 센다
+ const loads=s.crew.flatMap(h=>h.cargo?[h.cargoDrop,...(h.extraDrop?[h.extraDrop]:[])]:[]),ore=[...s.drops,...loads].filter(d=>!d.golden);
+ s.lostGolden=(s.lostGolden??0)+[...s.drops,...loads].filter(d=>d.golden).length;
+ s.lostValue+=ore.reduce((v,d)=>v+(d.value??1),0);
+ s.lostOre+=ore.length;s.drops=[];s.shadows=[];
  for(const h of s.crew){
-  h.cargo=null;h.cargoDrop=null;h.action=null;h.releaseFrom=null;h.pickup=null;h.bomb=null;h.blastTime=null;
+  h.cargo=null;h.cargoDrop=null;h.extraDrop=null;h.action=null;h.releaseFrom=null;h.pickup=null;h.bomb=null;h.blastTime=null;
   h.goal=null;h.route=[];h.work=null;h.stand=null;h.yieldGoal=null;h.yieldFor=null;h.order=null;
   if(h.fling){h.fling=null;h.clip='idle';}
  }
@@ -291,14 +334,16 @@ function nextFloor(s){
  const seeds=s.ball.seeds;
  // 동굴은 같은 방식으로 한 단계 넓은 맵을 새로 만든다. 예전 맵은 목록을 돌아가며 바뀐다.
  const nextId=s.layoutId===CAVE.id?CAVE.id:getLayout(LAYOUTS[(LAYOUTS.findIndex(l=>l.id===s.layoutId)+1)%LAYOUTS.length].id).id;
- const fresh=createState(s.seed+1,{themeId:s.themeId,layoutId:nextId,careEnabled:s.careEnabled,mineralRules:s.mineralRules,step:caveStep(s)+1,depth:s.depth+1});
+ const fresh=createState(s.seed+1,{themeId:s.themeId,layoutId:nextId,careEnabled:s.careEnabled,mineralRules:s.mineralRules,step:caveStep(s)+1,depth:s.depth+1,mods:s.mods});
  for(const h of fresh.crew){
   const prior=old.find(o=>o.id===h.id);
-  for(const field of ['stamina','fullness','skin','baseSkin','trait','period','power','speed','gait','delivered','mineTime','sleepHitsRemaining'])h[field]=prior[field];
+  // 충전 곡괭이(charge)는 층마다 처음부터라 넘기지 않는다
+  for(const field of ['stamina','maxStamina','fullness','fullCap','skin','baseSkin','trait','trait2','traitLevel','period','power','speed','gait','delivered','mineTime','sleepHitsRemaining'])h[field]=prior[field];
   h.sleeping=h.stamina<=0;h.sleepTime=0;h.clip=h.sleeping?'sleep':'idle';
  }
  const carried={time:s.time,depth:s.depth+1,rewardMultiplier:s.rewardMultiplier,mined:s.mined,minedValue:s.minedValue,secured:s.secured,securedValue:s.securedValue,lostOre:s.lostOre,lostValue:s.lostValue,goldenFound:s.goldenFound??0,securedGolden:s.securedGolden??0,lostGolden:s.lostGolden??0,nextDrop:s.nextDrop,nextSeed:s.nextSeed,grid:s.grid,paused:s.paused,transition:s.transition,phase:'transition',revision,navRevision};
- Object.assign(s,fresh,carried);s.ball.seeds=seeds;s.floorStart=s.time;
+ // 내려갈 때 씨앗(마스터리 descendSeeds): 공에 해바라기씨가 더 들어온다
+ Object.assign(s,fresh,carried);s.ball.seeds=seeds+(s.mods?.descendSeeds??0);s.floorStart=s.time;
 }
 function updateTransition(s,dt){
  const t=s.transition;t.time+=dt;
