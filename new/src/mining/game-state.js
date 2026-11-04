@@ -9,7 +9,9 @@ import {recordSeason} from '../season-state.js';
 // First integrated playtest economy. Centralized so review values can change.
 // 황금 해바라기씨(마스터리·가챠 재화)는 층마다 있는 상자에서만 나온다: 상자를 캐서 연 뒤 수레에 담은 만큼 정산된다
 // (상자 수·개수는 model.js의 CRATE, 검토용 임시 값).
-export const ECONOMY={initialSeeds:24,ballCapacity:8,seedsPerValue:1};
+// ballCapacity: 공에는 가진 해바라기씨를 전부 넣을 수 있다(2026-11-04 결정: 씨앗은 대장간 강화 재료이자 햄찌를 계속 일하게 하는 연료라,
+// '강화할지 / 전부 들고 더 깊이 갈지'를 고르게 한다). 숫자는 지갑 한도와 같다.
+export const ECONOMY={initialSeeds:24,ballCapacity:CONFIG.walletCap,seedsPerValue:1};
 export const GOLDEN_NAME='황금 해바라기씨';
 // 마스터리 결제는 루비 대신 황금 해바라기씨(뉴 햄찌 광산). mastery-state.js의 buyNode/absorbPage에 넘긴다.
 export const GOLDEN_PURSE={get:s=>s.renewal.golden,spend:(s,n)=>{s.renewal.golden-=n;}};

@@ -62,20 +62,30 @@ function drawFloorGoals(c,s,rig){
  });
  c.restore();
 }
-// 층에 들어서자마자 황금 상자가 여러 개면 알림(3개 이상이면 잭팟)
-function drawJackpot(c,s,rig,reducedMotion){
- const n=s.cells.filter(x=>x.crate||x.opened).length,age=s.time-(s.floorStart??0);
- if(n<2||age>2.6||s.phase!=='mining')return;
- const pop=reducedMotion?1:age<.25?.6+age/.25*.5:age<.4?1.1-(age-.25)/.15*.1:1,fade=age>2.2?1-(age-2.2)/.4:1;
- c.save();c.globalAlpha=fade;c.translate(225,150);c.scale(pop,pop);
- frame(c,rig,'panel_brown',-120,-26,240,52,16);text(c,n>=3?`잭팟! 황금 상자 ${n}개`:`황금 상자 ${n}개!`,0,9,20);
- c.restore();
-}
 function line(c,points,color,width=1){c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.stroke();}
 export function frame(c,rig,id,x,y,w,h,edge=14){const f=rig.manifest.frames[id],im=rig.images[f.sheet],cap=Math.floor(Math.min(f.w,f.h)*.34),d=Math.min(edge,w/3,h/3),sx=[f.x,f.x+cap,f.x+f.w-cap],sy=[f.y,f.y+cap,f.y+f.h-cap],sw=[cap,f.w-2*cap,cap],sh=[cap,f.h-2*cap,cap],dx=[x,x+d,x+w-d],dy=[y,y+d,y+h-d],dw=[d,w-2*d,d],dh=[d,h-2*d,d];for(let j=0;j<3;j++)for(let i=0;i<3;i++)c.drawImage(im,sx[i],sy[j],sw[i],sh[j],dx[i],dy[j],dw[i],dh[j]);}
 function text(c,value,x,y,size=18){c.font=`900 ${size}px Game, sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#3c261b';c.strokeText(value,x,y+1);c.fillStyle='#ffebbb';c.fillText(value,x,y);}
 function chunk(c,x,y,kind,size=7,alpha=1,angle=0,palette=null){const mineral=getMineral(kind),colors=palette?[palette.top,palette.rim]:mineral?[mineral.colors[0],mineral.colors[1]]:kind==='copper'?['#d8a650','#f4d389']:kind==='jade'?['#87b4a0','#b9d7bd']:['#cbb38b','#e4d0a4'];c.save();c.globalAlpha=alpha;c.translate(x,y);c.rotate(angle);c.beginPath();c.moveTo(-size*.5,0);c.lineTo(-size*.28,-size*.6);c.lineTo(size*.3,-size*.6);c.lineTo(size*.6,0);c.lineTo(size*.22,size*.4);c.lineTo(-size*.3,size*.35);c.closePath();c.fillStyle=colors[0];c.fill();c.strokeStyle=palette?.ink??'#795b3b';c.lineWidth=.7;c.stroke();line(c,[[-size*.25,-size*.55],[size*.3,-size*.55],[size*.42,-size*.22]],colors[1],1.1);c.restore();}
+// 화면 맞춤 카메라(동굴 맵, 2026-11-04): 층에 들어서면 맵 덩어리가 위 정보 띠와 아래 버튼 사이에 꽉 차게 보인다.
+// 작은 1층은 크게(최대 maxZoom배), 커진 깊은 층은 거의 1배. 예전 맵(바깥 어둠 없음)은 카메라를 쓰지 않는다.
+export const MINE_VIEW={top:104,bottom:756,margin:12,minZoom:.8,maxZoom:1.6};
+const cameras=new WeakMap();
+export function mineCamera(s){
+ const cached=cameras.get(s.cells);if(cached)return cached;
+ let cam={zoom:1,x:225,y:400,sx:225,sy:400};
+ const map=s.cells.filter(x=>!x.outside||x.pit);
+ if(map.length<s.cells.length){
+  const xs=map.map(x=>x.x),ys=map.map(x=>x.y),left=ORIGIN+Math.min(...xs)*TILE,right=ORIGIN+(Math.max(...xs)+1)*TILE,top=ORIGIN+Math.min(...ys)*TILE,bottom=ORIGIN+(Math.max(...ys)+1)*TILE+8;
+  const V=MINE_VIEW,zoom=Math.max(V.minZoom,Math.min(V.maxZoom,(450-2*V.margin)/(right-left),(V.bottom-V.top-2*V.margin)/(bottom-top)));
+  cam={zoom,x:(left+right)/2,y:(top+bottom)/2,sx:225,sy:(V.top+V.bottom)/2};
+ }
+ cameras.set(s.cells,cam);return cam;
+}
+export const toWorld=(cam,p)=>({x:(p.x-cam.sx)/cam.zoom+cam.x,y:(p.y-cam.sy)/cam.zoom+cam.y});
+export const toScreen=(cam,p)=>({x:(p.x-cam.x)*cam.zoom+cam.sx,y:(p.y-cam.y)*cam.zoom+cam.sy});
 export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showResult=true}){
+ const cam=mineCamera(s);
+ c.save();c.fillStyle='#2e2320';c.fillRect(0,0,450,800);c.translate(cam.sx,cam.sy);c.scale(cam.zoom,cam.zoom);c.translate(-cam.x,-cam.y);
  if(terrainCache)c.drawImage(terrainCache,0,0,450,800);else paintTerrain(c,s,{damageTiles:res.damageTiles});
  drawTerrainImpacts(c,s,{terrainCache,damageTiles:res.damageTiles,reducedMotion});
  if(s.grid){c.save();c.strokeStyle='#fff6d948';c.lineWidth=.75;for(let y=0;y<=ROWS;y++)line(c,[[0,ORIGIN+y*TILE],[450,ORIGIN+y*TILE]],'#fff6d948',.75);for(let x=0;x<=COLS;x++)line(c,[[ORIGIN+x*TILE,0],[ORIGIN+x*TILE,800]],'#fff6d948',.75);c.restore();}
@@ -173,10 +183,12 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   }
  }
  drawHoleMarker(c,marker,s.time,s.holeAt);drawAim(c,s);
+ c.restore();   // 여기부터는 화면에 고정된 정보(카메라와 무관)
  frame(c,res.rig,'panel_brown',13,16,108,42);text(c,`지하 ${s.depth??1}층`,67,44);
  frame(c,res.rig,'panel_brown',342,16,95,42);res.draw(c,'seed',364,37,14,21);text(c,String(ball.seeds??0),402,44,17);
  if(s.crew?.length)drawTeamEnergy(c,s,{frame,rig:res.rig,text});
- drawFloorGoals(c,s,res.rig);drawJackpot(c,s,res.rig,reducedMotion);
+ // 상자가 여러 개인 층은 글 알림 없이 바위의 금빛만으로 알린다(사용자 결정 2026-11-04)
+ drawFloorGoals(c,s,res.rig);
  // 이번 탐사에서 수레에 담은 황금 해바라기씨(상자를 열었을 때부터 보인다). 담길 때마다 톡 튄다.
  if(s.goldenFound){const got=s.events.findLast(e=>e.type==='deposit'&&e.golden),k=got&&s.time-got.time<.3&&!reducedMotion?1+.25*Math.sin((s.time-got.time)/.3*Math.PI):1;
   frame(c,res.rig,'panel_brown',342,62,95,34);c.save();c.translate(364,79);c.scale(k,k);res.draw(c,'golden-seed',0,0,22,22);c.restore();text(c,String(s.securedGolden??0),402,86,15);}
@@ -184,5 +196,6 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   c.fillStyle='#21142666';c.fillRect(0,0,450,800);frame(c,res.rig,'panel_brown',55,291,340,180,25);
   text(c,'탐사 마침',225,334,24);text(c,`지하 ${s.depth}층 · 수레 확보 ${s.secured}개`,225,374,18);text(c,`수확 가치 ${s.securedValue??s.secured}`,225,401,17);text(c,'아래에서 다시 탐사할 수 있어요',225,434,13);
  }
- drawFloorTransition(c,s,{reducedMotion});
+ // 층 이동 조리개는 화면 기준이라 구멍 위치를 화면 좌표로 바꿔 넘긴다
+ const t=s.transition;drawFloorTransition(c,t?{...s,transition:{...t,hole:toScreen(cam,t.hole)}}:s,{reducedMotion});
 }

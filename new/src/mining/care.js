@@ -1,7 +1,8 @@
 import {floorIsClear} from './loot/loot-motion.js';
 import {routesFrom,setDestination,moveWorker,clearSegment} from './navigation.js';
 // Review tuning, not final economy/balance. Fullness is per hamster per trip.
-export const CARE={maxStamina:100,fullness:3,recovery:55,workDrain:2.3,moveDrain:.7,initialSeeds:8,startle:.72,eat:2.1};
+// digest: 깨어 있는 동안 이 초마다 배부름 1칸이 꺼진다(2026-11-04: 공의 씨앗을 연료처럼 계속 먹일 수 있게)
+export const CARE={maxStamina:100,fullness:3,recovery:55,workDrain:2.3,moveDrain:.7,initialSeeds:8,startle:.72,eat:2.1,digest:20};
 export const canEat=h=>h.fullness<CARE.fullness;
 export const workRate=h=>h.trait==='drill'?1:h.trait==='workwear'?.7+.3*Math.max(0,Math.min(1,h.stamina/CARE.maxStamina)):.35+.65*Math.max(0,Math.min(1,h.stamina/CARE.maxStamina));
 function resetRoute(h){h.goal=null;h.route=[];h.yieldGoal=null;h.yieldFor=null;h.foodTarget=null;}
@@ -75,7 +76,13 @@ export function drainStamina(s,h,dt,distance){
  const drain=['mine','drill','bomb'].includes(h.clip)&&!h.goal?CARE.workDrain*(h.trait==='drill'?2.4:1):distance>.01?CARE.moveDrain:0;
  h.stamina=Math.max(0,h.stamina-drain*dt);
 }
+// 소화: 배부름이 천천히 꺼져 다시 씨앗을 먹을 수 있다(잠든 동안에도 꺼진다 → 공에 씨앗이 남아 있으면 언제든 다시 깨울 수 있음)
+export function digest(s,h,dt){
+ if(!s.careEnabled||!(h.fullness>0)||h.care==='eat')return;
+ h.digest=(h.digest??0)+dt;if(h.digest>=CARE.digest){h.digest=0;h.fullness--;}
+}
 export function cannotContinue(s){
  if(!s.careEnabled||!s.crew.every(h=>h.sleeping)||s.crew.some(h=>h.care||h.action||h.pendingStartle||h.sleepHitsRemaining>0||h.blastTime!=null))return false;
- return !s.crew.some(canEat)||(s.ball.seeds===0&&s.seeds.length===0);
+ // 배부름은 시간이 지나면 꺼지므로, 공과 바닥에 씨앗이 남아 있는 동안은 탐사가 끝나지 않는다(유저가 귀환을 고를 수 있음)
+ return s.ball.seeds===0&&s.seeds.length===0;
 }

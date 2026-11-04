@@ -6,7 +6,7 @@ import {spawnMinedDrop,updateMinedDrops,canPickDrop} from './drop-system.js';
 import {navigation,routesFrom,setDestination,moveWorker,BODY_RADIUS,BODY_GAP,clearSegment,syncSleepingPasses,restingSpotClear} from './navigation.js';
 import {ACTION} from './action-timing.js';
 import {carrySocket} from './worker-pose.js';
-import {CARE,updateCare,hitWithBall,drainStamina,workRate,cannotContinue} from './care.js';
+import {CARE,updateCare,hitWithBall,drainStamina,workRate,cannotContinue,digest} from './care.js';
 import {BALL,updateBall,holeContains,ballSpeed} from './ball.js';
 import {ballPositionClear} from './terrain-collision.js';
 import {chooseIrisShape} from '../intro/iris-transition.js';
@@ -251,7 +251,7 @@ export function update(s,dt){
   const lift=distance>.01&&!h.action?Math.max(0,...over.map(o=>{const k=Math.max(0,1-Math.hypot(h.x-o.x,h.y-o.y)/46);return 13*k*k*(3-2*k);})):0;
   h.stepOverHeight=lift;
   h.stepOverDepth=lift>0?Math.max(h.y,...over.filter(o=>Math.hypot(h.x-o.x,h.y-o.y)<46).map(o=>o.y+1)):h.y;
-  h.moveBlend+=((distance>.01?1:0)-h.moveBlend)*(1-Math.exp(-18*dt));h.breathTime+=dt;drainStamina(s,h,dt,distance);
+  h.moveBlend+=((distance>.01?1:0)-h.moveBlend)*(1-Math.exp(-18*dt));h.breathTime+=dt;drainStamina(s,h,dt,distance);digest(s,h,dt);
  }
  if(cannotContinue(s)&&!ballSpeed(s.ball))finishExpedition(s,'exhausted');
 }

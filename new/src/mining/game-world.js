@@ -1,4 +1,4 @@
-import {drawScene,paintTerrain} from './renderer.js';
+import {drawScene,paintTerrain,mineCamera,toWorld} from './renderer.js';
 import {createState,hitCell} from './model.js';
 import {loadImpactSprites} from './impact-assets.js';
 import {MineSound} from './sound.js';
@@ -27,7 +27,8 @@ export class GameMine {
  cancel(){const m=this.run();if(m)cancelAim(m);this.pointer=null;this.sound.stop();}
  gesture(){if(this.getState().settings.sfx)this.sound.setEnabled(true);}
  bind(){
-  const c=this.canvas,point=e=>{const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*450/r.width,y:(e.clientY-r.top)*800/r.height};};
+  // 화면 좌표 → 광산 좌표(화면 맞춤 카메라를 거꾸로 적용)
+  const c=this.canvas,point=e=>{const r=c.getBoundingClientRect();return toWorld(mineCamera(this.run()??this.idle),{x:(e.clientX-r.left)*450/r.width,y:(e.clientY-r.top)*800/r.height});};
   c.style.touchAction='none';c.tabIndex=0;
   c.addEventListener('pointerdown',e=>{
    const m=this.run();if(e.button!==0||!this.active()||this.blocked()||!m||m.phase!=='mining'||this.pointer!=null)return;
