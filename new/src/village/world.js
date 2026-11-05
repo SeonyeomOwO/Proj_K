@@ -828,9 +828,9 @@ export class VillageWorld{
    const flyArc=(r,h)=>{gx=r.x;gy=r.y;lift=r.lift;st=Math.min(.5,r.sp*h);sa=r.a;feet=false;};
    // 우르르 따라 달릴 때: 통통 뛰며 땅에 닿을 때 납작, 떠오를 때 쭉
    if(p.running&&!f){const ph=(this.time*13+i*1.3)%Math.PI;lift=Math.sin(ph)*10;st=-.14*Math.cos(2*ph);}
-   // 집어서 당기는 동안: 고무줄처럼 당기는 쪽으로 늘어나고, 세게 당길수록 덜덜 떤다
+   // 집어서 당기는 동안: 모양은 그대로 두고 부들부들 떤다(세게 당길수록 더 세게) — 놓으면 날아간다
    if(this.fling?.i===i&&!f){const dx=this.fling.pointer.x-this.fling.origin.x,dy=this.fling.pointer.y-this.fling.origin.y,d=Math.hypot(dx,dy);
-    if(d>6){st=Math.min(.38,d/280);sa=Math.atan2(dy,dx);clip='startle';t=.27;if(d>110)gx+=Math.sin(this.time*90)*1.5*Math.min(1,(d-110)/80);}}
+    if(d>6&&motion){const a=.6+2.4*Math.min(1,d/180);gx+=Math.sin(this.time*95)*a;lift+=Math.abs(Math.cos(this.time*83))*a*.6;}}
    if(f?.phase==='fly'){gx=f.x;gy=f.y;const sp=Math.hypot(f.vx,f.vy);lift=Math.min(34,sp*.07);clip='startle';t=Math.min(.5,f.t);face=f.vx>=0?1:-1;
     st=Math.min(.42,sp/2000);sa=Math.atan2(f.vy,f.vx);feet=false;
     const b=f.bump!=null?this.time-f.bump:9;if(b<.4){st=-.4*Math.exp(-b*8)*Math.cos(b*30);sa=f.bumpA;}}
