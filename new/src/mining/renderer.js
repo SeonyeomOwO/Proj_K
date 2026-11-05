@@ -12,6 +12,60 @@ import {drawAim,visualWorker,drawFloorSeeds,drawTired,drawFloorTransition,drawTe
 import {drawTerrainImpacts,breakBurst,hitDebris} from './terrain-impact.js';
 import {ballHint,BALL_HINT} from './ball-hint.js';
 import {drawToolIcon,drawCrown} from './tool-art.js';
+import {drawRockHp} from './rock-hp.js';
+import {FLING} from './fling.js';
+import {FLING_LAND} from './worker-pose.js';
+import {BALL} from './ball.js';
+import {jelly,bump,tremble,dizzy,star} from './animation/juice.js';
+// 등나무 공의 과장 연출: 당기면 당기는 쪽으로 늘어나며 덜덜, 구를 땐 가는 방향으로 쭉, 튕기면 그 방향으로 납작 출렁
+function ballJuice(s,b,still){
+ if(still)return{x:0,y:0,a:0,st:0};
+ const a=s.aim;
+ if(a?.what==='ball'){const d=Math.hypot(a.dx,a.dy);if(d>6){const k=Math.min(1,d/BALL.maxPull),tr=k>.6?tremble(s.time,(k-.6)/.4):{x:0,y:0};return{x:tr.x,y:tr.y*.5,a:Math.atan2(a.dy,a.dx),st:Math.min(.3,d/350)};}}
+ const age=s.time-(b.bumpAt??-9);if(age>=0&&age<.4)return{x:0,y:0,a:b.bumpA,st:bump(age,Math.min(.4,.14+(b.bumpV??0)/1500))};
+ const sp=Math.hypot(b.vx??0,b.vy??0);return sp>40?{x:0,y:0,a:Math.atan2(b.vy,b.vx),st:Math.min(.22,sp/2600)}:{x:0,y:0,a:0,st:0};
+}
+// 세게 부딪힌 자리에서 작은 별이 팡 튄다(o.bumpAt·bumpA·bumpV를 남기는 공·수레 공용)
+function impactStars(c,s,o,r,still,min=300){
+ const age=s.time-(o.bumpAt??-9);if(still||age<0||age>=.4||(o.bumpV??0)<min)return;
+ const k=age/.4,e=1-(1-k)**3,cx=o.x-Math.cos(o.bumpA)*r,cy=o.y-Math.sin(o.bumpA)*r;
+ c.save();c.globalAlpha=1-k;for(let j=0;j<5;j++){const a=o.bumpA+(j-2)*.55,d=6+e*24;star(c,cx+Math.cos(a)*d,cy+Math.sin(a)*d-e*6,4.2*(1-k*.4),'#ffe27a','#8a5a2a');}c.restore();
+}
+// 수레: 당기면 뒤로 버티며 웅크리고 덜덜(예비) → 놓으면 앞바퀴를 번쩍 들었다(윌리) 덜컹덜컹 달리고 →
+// 부딪히면 쾅 납작해지며 통 튀고 → 멈추면 앞으로 꾸벅 쏠렸다 앞뒤로 흔들리며 자리 잡는다.
+const CART={w:70,h:64,ground:27,wheel:.36};
+function drawCart(c,s,cart,bounce,res,still){
+ let x=cart.x,y=cart.y+bounce,tilt=0,lift=0,sx=1,sy=1,pivot=0,st=0,sa=0;
+ const sp=Math.hypot(cart.vx??0,cart.vy??0),a=s.aim;
+ if(!still){
+  if(a?.what==='cart'){const d=Math.hypot(a.dx,a.dy),k=Math.min(1,d/FLING.cart.maxPull),dir=a.dx>=0?1:-1;
+   // 손가락 쪽으로 살짝 끌려오며 앞을 들고 뒤로 버틴다(웅크림)
+   if(d>6){const tr=tremble(s.time,k);x+=tr.x-dir*7*k;y+=tr.y*.4;tilt=-dir*.2*k;pivot=-dir;sx=1+.1*k;sy=1-.14*k;}}
+  else if(sp>0){
+   // 지금 달리는 방향 기준: hx = 가로 성분(-1~1). 가로로 달릴수록 기울기·윌리가 크고, 세로면 늘었다 줄었다로만.
+   const hx=cart.vx/sp,dir=hx>=0?1:-1,age=s.time-(cart.launchAt??-9),run=Math.min(1,sp/220);
+   // 출발: 확 잡아끌려 가는 방향으로 쭉 늘었다 돌아오고, 앞바퀴를 번쩍 들었다 쿵 내려놓는다(.4초 안에)
+   const kick=age<.4?Math.sin(Math.min(1,age/.06)*Math.PI/2)*Math.exp(-Math.max(0,age-.06)*9):0;
+   st=.2*kick;sa=Math.atan2(cart.vy,cart.vx);
+   tilt=-dir*Math.abs(hx)*.26*kick+Math.sin(s.time*27)*.04*run*Math.abs(hx);pivot=-dir;
+   lift=Math.abs(Math.sin(s.time*21))*4*run;   // 덜컹덜컹
+  }
+  const ba=s.time-(cart.bumpAt??-9);
+  if(ba>=0&&ba<.45){const v=Math.min(1,(cart.bumpV??0)/300);st=bump(ba,.14+.24*v);sa=cart.bumpA;if(ba<.3)lift+=Math.sin(ba/.3*Math.PI)*12*v;}
+  const sa2=s.time-(cart.stopAt??-9);
+  if(!sp&&a?.what!=='cart'&&sa2>=0&&sa2<.75){
+   // 멈춤: 가로로 달렸으면 앞으로 꾸벅 쏠렸다 앞뒤로 흔들리고, 세로로 달렸으면 납작 눌렸다 출렁
+   const h=cart.stopDir??1,w=.18*Math.exp(-sa2*5)*Math.cos(sa2*15),side=h>=0?1:-1;
+   tilt+=side*Math.abs(h)*w;pivot=w>=0?side:-side;if(!st){st=-.22*(1-Math.abs(h))*Math.exp(-sa2*6)*Math.cos(sa2*20);sa=Math.PI/2;}}
+ }
+ // 그림자(뜨면 작게)
+ c.save();c.fillStyle='#3a24182e';c.beginPath();c.ellipse(cart.x,cart.y+CART.ground,30*(1-Math.min(.3,lift/60)),7,0,0,Math.PI*2);c.fill();c.restore();
+ c.save();c.translate(x,y-lift);
+ const px=pivot*CART.w*CART.wheel,py=CART.ground;c.translate(px,py);c.rotate(tilt);c.scale(sx,sy);c.translate(-px,-py);
+ if(st)jelly(c,0,0,sa,st);
+ res.draw(c,'cart-full',0,0,CART.w,CART.h);c.restore();
+ impactStars(c,s,cart,26,still,200);
+}
 // 동굴 맵 바깥(캘 수 없는 칸)은 어둠으로 덮어, 작은 맵 덩어리가 떠 있는 모양이 보이게 한다(레퍼런스 맵 연출).
 function paintOutside(c,s){
  if(!s.cells.some(x=>x.outside))return;
@@ -36,18 +90,6 @@ function paintWater(c,s){
  c.restore();
 }
 export function paintTerrain(c,s,options){paintWaveTerrain(c,s,options);paintWater(c,s);paintOutside(c,s);}
-// 바위 체력 숫자 표시 배율(레퍼런스처럼 블록마다 숫자). 남은 타격 수 × 10으로 보여 준다.
-const HP_LABEL=10;
-function drawRockHp(c,s){
- const hits=new Map();for(const e of s.events)if(e.type==='hit')hits.set(e.id,e.time);
- c.save();c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
- for(const cell of s.cells){if(!isMineable(cell))continue;
-  const[x,y]=center(cell.id),age=hits.has(cell.id)?s.time-hits.get(cell.id):1,k=age<.22?1-age/.22:0,v=String(Math.ceil(cell.hp*HP_LABEL-1e-6));
-  c.font=`900 ${11+k*5}px Game, sans-serif`;c.lineWidth=3.2;c.strokeStyle='#5a3b26';c.fillStyle=k?'#ffe27a':'#fff4d6';
-  c.strokeText(v,x,y+1);c.fillText(v,x,y+1);
- }
- c.restore();
-}
 // 층 목표(왼쪽 위): 광석 캐기(구멍이 풀리는 조건) + 이 층의 황금 상자. 다 채우면 체크.
 function drawFloorGoals(c,s,rig){
  if(!s.holeNeed)return;
@@ -112,7 +154,6 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  for(const cell of s.cells){if(!cell.solid||cell.unbreakable)continue;const[x,y]=center(cell.id);
   if(cell.soft){c.save();c.globalAlpha=.28;c.fillStyle='#b5e27a';c.beginPath();c.ellipse(x,y+8,24,18,0,0,Math.PI*2);c.fill();c.restore();}
   const buried=cell.tool??(cell.pot?'pot':null);if(buried){c.save();c.globalAlpha=.55+.15*Math.sin(s.time*3+cell.id);drawToolIcon(c,buried,x+13,y-9,16,s.time);c.restore();}}
- drawRockHp(c,s);
  if(s.focus!==null&&isMineable(s.cells[s.focus])){const[x,y]=center(s.focus),age=s.time-(s.focusAt??-1),pulse=Math.max(0,1-age/.65),r=24+pulse*5;c.save();c.globalAlpha=.3+pulse*.65;c.strokeStyle='#fff3bb';c.lineWidth=1.5+pulse;for(const[dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.beginPath();c.moveTo(x+dx*(r-7),y+dy*r);c.lineTo(x+dx*r,y+dy*r);c.lineTo(x+dx*r,y+dy*(r-7));c.stroke();}c.restore();}
  const delivery=s.events.findLast(e=>e.type==='deposit'),deliveryAge=delivery?s.time-delivery.time:1;
  const bounce=deliveryAge<.35?Math.sin(deliveryAge/.35*Math.PI*2)*2*(1-deliveryAge/.35):0;
@@ -120,7 +161,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  const objects=[...s.drops.map(d=>({depth:d.y,draw(){
   const p=dropVisual(d);c.fillStyle='#36283b2b';c.beginPath();c.ellipse(p.x,p.y+d.width*.3,d.width*(.44-Math.min(.15,d.z*.002)),d.width*.12,0,0,Math.PI*2);c.fill();
   drawFragment(c,d.kind,p.x,p.y-d.z,d.width,{variant:d.variant,angle:d.angle,sx:1+d.impact,sy:1-d.impact});
- }})),{depth:cart.y+25,draw(){c.save();c.translate(cart.x,cart.y+bounce);c.rotate(cart.tilt??0);res.draw(c,'cart-full',0,0,70,64);c.restore();}},{depth:ball.y+18,draw(){
+ }})),{depth:cart.y+25,draw(){drawCart(c,s,cart,bounce,res,reducedMotion);}},{depth:ball.y+18,draw(){
   const t=s.transition,k=t&&['suction','close','covered'].includes(t.stage)?t.stage==='suction'?Math.max(0,1-t.time/.38):0:1;
   if(k<=0)return;const diameter=ball.radius*2+1,r=diameter/2,hint=ballHint(s,reducedMotion);
   if(hint){
@@ -130,7 +171,9 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
    if(hint.glow>0){c.save();c.globalAlpha=hint.glow;c.strokeStyle='#fff3bb';c.lineWidth=3;c.beginPath();c.arc(ball.x,ball.y-hint.lift,r+5,0,Math.PI*2);c.stroke();c.restore();}
   }
   // 늘고 줄어드는 기준은 공의 바닥(땅에 닿는 점)이고, 공 무늬의 회전과는 따로 적용한다
-  c.save();c.translate(ball.x,ball.y);c.scale(k,k);c.translate(0,r-(hint?.lift??0));c.scale(hint?.sx??1,hint?.sy??1);c.translate(0,-r);c.rotate(ball.angle??0);res.draw(c,'ball-full',0,0,diameter,diameter);c.restore();
+  const bj=ballJuice(s,ball,reducedMotion);
+  c.save();c.translate(ball.x+bj.x,ball.y+bj.y);c.scale(k,k);c.translate(0,r-(hint?.lift??0));c.scale(hint?.sx??1,hint?.sy??1);c.translate(0,-r);if(bj.st)jelly(c,0,0,bj.a,bj.st);c.rotate(ball.angle??0);res.draw(c,'ball-full',0,0,diameter,diameter);c.restore();
+  impactStars(c,s,ball,r,reducedMotion);
  }}];
  for(const original of s.crew){const h=visualWorker(s,original);objects.push({depth:s.transition?1000+h.y:Math.max(original.y,h.stepOverDepth??original.y)+FOOT_OFFSET,draw(){
   // 날아가는 햄찌의 바닥 그림자(높이 뜰수록 작고 옅게)
@@ -138,7 +181,16 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   const d=h.cargoDrop,p=workerPose(h),f=actionFragment(s,h,p),actorRes=fragmentResources(res,{variant:d?.variant??0,width:d?d.width*.9/ACTOR_SIZE:null,angle:d?d.angle*.15:0,alpha:h.action?0:1,unmirror:h.face});
   const carryOverride=f?.hands?{x:((f.handsX??f.x)-h.x)/ACTOR_SIZE*h.face-(p.shift??0),y:((f.handsY??f.y)-h.y-FOOT_OFFSET)/ACTOR_SIZE-p.bob,angle:f.angle*h.face}:null;
   if(d&&(h.care||h.sleeping))drawFragment(c,d.kind,h.x-18,h.y+19,d.width*.9,{variant:d.variant,angle:d.angle});
-  drawActor(c,actorRes,{x:h.x,y:h.y+FOOT_OFFSET,size:ACTOR_SIZE,clip:h.clip,skin:h.skin,t:h.motion,index:0,face:h.face,showTool:!h.cargo&&!h.care&&(!h.sleeping||h.clip==='pajamas'),emote:!!h.care||h.sleeping,prop:'fragment:'+(h.cargo??'stone'),poseOverride:p,carryOverride,weaponScale:MINING_WEAPON_SCALE});
+  // 잡혀서 당겨지는 중: 몸은 평소 자세 그대로, 화들짝 표정('!')으로 부들부들(세게 당길수록 더)
+  const aim=s.aim,pull=aim?.what==='hamster'&&aim.id===original.id&&!s.transition?Math.hypot(aim.dx,aim.dy):0,held=pull>6;
+  const shake=held&&!reducedMotion?tremble(s.time,Math.min(1,pull/FLING.hamster.maxPull)):{x:0,y:0};
+  // 날아가는 중: 가는 방향으로 쭉 늘어난다(몸 가운데 기준)
+  const fl=original.fling,stretch=fl&&!(fl.landing>0)&&fl.vis&&!reducedMotion?Math.min(.38,fl.vis.sp/1500):0;
+  if(stretch){c.save();jelly(c,h.x,h.y+FOOT_OFFSET-38*ACTOR_SIZE,fl.vis.a,stretch);}
+  drawActor(c,actorRes,{x:h.x+shake.x,y:h.y+FOOT_OFFSET+shake.y,size:ACTOR_SIZE,clip:held?'startle':h.clip,skin:h.skin,t:held?.1:h.motion,index:0,face:h.face,showTool:!h.cargo&&!h.care&&(!h.sleeping||h.clip==='pajamas'),emote:held||!!h.care||h.sleeping,prop:'fragment:'+(h.cargo??'stone'),poseOverride:p,carryOverride,weaponScale:MINING_WEAPON_SCALE});
+  if(stretch)c.restore();
+  // 내려앉은 뒤 잠깐 어질어질: 머리 위로 별이 빙글빙글
+  if(fl?.landing>0&&!reducedMotion){const age=FLING_LAND-fl.landing;dizzy(c,h.x,h.y+FOOT_OFFSET-44,s.time,age>.12?Math.min(1,(age-.12)/.1)*Math.min(1,fl.landing/.2):0,15,5);}
   // 두 개 나르기: 둘째 짐은 머리 위에 하나 더 얹어 보인다
   const x2=original.extraDrop;if(x2&&h.cargo&&!h.action){const sock=carrySocket(h,p);drawFragment(c,x2.kind,sock.x+3*h.face,sock.y-15,x2.width*.8,{variant:x2.variant,angle:x2.angle*.2});}
   // 대장 햄찌 왕관, 꿀물 마신 햄찌 주변 반짝임
@@ -218,6 +270,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
    for(const p of chips)if(p.alpha>0)chunk(c,p.x,p.y,e.kind,p.size,p.alpha,p.angle,palette);
   }
  }
+ drawRockHp(c,s,{reducedMotion});
  drawHoleMarker(c,marker,s.time,s.holeAt);drawAim(c,s);
  c.restore();   // 여기부터는 화면에 고정된 정보(카메라와 무관)
  frame(c,res.rig,'panel_brown',13,16,108,42);text(c,`지하 ${s.depth??1}층`,67,44);

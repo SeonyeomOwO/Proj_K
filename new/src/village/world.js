@@ -1,4 +1,5 @@
 import {drawActor,renewalPose} from '../mining/animation/motion.js';
+import {clamp01,arc,landing,jelly,star} from '../mining/animation/juice.js';
 import {frame} from '../mining/renderer.js';
 import {fatigueState,canDepart,equipVillageTrait,villageCrew,traitUnlocked,GENERATORS,collectGenerator,hamsterName,renameHamster,randomName,NAME_MAX} from './state.js';
 import {enhancementQuote,ballCapacity,GOLDEN_NAME} from '../mining/game-state.js';
@@ -45,21 +46,7 @@ const WELL=prop('well'),WELL_MOUTH={x:WELL.x,y:WELL.y-24*WELL_ART.k,r:66};
 // spit·pop·ballSpit은 앞쪽 rumble초 동안 구멍·우물 속에서 우르르 부풀며 떨다가(예비) 펑 하고 뱉는다.
 const ACT={swallow:.24,rumble:.42,spit:1.17,popRumble:.36,pop:1.06,charge:1.28,ballRumble:.32,ballFly:.55,ballSpit:1.27};
 const CHARGE={seeds:.5,crouch:.14,jump:.34};   // 충전: 씨앗 쏙쏙 → 움츠림 → 점프 → 착지(나머지)
-const clamp01=k=>Math.max(0,Math.min(1,k));
-// 꼭대기에서 느려지는 시간 왜곡(0→1): 처음과 끝은 빠르고 가운데에서 둥실 머문다
-const hang=u=>{const d=1-2*clamp01(u);return .5-.5*Math.sign(d)*Math.abs(d)**1.5;};
-// from→to 포물선(높이 h): 땅 위치·떠오른 높이·지금 화면 진행 방향(a)과 빠르기(sp, u .02당 px)
-const arc=(from,to,u,h)=>{const at=v=>{const k=hang(v);return[from.x+(to.x-from.x)*k,from.y+(to.y-from.y)*k,4*h*k*(1-k),k];};
- const [x,y,lift,k]=at(u),[x2,y2,l2]=at(Math.min(1,u+.02));return{x,y,lift,k,a:Math.atan2((y2-l2)-(y-lift),x2-x),sp:Math.hypot(x2-x,(y2-l2)-(y-lift))};};
-// 착지: 쿵 눌렸다(0~.1) → 통 튀어 오르고(.1~.4) → 출렁이며 멈춘다(.4~.75). dur로 전체 길이를, amp로 세기를 바꾼다.
-const landing=(age,dur=.75,amp=1)=>{const a=age*.75/dur;if(a<0||a>=.75)return{lift:0,st:0};
- if(a<.1)return{lift:0,st:-.45*amp*Math.sin(a/.1*Math.PI)};
- if(a<.4){const k=(a-.1)/.3;return{lift:Math.sin(k*Math.PI)*24*amp,st:.2*amp*Math.abs(Math.cos(k*Math.PI))};}
- const k=(a-.4)/.35;return{lift:0,st:-.3*amp*Math.cos(k*Math.PI*3)*(1-k)**2};};
-// 젤리 변형: 점(x,y)을 축으로 a 방향으로 1+st배 늘이고 직각으로는 줄인다(st<0이면 그 방향으로 납작)
-const jelly=(c,x,y,a,st)=>{c.translate(x,y);c.rotate(a);c.scale(1+st,1-st*.6);c.rotate(-a);c.translate(-x,-y);};
-// 작은 별(어질어질·반짝)
-const star=(c,x,y,r,fill,stroke)=>{c.beginPath();for(let j=0;j<10;j++){const rr=j%2?r*.45:r,a=-Math.PI/2+j*Math.PI/5;c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1.4;c.stroke();}};
+// 공용 과장 연출 도구(hang·arc·landing·jelly·star): src/mining/animation/juice.js
 const CAMPFIRE={x:1165,y:1012};
 const BANNERS=[{x:940,y:705,kind:'floor'},{x:1220,y:705,kind:'best'}];
 const RUINS=[[1580,500,92],[2040,540,70],[2070,880,104],[1580,1010,58],[1980,1085,66]];

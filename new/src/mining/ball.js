@@ -67,7 +67,9 @@ export function updateBall(s,dt,onHit,onHole){
  let remaining=dt;
  while(remaining>1e-8){
   const step=Math.min(1/120,remaining);remaining-=step;
-  const hits=stepBall(s,b,step);
+  const pvx=b.vx,pvy=b.vy,hits=stepBall(s,b,step);
+  // 튕긴 순간·방향·세기(납작 출렁 연출용, 규칙엔 안 쓰임): 속도가 확 꺾이면 부딪힌 것
+  const jx=b.vx-pvx,jy=b.vy-pvy,jolt=Math.hypot(jx,jy);if(jolt>60){b.bumpAt=s.time;b.bumpA=Math.atan2(jy,jx);b.bumpV=jolt;}
   // 물길을 지나면 더 빨리 멈춘다
   if(inWater(s,b.x,b.y)){const k=Math.exp(-WATER.drag*step);b.vx*=k;b.vy*=k;if(ballSpeed(b)<BALL.stop)b.vx=b.vy=0;}
   b.contacts=b.contacts.filter(id=>{const h=s.crew.find(h=>h.id===id);return h&&Math.hypot(h.x-b.x,h.y-b.y)<b.radius+23;});

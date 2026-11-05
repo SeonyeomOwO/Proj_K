@@ -6,8 +6,11 @@ import {ballWorldContact,terrainContact} from './terrain-collision.js';
 import {navigation,bodyClear,clearSegment} from './navigation.js';
 import {TOOL,grabTool,launchTool} from './tools.js';
 import {WATER,inWater} from './map-layouts.js';
+import {hang} from './animation/juice.js';
+import {FLING_LAND} from './worker-pose.js';
 export const FLING={
- hamster:{grab:27,maxPull:105,power:4.6,drag:1.7,radius:15,stop:30,speed:430,minTime:.3,maxTime:.75,arc:.24,maxArc:72,land:.18},
+ // land: 내려앉은 뒤 쿵·통·출렁(앞 .55초) 하고 잠깐 어질어질(별)한 시간. 그동안은 일을 쉬고 그 자리에 있다.
+ hamster:{grab:27,maxPull:105,power:4.6,drag:1.7,radius:15,stop:30,speed:430,minTime:.3,maxTime:.75,arc:.3,maxArc:92,land:FLING_LAND},
  cart:{grab:40,maxPull:95,power:4.4,drag:2.4,bounce:.38,stop:10}
 };
 export const canFling=h=>!h.sleeping&&!h.care&&!h.pendingStartle&&!h.action&&!h.cargo&&!h.fling&&h.blastTime==null&&!h.bomb;
@@ -32,7 +35,7 @@ export function beginFling(s,p,target){
 export function launchFling(s){
  const a=s.aim;s.aim=null;if(!a||s.phase!=='mining')return false;
  if(Math.hypot(a.dx,a.dy)<6)return 'tap';
- if(a.what==='cart'){const p=power(s,'cart');s.cart.vx=a.dx*p;s.cart.vy=a.dy*p;s.cart.rammed=[];s.navRevision++;return true;}
+ if(a.what==='cart'){const p=power(s,'cart');s.cart.vx=a.dx*p;s.cart.vy=a.dy*p;s.cart.rammed=[];s.cart.launchAt=s.time;s.cart.launchDir=a.dx>=0?1:-1;s.cart.stopAt=null;s.navRevision++;return true;}
  if(a.what==='tool')return launchTool(s,a);
  const h=s.crew.find(o=>o.id===a.id);if(!h||!canFling(h))return false;
  // 연속 던지기(마스터리 combo): 3초 안에 다시 던지면 더 빨리 날아간다
@@ -98,9 +101,13 @@ function landingNode(s,h,p){
 export function updateFlight(s,h,dt,strike){
  const f=h.fling;if(!f)return false;
  if(f.landing>0){f.landing-=dt;h.clip='idle';h.motion+=dt;if(f.landing<=0)h.fling=null;return true;}
- f.time+=dt;const k=Math.min(1,f.time/f.duration),along=(1-(1-k)**1.6)*f.length;
+ // 꼭대기에서 둥실 머무는 시간 왜곡(hang): 튀어 나갈 때와 내리꽂을 때는 빠르고 가운데는 느리다
+ const px=h.x,py=h.y-(f.z??0);
+ f.time+=dt;const k=Math.min(1,f.time/f.duration),hk=hang(k),along=(1-(1-hk)**1.3)*f.length;
  let left=along;for(let i=1;i<f.path.length;i++){const a=f.path[i-1],b=f.path[i],d=Math.hypot(b.x-a.x,b.y-a.y);if(left<=d||i===f.path.length-1){const t=d?Math.min(1,left/d):1;h.x=a.x+(b.x-a.x)*t;h.y=a.y+(b.y-a.y)*t;break;}left-=d;}
- f.z=4*f.height*k*(1-k);h.clip='idle';h.motion+=dt;
+ f.z=4*f.height*hk*(1-hk);f.hk=hk;h.clip='idle';h.motion+=dt;
+ // 화면에서 보이는 진행 방향·빠르기(늘임 연출용, 게임 규칙엔 안 쓰임)
+ if(dt>0){const dx=h.x-px,dy=h.y-f.z-py;f.vis={a:Math.atan2(dy,dx),sp:Math.hypot(dx,dy)/dt};}
  if(k<1)return true;
  f.z=0;f.landing=FLING.hamster.land;s.events.push({type:'land',time:s.time,x:h.x,y:h.y+14,worker:h.id});
  const chain=f.chain??{bounce:0,pierce:0,quick:1};
@@ -147,7 +154,9 @@ function stepCart(s,c,dt,onWall=null){
  const C=FLING.cart,k=travel(C.drag+(inWater(s,c.x,c.y)?WATER.drag:0),dt),x=c.x+c.vx*k,y=c.y+c.vy*k,hit=cartContact(s,x,y,c.radius-6);
  const decay=Math.exp(-(C.drag+(inWater(s,c.x,c.y)?WATER.drag:0))*dt);
  // 이미 맞닿아 있어도 떨어지는 쪽으로는 움직인다
- if(hit&&c.vx*hit.nx+c.vy*hit.ny<0){const dot=c.vx*hit.nx+c.vy*hit.ny;if(onWall&&hit.type==='terrain')onWall(hit,-dot);c.vx-=(1+C.bounce)*dot*hit.nx;c.vy-=(1+C.bounce)*dot*hit.ny;c.vx*=decay;c.vy*=decay;return hit;}
+ if(hit&&c.vx*hit.nx+c.vy*hit.ny<0){const dot=c.vx*hit.nx+c.vy*hit.ny;if(onWall&&hit.type==='terrain')onWall(hit,-dot);
+  // 부딪힌 순간·방향·세기(쾅 납작 + 통 튀는 연출용)
+  if(-dot>25){c.bumpAt=s.time;c.bumpA=Math.atan2(hit.ny,hit.nx);c.bumpV=-dot;}c.vx-=(1+C.bounce)*dot*hit.nx;c.vy-=(1+C.bounce)*dot*hit.ny;c.vx*=decay;c.vy*=decay;return hit;}
  c.x=x;c.y=y;c.vx*=decay;c.vy*=decay;c.tilt=(c.tilt??0)*.9+Math.max(-.16,Math.min(.16,c.vx/1100));
  return null;
 }
@@ -158,6 +167,8 @@ export function updateCart(s,dt,strike=null){
   c.rammed.push(cell);strike(s,cell,{id:null,power:(s.crew[0]?.power??1)*s.mods.cartRam,contact:{x:hit.x,y:hit.y}});}:null;
  for(let left=dt;left>1e-8;){const step=Math.min(1/120,left);left-=step;stepCart(s,c,step,ram);}
  if(speed(c)<FLING.cart.stop){
+  // 멈춘 순간: 앞으로 꾸벅 쏠렸다 뒤로 흔들리며 자리 잡는다(연출용)
+  c.stopAt=s.time;const v=speed(c)||1;c.stopDir=c.vx/v;   // 가로로 달렸을수록 앞뒤로 크게, 세로면 위아래로 출렁
   c.vx=c.vy=0;c.tilt=0;s.navRevision++;
   for(const h of s.crew)if(h.cargo&&!h.action){h.goal=null;h.route=[];}   // 새 자리로 다시 찾아간다
  }

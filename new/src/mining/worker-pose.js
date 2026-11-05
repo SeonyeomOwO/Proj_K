@@ -1,15 +1,21 @@
 import {renewalPose} from './animation/motion.js';
 import {bodySocket} from './animation/elastic-motion.js';
 import {ACTION,smoothStep} from './action-timing.js';
+import {landing} from './animation/juice.js';
+// 던진 햄찌가 내려앉은 뒤 머무는 시간(fling.js의 FLING.hamster.land가 이 값을 쓴다)
+export const FLING_LAND=.85;
 export {ACTOR_SIZE,FOOT_OFFSET} from './mining-contact.js';
 import {ACTOR_SIZE,FOOT_OFFSET} from './mining-contact.js';
 export function workerPose(h){
- // 날아가는 햄찌: 위로 길게 늘었다가 한 바퀴 돌고, 내려앉으면 납작하게 눌린다(높이는 visualWorker가 올린다)
+ // 날아가는 햄찌: 꼭대기에서 둥실 머물며 한 바퀴 공중제비(가는 방향 늘임은 renderer가 몸 바깥에서 준다, 높이는 visualWorker가 올린다).
+ // 내려앉으면 쿵 눌렸다 통 튀고 출렁 멈춘 뒤, 남은 시간 동안 어질어질 좌우로 휘청인다.
  if(h.fling){
   const f=h.fling,idle=renewalPose('idle',h.breathTime??h.motion,0);
-  if(f.landing>0){const q=Math.max(0,f.landing/.18);return{...idle,sx:idle.sx+.24*q,sy:idle.sy-.22*q};}
-  const k=Math.min(1,f.time/f.duration),up=Math.sin(k*Math.PI);
-  return{...idle,sx:idle.sx-.12*up,sy:idle.sy+.15*up,spin:k*Math.PI*2*f.dir};
+  if(f.landing>0){
+   const age=FLING_LAND-f.landing,L=landing(age,.55),daze=age>.4?Math.min(1,(age-.4)/.12)*Math.min(1,f.landing/.15):0;
+   return{...idle,sx:idle.sx*(1-L.st*.6),sy:idle.sy*(1+L.st),bob:idle.bob-L.lift/ACTOR_SIZE,tilt:idle.tilt+Math.sin(age*11)*.12*daze};
+  }
+  return{...idle,spin:(f.hk??Math.min(1,f.time/f.duration))*Math.PI*2*f.dir};
  }
  if(['sleep','startle','eat','suction','drill','bomb','blown','pajamas'].includes(h.clip))return renewalPose(h.clip,h.motion,0);
  // Return the approved mining clip untouched: no target-dependent angle,
