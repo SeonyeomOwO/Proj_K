@@ -41,7 +41,25 @@ const prop=id=>PROPS.find(p=>p.id===id);
 const WELL_ART={k:2.1,roof:150*2.1};
 const WELL=prop('well'),WELL_MOUTH={x:WELL.x,y:WELL.y-24*WELL_ART.k,r:66};
 // 햄찌를 받는 연출 시간(초): 구멍은 삼켰다가(swallow) 퉤 뱉고(spit), 우물은 들어갔다가(dive) 이름을 정하면 튀어나온다(pop)
-const ACT={swallow:.28,spit:.62,pop:.55,charge:1.05,ballSpit:.7};
+// 디즈니식 과장: 움츠렸다(예비 동작) 쭉 늘어나며 튀어나가고(늘임) 꼭대기에서 잠깐 머물렀다(행 타임) 쿵 눌린 뒤 통 튀며 출렁 멈춘다(여운).
+// spit·pop·ballSpit은 앞쪽 rumble초 동안 구멍·우물 속에서 우르르 부풀며 떨다가(예비) 펑 하고 뱉는다.
+const ACT={swallow:.42,rumble:.42,spit:1.17,popRumble:.36,pop:1.06,charge:1.28,ballRumble:.32,ballFly:.55,ballSpit:1.27};
+const CHARGE={seeds:.5,crouch:.14,jump:.34};   // 충전: 씨앗 쏙쏙 → 움츠림 → 점프 → 착지(나머지)
+const clamp01=k=>Math.max(0,Math.min(1,k));
+// 꼭대기에서 느려지는 시간 왜곡(0→1): 처음과 끝은 빠르고 가운데에서 둥실 머문다
+const hang=u=>{const d=1-2*clamp01(u);return .5-.5*Math.sign(d)*Math.abs(d)**1.5;};
+// from→to 포물선(높이 h): 땅 위치·떠오른 높이·지금 화면 진행 방향(a)과 빠르기(sp, u .02당 px)
+const arc=(from,to,u,h)=>{const at=v=>{const k=hang(v);return[from.x+(to.x-from.x)*k,from.y+(to.y-from.y)*k,4*h*k*(1-k),k];};
+ const [x,y,lift,k]=at(u),[x2,y2,l2]=at(Math.min(1,u+.02));return{x,y,lift,k,a:Math.atan2((y2-l2)-(y-lift),x2-x),sp:Math.hypot(x2-x,(y2-l2)-(y-lift))};};
+// 착지: 쿵 눌렸다(0~.1) → 통 튀어 오르고(.1~.4) → 출렁이며 멈춘다(.4~.75). dur로 전체 길이를, amp로 세기를 바꾼다.
+const landing=(age,dur=.75,amp=1)=>{const a=age*.75/dur;if(a<0||a>=.75)return{lift:0,st:0};
+ if(a<.1)return{lift:0,st:-.45*amp*Math.sin(a/.1*Math.PI)};
+ if(a<.4){const k=(a-.1)/.3;return{lift:Math.sin(k*Math.PI)*24*amp,st:.2*amp*Math.abs(Math.cos(k*Math.PI))};}
+ const k=(a-.4)/.35;return{lift:0,st:-.3*amp*Math.cos(k*Math.PI*3)*(1-k)**2};};
+// 젤리 변형: 점(x,y)을 축으로 a 방향으로 1+st배 늘이고 직각으로는 줄인다(st<0이면 그 방향으로 납작)
+const jelly=(c,x,y,a,st)=>{c.translate(x,y);c.rotate(a);c.scale(1+st,1-st*.6);c.rotate(-a);c.translate(-x,-y);};
+// 작은 별(어질어질·반짝)
+const star=(c,x,y,r,fill,stroke)=>{c.beginPath();for(let j=0;j<10;j++){const rr=j%2?r*.45:r,a=-Math.PI/2+j*Math.PI/5;c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}c.closePath();c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1.4;c.stroke();}};
 const CAMPFIRE={x:1165,y:1012};
 const BANNERS=[{x:940,y:705,kind:'floor'},{x:1220,y:705,kind:'best'}];
 const RUINS=[[1580,500,92],[2040,540,70],[2070,880,104],[1580,1010,58],[1980,1085,66]];
@@ -217,7 +235,7 @@ export class VillageWorld{
  reset(){
   this.cancel();this.hideName();this.ball=freshBall();this.suction=null;this.zone='hub';this.slide=null;this.arrival=null;this.camera={...HOME};
   this.flights=new Map();this.dummyHit={};this.propHit={};this.rebuild={};this.seen=null;this.pops=[];this.crew=[];
-  this.charge=null;this.ballSpit=null;this.holeSpit=null;this.wasPrepared=null;
+  this.charge=null;this.ballSpit=null;this.holeSpit=null;this.holeGulp=null;this.ballBump=null;this.wasPrepared=null;
  }
  // ── 구역 이동: 카메라가 옆 구역으로 미끄러지고, 도착하면 구역 이름표가 뜨고, 햄찌들이 차례로 따라온다 ──
  goZone(id,view){
@@ -471,7 +489,9 @@ export class VillageWorld{
   const age=this.time-(this.dummyHit[d.trait]??-9),wob=age<.7&&s.settings.motion?Math.sin(age*22)*(1-age/.7)*.35:0,who=wornBy(s,d.trait);
   c.save();c.translate(d.x,d.y);
   c.fillStyle='#4a3a2233';c.beginPath();c.ellipse(0,2,18,5,0,0,Math.PI*2);c.fill();
-  c.rotate(wob);c.lineJoin='round';c.lineCap='round';
+  // 맞으면 휘청 꺾이면서 납작 눌렸다 쭉 펴지기를 되풀이한다
+  const sq=age<.8&&s.settings.motion?.28*Math.exp(-age*6)*Math.cos(age*26):0;
+  c.rotate(wob);c.scale(1+sq*.6,1-sq);c.lineJoin='round';c.lineCap='round';
   const ink=INK;
   c.fillStyle='#a87a4f';c.strokeStyle=ink;c.lineWidth=2;c.beginPath();c.roundRect(-3,-46,6,48,3);c.fill();c.stroke();
   c.beginPath();c.roundRect(-20,-38,40,6,3);c.fill();c.stroke();
@@ -535,8 +555,8 @@ export class VillageWorld{
  }
  // 해바라기 토템(레퍼런스의 티키 토템): 햄찌 얼굴 세 칸을 쌓고 꼭대기에 해바라기
  drawTotem(c,p,s){
-  const age=this.time-(this.propHit[p.id]??-9),wob=age<.6&&s.settings.motion?Math.sin(age*24)*(1-age/.6)*.08:0;
-  c.save();c.translate(p.x,p.y);ellipse(c,0,2,34,9,'#4a3a2238');c.rotate(wob);c.lineJoin='round';
+  const age=this.time-(this.propHit[p.id]??-9),wob=age<.8&&s.settings.motion?Math.sin(age*24)*Math.exp(-age*5)*.12:0,sq=age<.8&&s.settings.motion?.24*Math.exp(-age*6)*Math.cos(age*22):0;
+  c.save();c.translate(p.x,p.y);ellipse(c,0,2,34,9,'#4a3a2238');c.rotate(wob);c.scale(1+sq*.6,1-sq);c.lineJoin='round';
   const blocks=[[-46,46,'#c98a52'],[-90,42,'#b6743f'],[-130,38,'#d39a5e']];
   blocks.forEach(([top,w,col],k)=>{
    c.fillStyle=col;c.strokeStyle=INK;c.lineWidth=2.6;c.beginPath();c.roundRect(-w/2,top,w,k?42:48,10);c.fill();c.stroke();
@@ -573,20 +593,28 @@ export class VillageWorld{
  // 이름 우물: 돌 우물 + 나무 지붕 + 도르래 두레박. 물이 반짝인다.
  drawWell(c,p,s){
   const motion=s.settings.motion,age=this.time-(this.propHit[p.id]??-9),k=WELL_ART.k;
-  // 햄찌가 들어가거나 튀어나올 때 우물이 출렁(가로세로로 살짝 눌렸다 펴짐)
-  const wob=motion&&age<.6?Math.sin(age/.6*Math.PI*3)*(1-age/.6)*.06:0;
-  c.save();c.translate(p.x,p.y);c.scale(k*(1+wob),k*(1-wob));ellipse(c,0,4,58,13,'#4a3a2238');c.lineJoin='round';
+  // 햄찌가 풍덩 들어가거나 펑 튀어나올 때 우물이 크게 출렁(납작 눌렸다 쭉 펴지기를 되풀이하며 잦아든다).
+  // 튀어나오기 직전(age<0)에는 우물이 위로 부풀며 덜덜 떤다(예비 동작).
+  let wob=0,shake=0,swell=0;
+  if(motion&&age>=0&&age<.8)wob=.16*Math.exp(-age*6)*Math.cos(age*24);
+  if(motion&&age<0&&age>-.5){const a=(1+age/.5)**1.5;shake=Math.sin(this.time*80)*6*a;swell=.17*a+Math.sin(this.time*43)*.025*a;}
+  c.save();c.translate(p.x+shake,p.y);c.scale(k*(1+wob-swell*.4),k*(1-wob+swell));ellipse(c,0,4,58,13,'#4a3a2238');c.lineJoin='round';
   for(const sx of [-1,1]){c.fillStyle='#9a6a40';c.strokeStyle=INK;c.lineWidth=2.2;c.beginPath();c.roundRect(sx*44-5,-118,10,96,4);c.fill();c.stroke();}
   c.fillStyle='#b9b0a0';c.strokeStyle=INK;c.lineWidth=2.6;c.beginPath();c.moveTo(-50,-24);c.lineTo(-50,-2);c.ellipse(0,-2,50,14,0,Math.PI,0,true);c.lineTo(50,-24);c.closePath();c.fill();c.stroke();
   c.strokeStyle='#8e8576';c.lineWidth=1.6;for(const [x,y] of [[-34,-12],[-10,-8],[14,-9],[36,-14],[-22,-20],[24,-20]]){c.beginPath();c.roundRect(x-9,y-5,18,9,3);c.stroke();}
   ellipse(c,0,-24,50,16,'#cfc6b4',INK,2.6);ellipse(c,0,-24,38,10,'#5fa9b8');
   const glint=motion?Math.sin(this.time*2.4)*.5+.5:.5;c.globalAlpha=.5+glint*.4;ellipse(c,-10,-26,12,3,'#d9f3f5');c.globalAlpha=1;
-  if(age<.9){const q=age/.9;c.globalAlpha=1-q;ellipse(c,0,-24,38*(.4+q),10*(.4+q),null,'#e9f8fa',3);c.globalAlpha=1;}
+  if(age>=0&&age<.9){const q=age/.9;c.globalAlpha=1-q;ellipse(c,0,-24,38*(.4+q),10*(.4+q),null,'#e9f8fa',3);c.globalAlpha=1;}
+  // 부풀 때는 물이 불룩 솟아오른다
+  if(swell>0){ellipse(c,0,-24-swell*40,30*(.6+swell*3),8+swell*60,'#5fa9b8','#e9f8fa',1.6);}
   // 햄찌가 우물 속에서 이름을 기다리는 동안: 물방울이 보글보글 올라온다
   if(this.naming!=null){for(let j=0;j<4;j++){const t=((motion?this.time:0)*1.3+j*.27)%1;c.globalAlpha=(1-t)*.9;ellipse(c,-16+j*11+Math.sin(j*2+t*6)*3,-24-t*16,2.2+j%2,2.2+j%2,'#e9f8fa','#7fb9c4',1);}c.globalAlpha=1;}
   c.fillStyle='#a0603a';c.strokeStyle=INK;c.lineWidth=2.6;c.beginPath();c.moveTo(-62,-110);c.lineTo(0,-150);c.lineTo(62,-110);c.lineTo(52,-104);c.lineTo(0,-136);c.lineTo(-52,-104);c.closePath();c.fill();c.stroke();
   path(c,[[-44,-98],[44,-98]],5,INK);path(c,[[-44,-98],[44,-98]],2.6,'#c8935e');
   path(c,[[8,-98],[8,-62]],1.6,'#5a4030');c.fillStyle='#9a6a40';c.strokeStyle=INK;c.lineWidth=2;c.beginPath();c.moveTo(-1,-62);c.lineTo(17,-62);c.lineTo(15,-46);c.lineTo(1,-46);c.closePath();c.fill();c.stroke();
+  // 풍덩·펑: 물방울이 왕관처럼 튀어 올랐다 떨어진다
+  if(motion&&age>=0&&age<.7){c.globalAlpha=1-age/.7;for(let j=0;j<9;j++){const a=Math.PI*(1.08+.84*j/8),v=45+(j%3)*14,x=Math.cos(a)*v*age*1.6,y=-26+Math.sin(a)*v*1.5*age*1.6+150*age*age;
+   ellipse(c,x,y,2.6,3.4,'#bfe6ee','#5f9fae',.8);}c.globalAlpha=1;}
   c.restore();
  }
  // 씨앗 창고(레퍼런스의 통 집): 가진 해바라기씨가 많을수록 통 위로 씨앗 더미가 차오르고, 황금 씨앗도 섞여 보인다
@@ -663,42 +691,45 @@ export class VillageWorld{
    if(f.phase==='fly'){
     for(let left=Math.min(.1,dt);left>1e-8;left-=1/120){
      const h=Math.min(left,1/120);f.x+=f.vx*h;f.y+=f.vy*h;
-     if(f.x<B.left||f.x>B.right){f.x=Math.max(B.left,Math.min(B.right,f.x));f.vx*=-.45;}
-     if(f.y<B.top||f.y>B.bottom){f.y=Math.max(B.top,Math.min(B.bottom,f.y));f.vy*=-.45;}
-     if(this.zone==='well'&&Math.hypot(f.x-WELL_MOUTH.x,f.y-WELL_MOUTH.y)<WELL_MOUTH.r){f.phase='dive';f.t=0;f.from={x:f.x,y:f.y};this.propHit.well=this.time;break;}
+     // 벽에 부딪히면 그 방향으로 납작 눌렸다 출렁(bump)
+     if(f.x<B.left||f.x>B.right){f.x=Math.max(B.left,Math.min(B.right,f.x));f.vx*=-.45;f.bump=this.time;f.bumpA=0;}
+     if(f.y<B.top||f.y>B.bottom){f.y=Math.max(B.top,Math.min(B.bottom,f.y));f.vy*=-.45;f.bump=this.time;f.bumpA=Math.PI/2;}
+     if(this.zone==='well'&&Math.hypot(f.x-WELL_MOUTH.x,f.y-WELL_MOUTH.y)<WELL_MOUTH.r){f.phase='dive';f.t=0;f.from={x:f.x,y:f.y};break;}
      // 광산 입구에 빠지면: 구멍이 꿀꺽 삼켰다가 퉤 뱉어 낸다(햄찌는 공으로만 들어간다)
      if(this.zone==='hub'&&((f.x-HOLE.x)/48)**2+((f.y-HOLE.y)/32)**2<1){f.phase='swallow';f.t=0;f.from={x:f.x,y:f.y};f.dir=Math.atan2(-f.vy,-f.vx);break;}
-     const bounce=(dx,dy,dist,k=.45)=>{const nx=dx/(dist||1),ny=dy/(dist||1),dot=f.vx*nx+f.vy*ny;if(dot<0){f.vx-=1.4*dot*nx;f.vy-=1.4*dot*ny;}f.vx*=k;f.vy*=k;};
+     const bounce=(dx,dy,dist,k=.45)=>{const nx=dx/(dist||1),ny=dy/(dist||1),dot=f.vx*nx+f.vy*ny;if(dot<0){f.vx-=1.4*dot*nx;f.vy-=1.4*dot*ny;}f.vx*=k;f.vy*=k;f.bump=this.time;f.bumpA=Math.atan2(ny,nx);};
      if(!f.hit)for(const d of dummiesFor(s)){const dx=f.x-d.x,dy=f.y-(d.y+DUMMY_HIT.dy),dist=Math.hypot(dx,dy);
       if(dist<DUMMY_HIT.r){f.hit=d.trait;this.hitDummy(i,d);bounce(dx,dy,dist);break;}}
      if(!f.hit)for(const p of PROPS)if(p.gen){const dx=f.x-p.x,dy=f.y-(p.y-p.h*.45),dist=Math.hypot(dx,dy);
       if(dist<40){f.hit=p.id;this.collect(p);bounce(dx,dy,dist,.5);break;}}
      const decay=Math.exp(-FLING.drag*h);f.vx*=decay;f.vy*=decay;
-     if(Math.hypot(f.vx,f.vy)<FLING.stop){f.vx=f.vy=0;this.walkBack(i,f,{x:f.x,y:f.y});break;}
+     if(Math.hypot(f.vx,f.vy)<FLING.stop){f.vx=f.vy=0;this.walkBack(i,f,{x:f.x,y:f.y},{amp:.45});break;}
     }
    }else if(f.phase==='swallow'){
     if(f.t>=ACT.swallow){
      // 들어온 쪽으로(조금 흔들린 방향) 130~170 떨어진 곳에 퉤
      const a=f.dir+(rand(this.time*7+i)-.5)*1.2,d=130+rand(this.time*3+i)*40;
      const to={x:Math.max(B.left,Math.min(B.right,HOLE.x+Math.cos(a)*d)),y:Math.max(B.top,Math.min(B.bottom,HOLE.y+Math.abs(Math.sin(a))*d*.7+30))};
-     Object.assign(f,{phase:'spit',t:0,from:{x:HOLE.x,y:HOLE.y},to});this.holeSpit=this.time;
+     // 꿀꺽 삼킨 순간 구멍이 오므라들고(gulp), rumble초 동안 우르르 부풀며 떨다가 holeSpit 시각에 펑!
+     Object.assign(f,{phase:'spit',t:0,from:{x:HOLE.x,y:HOLE.y},to});this.holeGulp=this.time;this.holeSpit=this.time+ACT.rumble;
      this.notify(`광산 입구가 ${hamsterName(s,i)}${josa(hamsterName(s,i),'을','를')} 퉤 뱉었어요! 광산엔 등나무 공을 넣어 다 함께 들어가요.`);
     }
-   }else if(f.phase==='spit'){if(f.t>=ACT.spit){f.landAt=this.time;this.walkBack(i,f,f.to);}}
+   }else if(f.phase==='spit'){if(f.t>=ACT.spit)this.walkBack(i,f,f.to,{hold:1.05,daze:true});}
    else if(f.phase==='dive'){
-    // 우물 속으로 쏙 → 이름 말풍선(이름을 정할 때까지 우물 속에 있다)
-    if(f.t>=FLING.dive){f.phase='inwell';f.t=0;this.showName(i);}
+    // 우물 속으로 풍덩(물이 튀고 우물이 출렁) → 이름 말풍선(이름을 정할 때까지 우물 속에 있다)
+    if(f.t>=FLING.dive){f.phase='inwell';f.t=0;this.propHit.well=this.time;this.showName(i);}
    }else if(f.phase==='inwell'){}
-   else if(f.phase==='pop'){if(f.t>=ACT.pop){f.landAt=this.time;this.walkBack(i,f,f.to);}}
-   else if(f.t>=f.dur)this.flights.delete(i);
+   else if(f.phase==='pop'){if(f.t>=ACT.pop)this.walkBack(i,f,f.to,{hold:.55});}
+   else if(f.t>=f.dur+(f.hold??0))this.flights.delete(i);
   }
  }
- // 이름이 정해지면 우물에서 폴짝 튀어나와 우물 옆에 내려앉는다
+ // 이름이 정해지면 우물이 우르르 부풀며 떨다가(popRumble) 햄찌가 퐁 튀어나와 우물 옆에 내려앉는다
  popFromWell(i){
   const f=this.flights?.get(i);if(!f||f.phase!=='inwell'&&f.phase!=='dive')return;
-  const side=i%2?1:-1;Object.assign(f,{phase:'pop',t:0,from:{x:WELL_MOUTH.x,y:WELL_MOUTH.y},to:{x:WELL.x+side*150,y:WELL.y+55}});this.propHit.well=this.time;
+  const side=i%2?1:-1;Object.assign(f,{phase:'pop',t:0,from:{x:WELL_MOUTH.x,y:WELL_MOUTH.y},to:{x:WELL.x+side*150,y:WELL.y+55}});this.propHit.well=this.time+ACT.popRumble;
  }
- walkBack(i,f,from){const home=this.crewPositions()[i]??from;Object.assign(f,{phase:'back',t:0,from,dur:Math.max(.5,Math.hypot(home.x-from.x,home.y-from.y)/FLING.walk)});}
+ // 착지했으면 쿵·통·출렁(landing) 하고 hold초 그 자리에 있다가(뱉긴 햄찌는 어질어질 별) 제자리로 걸어간다
+ walkBack(i,f,from,{hold=0,daze=false,amp=1}={}){const home=this.crewPositions()[i]??from;Object.assign(f,{phase:'back',t:0,from,hold,daze,landAt:this.time,landAmp:amp,dur:Math.max(.5,Math.hypot(home.x-from.x,home.y-from.y)/FLING.walk)});}
  // 건물 단계가 바뀌면(강화·마스터리) 창을 닫고 마을이 보일 때 한 번 공사 연출
  checkRebuild(s){
   if(this.blocked())return;const now=this.levels(s);
@@ -717,15 +748,19 @@ export class VillageWorld{
   if(this.ballSpit&&this.time-this.ballSpit.t0>=ACT.ballSpit)this.ballSpit=null;
   // 화면 넘김: 옆 구역으로 부드럽게 미끄러진 뒤 그 구역 안에 카메라를 묶는다
   if(this.slide){
-   const sl=this.slide;sl.t+=Math.min(.1,dt);const k=Math.min(1,sl.t/TRAVEL.slide),e=k<.5?4*k*k*k:1-(-2*k+2)**3/2;
-   this.camera={x:sl.from.x+(sl.to.x-sl.from.x)*e,y:sl.from.y+(sl.to.y-sl.from.y)*e,zoom:sl.from.zoom+(sl.to.zoom-sl.from.zoom)*e,bounds:sl.to.bounds};
+   // 살짝 뒤로 물러났다(예비) 휙 넘어가서 조금 지나쳤다 돌아온다(오버슈트)
+   const sl=this.slide;sl.t+=Math.min(.1,dt);const k=Math.min(1,sl.t/TRAVEL.slide),b=1.2*1.525,e=k<.5?((2*k)**2*((b+1)*2*k-b))/2:((2*k-2)**2*((b+1)*(2*k-2)+b)+2)/2;
+   this.camera={x:sl.from.x+(sl.to.x-sl.from.x)*e,y:sl.from.y+(sl.to.y-sl.from.y)*e,zoom:sl.from.zoom+(sl.to.zoom-sl.from.zoom)*k*k*(3-2*k),bounds:sl.to.bounds};
    if(k>=1){this.camera={...sl.to};this.slide=null;}
   }
   if(this.suction){
    this.suction.time+=dt;
    if(this.suction.time>=.82&&!this.suction.called){this.suction.called=true;this.onEnter();}
   }else if(!this.blocked()&&!this.aim&&(this.ball.vx||this.ball.vy)){
-   if(stepBall(this.ball,dt)){
+   const pvx=this.ball.vx,pvy=this.ball.vy,inside=stepBall(this.ball,dt);
+   // 벽에 튕기면 공이 그 방향으로 납작 눌렸다 출렁
+   if(pvx*this.ball.vx<0)this.ballBump={t:this.time,a:0};else if(pvy*this.ball.vy<0)this.ballBump={t:this.time,a:Math.PI/2};
+   if(inside){
     // 씨앗을 넣은 공만 들어간다. 빈 공이거나 지쳤으면 구멍이 공을 퉤 뱉어 제자리로 돌려보낸다.
     const s=this.getState();
     if(canDepart(s)&&s.renewal.village.prepared)this.enter();
@@ -738,10 +773,26 @@ export class VillageWorld{
   const c=this.context,cam=this.camera,s=this.getState(),f=fatigueState(s),tired=f.count>=f.max;
   c.save();c.setTransform(c.canvas.width/450,0,0,c.canvas.height/800,0,0);c.clearRect(0,0,450,800);
   c.save();c.translate(225,400);c.scale(cam.zoom,cam.zoom);c.translate(-cam.x,-cam.y);for(const b of this.backgrounds??[])c.drawImage(b.cv,b.z.left,b.z.top);
-  // 광산 입구가 뭔가를 뱉을 때: 입구가 불룩 부풀었다 오므라들고 흙먼지가 퍼진다
-  const spitAge=this.time-Math.max(this.holeSpit??-9,this.ballSpit?.t0??-9),puff=s.settings.motion&&spitAge<.45?Math.sin(spitAge/.45*Math.PI):0;
-  c.save();c.translate(HOLE.x,HOLE.y+45);c.scale(1+puff*.18,1-puff*.1);c.translate(-HOLE.x,-HOLE.y-45);this.sprite(c,'mine-hole',HOLE.x,HOLE.y+45,132,91);c.restore();
-  if(spitAge<.6){const k=spitAge/.6;c.save();c.globalAlpha=(1-k)*.85;for(let j=0;j<7;j++){const a=j/7*Math.PI*2;ellipse(c,HOLE.x+Math.cos(a)*(30+k*60),HOLE.y+Math.sin(a)*(18+k*30)-k*10,8+k*10,5+k*6,j%2?'#e9dcc0':'#d8c6a2');}c.restore();}
+  // 광산 입구 연출: 꿀꺽(삼키면 오므라졌다 출렁) → 우르르(뱉기 전 부풀며 덜덜) → 펑!(크게 벌어졌다 출렁 + 흙먼지·돌멩이)
+  const booms=[this.holeSpit,this.ballSpit&&this.ballSpit.t0+ACT.ballRumble].filter(b=>b!=null);
+  let hsx=1,hsy=1,hdx=0,boomAge=9,rumble=0;
+  if(s.settings.motion){
+   for(const b of booms){const a=this.time-b;
+    if(a<0&&a>-.45){const amp=(1+a/.45)**1.5;rumble=Math.max(rumble,amp);hdx+=Math.sin(this.time*85)*7*amp;hsx+=.22*amp+Math.sin(this.time*41)*.05*amp;hsy+=.32*amp+Math.cos(this.time*37)*.06*amp;}
+    else if(a>=0&&a<.7){const w=Math.exp(-a*6)*Math.cos(a*24);hsx+=.45*w;hsy-=.22*w;}
+    if(a>=0)boomAge=Math.min(boomAge,a);}
+   const g=this.time-(this.holeGulp??-9);if(g>=0&&g<.5){const w=Math.exp(-g*7)*Math.cos(g*22);hsx-=.3*w;hsy+=.18*w;}
+  }
+  c.save();c.translate(HOLE.x+hdx,HOLE.y);c.scale(hsx,hsy);c.translate(-HOLE.x,-HOLE.y);this.sprite(c,'mine-hole',HOLE.x,HOLE.y+45,132,91);c.restore();
+  // 우르르: 입구 둘레 돌멩이가 통통 튀고 흙 부스러기가 들썩인다
+  if(rumble>0)for(let j=0;j<6;j++){const a=j/6*Math.PI*2+.4,hop=Math.abs(Math.sin(this.time*(26+j*3)+j))*16*rumble;
+   ellipse(c,HOLE.x+Math.cos(a)*62*hsx,HOLE.y+Math.sin(a)*34*hsy-hop,4+j%2,3.4,'#8a6a4a',INK,1.2);}
+  if(boomAge<.75){const k=boomAge/.75,e=1-(1-k)**3;c.save();c.globalAlpha=(1-k)*.9;
+   // 흙먼지 고리가 확 퍼지고, 돌멩이가 사방으로 포물선을 그리며 튄다
+   for(let j=0;j<10;j++){const a=j/10*Math.PI*2+.3;ellipse(c,HOLE.x+Math.cos(a)*(34+e*95),HOLE.y+Math.sin(a)*(20+e*48)-e*14,9+e*14,6+e*8,j%2?'#e9dcc0':'#d8c6a2');}
+   for(let j=0;j<7;j++){const a=-Math.PI*(.12+.76*j/6),v=120+rand(j*3.1)*90,x=HOLE.x+Math.cos(a)*v*boomAge*1.4,y=HOLE.y-10+Math.sin(a)*v*boomAge*1.4+260*boomAge*boomAge;
+    ellipse(c,x,y,3.4+rand(j)*2.4,3+rand(j+5)*2,'#8a6a4a',INK,1.2);}
+   c.restore();}
   label(c,'광산 입구',HOLE.x,HOLE.y-64,19);
   c.fillStyle='#fff4cb';c.beginPath();const bounce=s.settings.motion?Math.sin(this.time*3)*3:0;c.moveTo(HOLE.x-6,HOLE.y-51+bounce);c.lineTo(HOLE.x+6,HOLE.y-51+bounce);c.lineTo(HOLE.x,HOLE.y-43+bounce);c.fill();
   const motion=s.settings.motion,levels=this.levels(s);
@@ -772,26 +823,54 @@ export class VillageWorld{
   const crew=this.suction?this.suction.crew:this.crewPositions();
   crew.forEach((p,i)=>{
    const f=!this.suction&&this.flights.get(i);let gx=p.x,gy=p.y,lift=0,clip=p.clip,t=p.t,face=p.face,size=.68;
-   if(f?.phase==='fly'){gx=f.x;gy=f.y;const sp=Math.hypot(f.vx,f.vy);lift=Math.min(34,sp*.07);clip='startle';t=Math.min(.5,f.t);face=f.vx>=0?1:-1;}
-   else if(f?.phase==='dive'){const k=Math.min(1,f.t/FLING.dive);gx=f.from.x+(WELL_MOUTH.x-f.from.x)*k;gy=f.from.y+(WELL_MOUTH.y-f.from.y)*k;lift=Math.sin(k*Math.PI)*30;size*=1-k*.85;clip='startle';t=.3;}
+   // st/sa = 늘임 세기·방향, feet = 발을 축으로(착지·뜀) 아니면 몸 가운데를 축으로, rot = 공중제비, daze = 어질어질 별
+   let st=0,sa=Math.PI/2,feet=true,rot=0,daze=0;
+   const flyArc=(r,h)=>{gx=r.x;gy=r.y;lift=r.lift;st=Math.min(.5,r.sp*h);sa=r.a;feet=false;};
+   // 우르르 따라 달릴 때: 통통 뛰며 땅에 닿을 때 납작, 떠오를 때 쭉
+   if(p.running&&!f){const ph=(this.time*13+i*1.3)%Math.PI;lift=Math.sin(ph)*10;st=-.14*Math.cos(2*ph);}
+   // 집어서 당기는 동안: 고무줄처럼 당기는 쪽으로 늘어나고, 세게 당길수록 덜덜 떤다
+   if(this.fling?.i===i&&!f){const dx=this.fling.pointer.x-this.fling.origin.x,dy=this.fling.pointer.y-this.fling.origin.y,d=Math.hypot(dx,dy);
+    if(d>6){st=Math.min(.38,d/280);sa=Math.atan2(dy,dx);clip='startle';t=.27;if(d>110)gx+=Math.sin(this.time*90)*1.5*Math.min(1,(d-110)/80);}}
+   if(f?.phase==='fly'){gx=f.x;gy=f.y;const sp=Math.hypot(f.vx,f.vy);lift=Math.min(34,sp*.07);clip='startle';t=Math.min(.5,f.t);face=f.vx>=0?1:-1;
+    st=Math.min(.42,sp/2000);sa=Math.atan2(f.vy,f.vx);feet=false;
+    const b=f.bump!=null?this.time-f.bump:9;if(b<.4){st=-.4*Math.exp(-b*8)*Math.cos(b*30);sa=f.bumpA;}}
+   else if(f?.phase==='dive'){
+    // 우물로 빨려 들어가듯 쭉 늘어나 머리부터 풍덩(물에 닿기 직전 작아진다)
+    const u=f.t/FLING.dive,r=arc(f.from,WELL_MOUTH,u,90);flyArc(r,.035);size*=1-.85*clamp01((u-.7)/.3);rot=(f.from.x<=WELL_MOUTH.x?1:-1)*Math.PI*.85*r.k*r.k;clip='startle';t=.27;}
    else if(f?.phase==='inwell')return;   // 이름이 정해질 때까지 우물 속(보이지 않음)
-   else if(f?.phase==='swallow'){const k=Math.min(1,f.t/ACT.swallow),e=k*k;gx=f.from.x+(HOLE.x-f.from.x)*e;gy=f.from.y+(HOLE.y-f.from.y)*e;size*=1-e*.9;clip='startle';t=.3;}
+   else if(f?.phase==='swallow'){
+    // 붙잡힘(앞 35%): 제자리에서 구멍 쪽으로 쭈욱 늘어나며 버둥 → 국수처럼 후루룩 빨려 들어간다
+    const u=f.t/ACT.swallow;clip='startle';t=.27;sa=Math.atan2(HOLE.y-f.from.y,HOLE.x-f.from.x);feet=false;
+    if(u<.35){const k=u/.35;gx=f.from.x+Math.sin(this.time*70)*2*k;gy=f.from.y;st=.6*k;lift=6*k;}
+    else{const e=((u-.35)/.65)**3;gx=f.from.x+(HOLE.x-f.from.x)*e;gy=f.from.y+(HOLE.y-f.from.y)*e;size*=1-e*.92;st=.6+e*.3;rot=e*Math.PI*1.5;}}
    else if(f?.phase==='spit'||f?.phase==='pop'){
-    // 포물선으로 튀어나와 날아간다(뱉을 땐 높이, 우물에선 폴짝)
-    const k=Math.min(1,f.t/(f.phase==='spit'?ACT.spit:ACT.pop));gx=f.from.x+(f.to.x-f.from.x)*k;gy=f.from.y+(f.to.y-f.from.y)*k;
-    lift=Math.sin(k*Math.PI)*(f.phase==='spit'?95:70);size*=Math.min(1,.25+k*3);clip='startle';t=.2+k*.3;face=f.to.x>=f.from.x?1:-1;}
-   else if(f?.phase==='back'){const k=Math.min(1,f.t/f.dur),e=k*k*(3-2*k);gx=f.from.x+(p.x-f.from.x)*e;gy=f.from.y+(p.y-f.from.y)*e;clip='walk';face=p.x>=f.from.x?1:-1;}
-   // 내려앉을 때 납작 눌렸다 펴짐
-   const land=f?.landAt!=null?this.time-f.landAt:9,squash=motion&&land<.3?Math.sin(land/.3*Math.PI)*.22:0;
+    // 우르르(구멍·우물 속, 안 보임) → 펑! 늘어난 채 튀어나와 공중제비를 돌며 꼭대기에서 둥실 머물다 떨어진다
+    const spit=f.phase==='spit',wait=spit?ACT.rumble:ACT.popRumble,u=(f.t-wait)/((spit?ACT.spit:ACT.pop)-wait);
+    if(u<0)return;
+    const r=arc(f.from,f.to,u,spit?175:150);flyArc(r,.03);clip='startle';t=.27;face=f.to.x>=f.from.x?1:-1;
+    // 공중제비(뱉기는 두 바퀴, 우물은 한 바퀴)와 크기 튐(작게 나와 1.2배까지 부풀었다 제 크기로)
+    rot=face*Math.PI*2*r.k*(spit?2:1);size=.68*(u<.25?.3+.9*(u/.25):1.2-.2*clamp01((u-.25)/.3));}
+   else if(f?.phase==='back'){
+    const hold=f.hold??0,k=clamp01((f.t-hold)/f.dur),e=k*k*(3-2*k);gx=f.from.x+(p.x-f.from.x)*e;gy=f.from.y+(p.y-f.from.y)*e;
+    clip=f.t<hold?(f.daze?'startle':'idle'):'walk';if(f.t<hold)t=f.daze?.1+Math.sin(this.time*9)*.05:t;face=f.t<hold?face:p.x>=f.from.x?1:-1;
+    if(f.daze&&f.t<hold+.7)daze=clamp01((hold+.7-f.t)/.35);}
+   // 내려앉을 때: 쿵 눌렸다 통 튀어 오르고 출렁 멈춘다
+   if(f?.landAt!=null&&f.phase==='back'){const L=landing(this.time-f.landAt,.75,f.landAmp??1);if(L.st||L.lift){lift+=L.lift;st=L.st;sa=Math.PI/2;feet=true;}}
+   if(!motion){st=0;rot=0;}
    const inside=f&&(f.phase==='dive'||f.phase==='swallow');
    objects.push({depth:this.suction?3000:f?.phase==='dive'?WELL.y+1:f?.phase==='swallow'?HOLE.y+1:gy,draw:()=>{
-    let x=gx,y=gy,sz=size;
-    if(this.suction){const k=Math.max(0,Math.min(1,(this.suction.time-i*.045)/.6)),ease=k*k*(3-2*k);x+=(HOLE.x-x)*ease;y+=(HOLE.y-y)*ease;sz*=1-ease;if(sz<.01)return;clip='startle';t=k*.5;}
-    if(lift>1){c.fillStyle='#4a3a2240';c.beginPath();c.ellipse(x,y+4,17*sz/.68,5,0,0,Math.PI*2);c.fill();}
-    if(squash){c.save();c.translate(x,y);c.scale(1+squash,1-squash);c.translate(-x,-y);}
+    let x=gx,y=gy,sz=size,pst=st,psa=sa,pfeet=feet,prot=rot;
+    // 광산으로 출발: 차례로 구멍 쪽으로 쭉 늘어나 빙글 돌며 빨려 들어간다
+    if(this.suction){const k=Math.max(0,Math.min(1,(this.suction.time-i*.045)/.6)),ease=k*k*k;pst=motion?.55*Math.sin(Math.min(1,k*1.6)*Math.PI/2):0;psa=Math.atan2(HOLE.y-y,HOLE.x-x);pfeet=false;prot=motion?ease*Math.PI*2:0;
+     x+=(HOLE.x-x)*ease;y+=(HOLE.y-y)*ease;sz*=1-ease;if(sz<.01)return;clip='startle';t=.27;}
+    if(lift>1){c.fillStyle='#4a3a2240';c.beginPath();c.ellipse(x,y+4,17*sz/.68*Math.max(.5,1-lift/260),5,0,0,Math.PI*2);c.fill();}
+    const cy=y-lift-26*sz/.68,changed=pst||prot;
+    if(changed){c.save();if(prot){c.translate(x,cy);c.rotate(prot);c.translate(-x,-cy);}if(pst)jelly(c,x,pfeet?y-lift:cy,psa,pst);}
     drawActor(c,this.res,{x,y:y-lift,size:sz,clip,skin:this.skin(s,i),t:motion?t:0,face,emote:true,showTool:false,loop:true});
-    if(squash)c.restore();
-    if(this.suction||inside)return;
+    if(changed)c.restore();
+    // 뱉긴 햄찌: 머리 위로 별이 빙글빙글
+    if(daze>0){c.save();c.globalAlpha=daze;for(let j=0;j<3;j++){const a=this.time*7+j*Math.PI*2/3;star(c,x+Math.cos(a)*22,y-lift-50+Math.sin(a)*7,7.5,'#ffe27a',INK);}c.restore();}
+    if(this.suction||inside||f?.phase==='spit'||f?.phase==='pop')return;
     // 이름표(머리 위)와 낀 특성(발밑, 둘째 칸까지)
     label(c,hamsterName(s,i),x,y-60-lift,12);
     const worn=[s.renewal.traits?.[i],s.renewal.traits2?.[i]].filter(t=>t&&t!=='none'&&TRAITS[t]);if(worn.length)label(c,worn.map(t=>TRAITS[t].name).join('·'),x,y+19-lift,11);
@@ -799,28 +878,47 @@ export class VillageWorld{
   });
   objects.push({depth:this.ball.y+20,draw:()=>{
    if(this.suction)return;
-   const prepared=s.renewal.village.prepared,ch=this.charge,ck=ch?(this.time-ch.t0)/ACT.charge:9;
-   let bx=this.ball.x,by=this.ball.y,lift=0,sx=1,sy=1;
-   // 구멍이 빈 공을 뱉음: 구멍에서 공 자리까지 포물선
-   if(this.ballSpit){const k=Math.min(1,(this.time-this.ballSpit.t0)/ACT.ballSpit);bx=HOLE.x+(bx-HOLE.x)*k;by=HOLE.y+(by-HOLE.y)*k;lift=Math.sin(k*Math.PI)*90;}
-   // 충전: 앞 절반은 씨앗이 쏙쏙 들어가고, 뒤 절반에 공이 톡 튀어 올랐다 내려앉는다
-   const seedPart=.5;
-   if(ck<1&&ck>seedPart&&motion){const h=(ck-seedPart)/(1-seedPart);lift=Math.sin(h*Math.PI)*26;const sq=h<.15?h/.15:h>.85?(1-h)/.15:0;sx=1+sq*.16;sy=1-sq*.14;}
-   if(lift>1){c.fillStyle='#4a3a2240';c.beginPath();c.ellipse(bx,by+18,18*(1-lift/200),5,0,0,Math.PI*2);c.fill();}
-   const full=prepared&&!(ck<seedPart);
-   c.save();c.translate(bx,by-lift);c.scale(sx,sy);c.rotate(this.ball.angle);
+   const prepared=s.renewal.village.prepared,ch=this.charge,ck=ch?(this.time-ch.t0)/ACT.charge:9,cs=ch?this.time-ch.t0:9;
+   const J0=CHARGE.seeds,J1=J0+CHARGE.crouch,J2=J1+CHARGE.jump;
+   // st/sa = 늘임 세기·방향, feet = 공 바닥을 축으로(착지·움츠림) 아니면 공 가운데, spin = 덤으로 도는 양, gulp = 씨앗 삼킬 때 불룩
+   let bx=this.ball.x,by=this.ball.y,lift=0,st=0,sa=Math.PI/2,feet=false,spin=0,gulp=0;
+   // 굴러갈 때는 가는 방향으로 쭉, 벽에 튕기면 그 방향으로 납작 출렁, 당기는 동안은 당기는 쪽으로 늘어나 덜덜
+   const sp=Math.hypot(this.ball.vx,this.ball.vy);if(sp>40){st=Math.min(.24,sp/2500);sa=Math.atan2(this.ball.vy,this.ball.vx);}
+   const bb=this.ballBump?this.time-this.ballBump.t:9;if(bb<.4){st=-.36*Math.exp(-bb*8)*Math.cos(bb*30);sa=this.ballBump.a;}
+   if(this.aim){const dx=this.aim.pointer.x-this.aim.origin.x,dy=this.aim.pointer.y-this.aim.origin.y,d=Math.hypot(dx,dy);
+    if(d>6){st=Math.min(.32,d/320);sa=Math.atan2(dy,dx);if(d>120)bx+=Math.sin(this.time*90)*1.4*Math.min(1,(d-120)/80);}}
+   // 구멍이 빈 공을 뱉음: 우르르(구멍 속, 안 보임) → 펑! 늘어난 채 빙글빙글 날아와 → 쿵·통·출렁
+   if(this.ballSpit){const a=this.time-this.ballSpit.t0;if(a<ACT.ballRumble)return;
+    const u=(a-ACT.ballRumble)/ACT.ballFly;
+    if(u<1){const r=arc(HOLE,{x:bx,y:by},u,150);bx=r.x;by=r.y;lift=r.lift;st=Math.min(.45,r.sp*.03);sa=r.a;spin=r.k*Math.PI*4;}
+    else{const L=landing(a-ACT.ballRumble-ACT.ballFly,ACT.ballSpit-ACT.ballRumble-ACT.ballFly);lift=L.lift;st=L.st;sa=Math.PI/2;feet=true;}}
+   // 충전: 씨앗이 하나 들어갈 때마다 불룩(꿀꺽) → 꽉 차면 번쩍 → 납작 움츠렸다 → 쭉 늘어나며 점프·한 바퀴 → 쿵·통·출렁 + 반짝 터짐
+   if(ch&&motion){
+    if(cs<J0){const n=Math.min(8,Math.max(1,ch.n));for(let j=0;j<n;j++){const g=cs-(j/n*.28+.22);if(g>=0&&g<.16)gulp+=.2*Math.sin(g/.16*Math.PI);}gulp=Math.min(.3,gulp);}
+    else if(cs<J1){const k=(cs-J0)/CHARGE.crouch;st=-.42*Math.sin(k*Math.PI/2);sa=Math.PI/2;feet=true;bx+=Math.sin(this.time*80)*1.6*k;}
+    else if(cs<J2){const r=arc({x:bx,y:by},{x:bx,y:by},(cs-J1)/CHARGE.jump,80);lift=r.lift;st=Math.min(.42,r.sp*.05);sa=Math.PI/2;spin=r.k*Math.PI*2;}
+    else{const L=landing(cs-J2,ACT.charge-J2);lift=L.lift;st=L.st;sa=Math.PI/2;feet=true;}
+   }
+   if(ch)this.burstAt=ch.t0+J2;else if(this.burstAt>this.time)this.burstAt=null;   // 충전이 도중에 끊기면 터짐도 없다
+   if(!motion){st=0;spin=0;gulp=0;}
+   if(lift>1){c.fillStyle='#4a3a2240';c.beginPath();c.ellipse(bx,by+18,18*Math.max(.4,1-lift/200),5,0,0,Math.PI*2);c.fill();}
+   const full=prepared&&!(cs<J0);
+   c.save();c.translate(bx,by-lift);if(st)jelly(c,0,feet?20:0,sa,st);if(gulp)c.scale(1+gulp,1+gulp*.8);c.rotate(this.ball.angle+spin);
    if(full)this.res.draw(c,'ball-full',0,0,42,42);else this.drawEmptyBall(c);
    c.restore();
-   if(ck<1){
-    // 씨앗들이 공 위 둘레에서 공 속으로 차례로 빨려 들어간다
+   if(ch){
+    // 씨앗들이 공 둘레에서 소용돌이치며 점점 빨라져 공 속으로 쏙(작게 나타났다 부풀며 날아든다)
     const n=Math.min(8,Math.max(1,ch.n));
-    for(let j=0;j<n;j++){const st=j/n*seedPart*.6,k=Math.max(0,Math.min(1,(ck-st)/(seedPart*.5)));if(k<=0||k>=1)continue;
-     const a=-Math.PI/2+(j-(n-1)/2)*.42,r=(1-k)*70,x=bx+Math.cos(a)*r,y=by-8+Math.sin(a)*r-Math.sin(k*Math.PI)*16;
-     c.save();c.globalAlpha=Math.min(1,k*4);c.translate(x,y);c.rotate(k*4+j);this.res.draw(c,'seed',0,0,8,12);c.restore();}
-    // 튀어 오른 꼭대기에서 반짝 고리
-    if(ck>.68){const k=(ck-.68)/.32;c.save();c.globalAlpha=(1-k)*.9;ellipse(c,bx,by-lift,24+k*26,24+k*26,null,'#fff3b0',3);
-     for(let j=0;j<6;j++){const a=j/6*Math.PI*2+k;ellipse(c,bx+Math.cos(a)*(26+k*24),by-lift+Math.sin(a)*(26+k*24),2.4,2.4,'#ffe27a');}c.restore();}
+    for(let j=0;j<n;j++){const k=(cs-j/n*.28)/.22;if(k<=0||k>=1)continue;const e=k*k;
+     const a=-Math.PI/2+(j-(n-1)/2)*.5+(1-e)*1.6,r=(1-e)*85,x=bx+Math.cos(a)*r,y=by-6+Math.sin(a)*r*.8-Math.sin(k*Math.PI)*22,sc=Math.min(1.3,k*5)*(1-e*.3);
+     c.save();c.globalAlpha=Math.min(1,k*5);c.translate(x,y);c.rotate(k*6+j);c.scale(sc,sc);this.res.draw(c,'seed',0,0,9,14);c.restore();}
+    // 꽉 찬 순간 번쩍
+    if(cs>=J0&&cs<J0+.16){c.save();c.globalAlpha=(1-(cs-J0)/.16)*.85;ellipse(c,bx,by-lift,23,23,'#fffbe6');c.restore();}
    }
+   // 착지한 순간 반짝 터짐: 고리가 퍼지고 별이 사방으로 튄다
+   const ba=this.time-(this.burstAt??-9);
+   if(motion&&ba>=0&&ba<.6){const k=ba/.6,e=1-(1-k)**3;c.save();c.globalAlpha=(1-k)*.95;ellipse(c,bx,by-4,26+e*40,(26+e*40)*.55,null,'#fff3b0',3.4);
+    for(let j=0;j<8;j++){const a=j/8*Math.PI*2+.2,r=24+e*58;star(c,bx+Math.cos(a)*r,by-14+Math.sin(a)*r*.7-e*10,5*(1-k*.5),'#ffe27a','#b8862a');}c.restore();}
    if(!this.aim&&!this.ballSpit&&ck>=1&&Math.hypot(this.ball.vx,this.ball.vy)<9)label(c,this.ball.zone!=='hub'?'당겨서 굴려요':tired?'햄찌들이 지쳤어요':prepared?'당겨서 구멍으로!':'톡! 씨앗 넣기',bx,by+37,13);
   }});
   // 경계 문·팻말은 화면 밖(먼 구역)이면 건너뛴다(x가 없는 나머지는 그대로 그린다)
@@ -848,8 +946,11 @@ export class VillageWorld{
   const zone=zoneById(this.zone);frame(c,this.res.rig,'panel_brown',13,16,150,42);label(c,`${zone.no} ${zone.name}`,88,44,17);
   // 구역에 도착하면 가운데 위에 구역 이름표가 잠깐 떴다 사라진다(화면이 넘어간 느낌)
   if(this.arrival){const k=(this.time-this.arrival.t)/TRAVEL.card;
-   if(k>=1)this.arrival=null;else if(k>0){c.save();c.globalAlpha=Math.min(1,k*6,(1-k)*4);const drop=Math.max(0,1-k*6)*-14;
-    frame(c,this.res.rig,'panel_brown',95,150+drop,260,64);label(c,`구역 ${this.arrival.no}`,225,174+drop,14);label(c,this.arrival.name,225,203+drop,24);c.restore();}}
+   // 위에서 툭 떨어져 쿵 눌렸다 출렁 → 잠깐 머물고 → 위로 쏙 빠진다
+   if(k>=1)this.arrival=null;else if(k>0){const a=k*TRAVEL.card,out=Math.max(0,(a-(TRAVEL.card-.3))/.3);
+    const drop=a<.22?-120*(1-a/.22)**2:-out*out*140,sq=a>=.22&&a<.7?.22*Math.exp(-(a-.22)*8)*Math.cos((a-.22)*26):0;
+    c.save();c.globalAlpha=Math.min(1,a*8,1-out);c.translate(225,182+drop);c.scale(1+sq,1-sq);c.translate(-225,-182);
+    frame(c,this.res.rig,'panel_brown',95,150,260,64);label(c,`구역 ${this.arrival.no}`,225,174,14);label(c,this.arrival.name,225,203,24);c.restore();}}
   frame(c,this.res.rig,'panel_brown',226,16,104,42);this.res.draw(c,'seed',246,37,14,21);label(c,String(s.renewal.seeds),290,44,17);
   frame(c,this.res.rig,'panel_brown',336,16,101,42);this.res.draw(c,'golden-seed',356,37,24,24);label(c,String(s.renewal.golden??0),398,44,17);
   // 피곤함 칸(모바일 스테미너): 찬 칸은 주황, 빈 칸은 연하게. 칸이 남아 있으면 다음 1칸 회복까지 남은 시간.
