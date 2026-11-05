@@ -26,7 +26,7 @@
 .pack-bubble .pack-tail{position:absolute;left:50%;bottom:-22px;width:30px;height:30px;transform:translateX(-50%) rotate(45deg);background:#fff6dc;border-right:5px solid #6b4a30;border-bottom:5px solid #6b4a30}
 .mine-controls button{position:absolute;bottom:24px;min-width:140px;min-height:76px;padding:10px 24px;font-size:28px;border-width:4px;border-radius:24px;pointer-events:auto}
 .mine-controls [data-act="mine-menu"]{left:24px}
-.mine-controls [data-act="mine-return"],.mine-controls [data-act="mine-prepare"]{right:24px}
+.mine-controls [data-act="mine-return"]{right:24px}
 .renewal-game.legacy-subscene #hud>:not(.mine-controls){display:revert}
 .legacy-subscene .mine-controls{display:none}
 .renewal-game .shade.hud-live{inset:0;background:#0009}
@@ -63,10 +63,6 @@
 .renewal-game #toast{top:auto;bottom:140px;max-width:820px;font-size:28px}
 .village-controls{display:none;position:absolute;inset:0;pointer-events:none}
 .village-scene .village-controls{display:block}
-.village-controls [data-act="village-travel"]{left:calc(50% - 90px);min-width:180px}
-.village-controls [data-act="village-home"]{right:24px;bottom:200px;min-width:100px;font-size:25px}
-.village-zoom{position:absolute;right:24px;bottom:300px;display:grid;gap:8px}
-.village-zoom button{position:static;min-width:100px;min-height:80px;font-size:40px;padding:4px}
 .village-hint{position:absolute;bottom:105px;left:0;right:0;text-align:center;color:#fff8df;text-shadow:0 2px 3px #3f382a,0 0 3px #3f382a;font:700 24px Game,sans-serif;pointer-events:none}
 .village-scene #world{cursor:grab;touch-action:none}
 .village-scene #world:active{cursor:grabbing}
