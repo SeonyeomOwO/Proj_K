@@ -5,70 +5,76 @@ import {enhancementQuote,ballCapacity,GOLDEN_NAME} from '../mining/game-state.js
 import {TRAITS} from '../mining/mining-rules.js';
 import {TIERS} from '../../data/config.js';
 import {HOME,ZOOM,WORLD,worldPoint,pan,zoomAt,pinch} from './camera.js';
-import {HOLE,ZONES,ZONE,GATE,BALL_HOME,zoneById,zoneAt,freshBall,aimVelocity,stepBall,trajectory} from './plaza.js';
+import {HOLE,ZONES,ZONE,GATE,GATES,BALL_HOME,zoneById,zoneAt,gateBetween,gateCenter,freshBall,aimVelocity,stepBall,trajectory} from './plaza.js';
 
-// ── 마을 구역(2026-11-05): 화면 한 장 크기 구역 4개를 가로로 잇는다(레퍼런스 지리 순서) ──
-// [4 토템 마당] ← 문 → [1 광산 입구(메인)] ← 문 → [2 특성 경기장] ← 문 → [3 이름 우물]
+// ── 마을 구역(2026-11-05): 화면 한 장 크기 구역 4개 ──
+//            [4 토템 마당] ─문─ [1 광산 입구(메인)] ─문─ [3 이름 우물]
+//                                     │문
+//                               [2 특성 경기장]
 // 등나무 공을 굴려 경계 문을 지나가면 화면이 그 구역으로 넘어가고, 햄찌들이 문을 지나 우르르 따라온다.
 // 1 광산 입구: 구멍 + 업그레이드 건물(햄찌의 집·도구 놀이터·마스터리·대장간·쉼터와 모닥불) + 층 깃발
-// 2 특성 경기장: 울타리 두른 원형 경기장(특성 허수아비 + 해바라기 문양)
+// 2 특성 경기장: 울타리 두른 원형 경기장(특성 허수아비 + 해바라기 문양), 위쪽 출입구
 // 3 이름 우물: 우물 + 폐허 기둥 + 분홍 숲
 // 4 토템 마당: 해바라기 토템 · 황금 풍차 · 씨앗 창고 + 왼쪽 끝 바닷가
-const ARENA={x:1800,y:640,rx:300,ry:215};
+const ARENA={x:1080,y:1940,rx:300,ry:215};
 const octagon=(k=1)=>Array.from({length:8},(_,i)=>{const a=(i*45+22.5)*Math.PI/180;return[ARENA.x+Math.cos(a)*ARENA.rx*k,ARENA.y+Math.sin(a)*ARENA.ry*k];});
-// 경기장 울타리 출입구: 왼쪽(광산 입구 쪽)·오른쪽(우물 쪽) 변 가운데
-const ARENA_DOORS=[{x:ARENA.x-ARENA.rx*.924,y:ARENA.y},{x:ARENA.x+ARENA.rx*.924,y:ARENA.y}];
+// 경기장 울타리 출입구: 위쪽 변 가운데(광산 입구에서 내려오는 길)
+const ARENA_DOORS=[{x:ARENA.x,y:ARENA.y-ARENA.ry*.924}];
 const BUILDINGS=[
  // 성장 나무(2026-11-04): 마스터리 = 특별한 힘(황금), 햄찌의 집 = 햄찌 능력(해바라기씨), 쉼터 = 피곤함 + 돌봄 나무(해바라기씨),
  // 놀이터 = 층 도구(황금). 대장간은 곡괭이 강화 그대로. 모두 1구역(광산 입구)에 모은다.
  {id:'home',x:870,y:440,w:190,h:185,label:'햄찌의 집',action:'tree-home'},
  {id:'playground',x:1080,y:365,w:190,h:172,label:'도구 놀이터',action:'tree-tools'},
  {id:'mastery',x:1290,y:440,w:185,h:185,label:'마스터리',action:'tree-mastery'},
- {id:'forge',x:880,y:1110,w:185,h:185,label:'대장간',action:'mine-forge'},
- {id:'care-house',x:1295,y:1110,w:195,h:180,label:'쉼터',action:'village-rest'},
+ {id:'forge',x:850,y:1120,w:185,h:185,label:'대장간',action:'mine-forge'},
+ {id:'care-house',x:1310,y:1120,w:195,h:180,label:'쉼터',action:'village-rest'},
 ];
 // 그림 파일 없이 캔버스로 그리는 마을 소품(눌러서 쓰는 것들)
 const PROPS=[
  {id:'storage',x:320,y:480,w:150,h:170,label:'씨앗 창고'},
  {id:'mill',x:560,y:520,w:150,h:200,label:'황금 풍차',gen:'mill'},
  {id:'totem',x:420,y:1060,w:90,h:175,label:'해바라기 토템',gen:'totem'},
- {id:'well',x:2520,y:700,w:130,h:150,label:'이름 우물'},
+ {id:'well',x:1800,y:680,w:130,h:150,label:'이름 우물'},
 ];
 const prop=id=>PROPS.find(p=>p.id===id);
 const WELL=prop('well'),WELL_MOUTH={x:WELL.x,y:WELL.y-24,r:34};
-const CAMPFIRE={x:1150,y:1085};
+const CAMPFIRE={x:1165,y:1012};
 const BANNERS=[{x:940,y:705,kind:'floor'},{x:1220,y:705,kind:'best'}];
-const RUINS=[[2300,520,92],[2760,560,70],[2790,880,104],[2300,1010,58],[2700,1085,66]];
+const RUINS=[[1580,500,92],[2040,540,70],[2070,880,104],[1580,1010,58],[1980,1085,66]];
 const DECOR=[
- {id:'flowerbed',x:600,y:1080,w:105,h:72},{id:'flowerbed',x:1640,y:1100,w:105,h:72},{id:'flowerbed',x:1960,y:1100,w:105,h:72},
- {id:'bench',x:1800,y:1070,w:110,h:70},{id:'bench',x:2650,y:965,w:110,h:70},
- ...[[260,150],[460,125],[660,160],[1580,140],[1800,115],[2020,150]].map(([x,y],i)=>({id:'tree',x,y,w:180+i%3*18,h:215+i%3*18})),
- // 레퍼런스 오른쪽 아래의 분홍 숲(3구역)
- ...[[2840,1180],[2630,1250],[2840,330],[2390,170],[2620,150]].map(([x,y],i)=>({id:'tree',pink:true,x,y,w:190+i%2*24,h:225+i%2*24})),
+ {id:'flowerbed',x:600,y:1080,w:105,h:72},{id:'flowerbed',x:860,y:2300,w:105,h:72},{id:'flowerbed',x:1300,y:2300,w:105,h:72},
+ {id:'bench',x:1080,y:2330,w:110,h:70},{id:'bench',x:1930,y:965,w:110,h:70},
+ ...[[260,150],[460,125],[660,160],[820,1530],[1340,1530]].map(([x,y],i)=>({id:'tree',x,y,w:180+i%3*18,h:215+i%3*18})),
+ // 레퍼런스 오른쪽의 분홍 숲(3구역)
+ ...[[2110,1180],[1900,1250],[2110,330],[1670,170],[1900,150]].map(([x,y],i)=>({id:'tree',pink:true,x,y,w:190+i%2*24,h:225+i%2*24})),
 ];
-const REST_SPOTS=[[1100,1100],[1200,1102],[1150,1138],[1095,1045],[1205,1048],[1048,1120]];
+const REST_SPOTS=[[1115,1030],[1215,1035],[1165,1062],[1112,982],[1218,986],[1065,1055]];
 // 구역마다 햄찌가 모여 오가는 자리(공이 그 구역에 있으면 모두 그리로 간다)
 const SPOTS={
- hub:[[975,800],[1185,800],[1000,905],[1160,905],[1080,975],[1080,520]],
- arena:[[-110,55],[110,55],[-158,125],[158,125],[-40,165],[50,-50]].map(([x,y])=>[ARENA.x+x,ARENA.y+30+y]),
- well:[[2400,820],[2640,820],[2440,910],[2600,910],[2520,980],[2360,720]],
+ hub:[[975,800],[1185,800],[985,935],[1175,935],[1080,1010],[1080,520]],
+ arena:[[-110,-70],[110,-70],[-175,-5],[175,-5],[-50,-130],[60,-130]].map(([x,y])=>[ARENA.x+x,ARENA.y+30+y]),
+ well:[[1680,800],[1920,800],[1720,900],[1880,900],[1800,960],[1640,700]],
  totem:[[390,720],[570,720],[340,830],[590,840],[545,955],[470,620]],
 };
 const baseSkin=i=>i===3?'star':'miner';   // 광산과 같은 기본 옷(4번째가 별 잠옷)
-// 특성 허수아비: 레퍼런스처럼 경기장 울타리 안쪽 위 둘레에 줄지어 선다.
+// 특성 허수아비: 경기장 울타리 안쪽 아래 둘레에 줄지어 선다(위쪽은 출입구).
 const onRing=deg=>{const a=deg*Math.PI/180;return{x:Math.round(ARENA.x+Math.cos(a)*ARENA.rx*.78),y:Math.round(ARENA.y+Math.sin(a)*ARENA.ry*.78)};};
-const BASE_DUMMIES=[['workwear',-150],['drill',-118],['dynamite',-90],['pajamas',-62]].map(([trait,deg])=>({trait,...onRing(deg)}));
-// 마스터리로 연 특성(충전 곡괭이)은 오른쪽 위에 허수아비가 하나 더 선다
-const dummiesFor=s=>[...BASE_DUMMIES,...(traitUnlocked(s,'charge')?[{trait:'charge',...onRing(-32)}]:[])];
+const BASE_DUMMIES=[['workwear',150],['drill',118],['dynamite',90],['pajamas',62]].map(([trait,deg])=>({trait,...onRing(deg)}));
+// 마스터리로 연 특성(충전 곡괭이)은 오른쪽 아래에 허수아비가 하나 더 선다
+const dummiesFor=s=>[...BASE_DUMMIES,...(traitUnlocked(s,'charge')?[{trait:'charge',...onRing(32)}]:[])];
 const wornBy=(s,trait)=>{const r=s.renewal,i=r.traits.indexOf(trait);return i>=0?i:(r.traits2??[]).indexOf(trait);};
 const DUMMY_HIT={dy:-30,r:25},FLING={grab:30,drag:1.6,stop:14,walk:240,dive:.55};
-// 구역이 바뀌면: 카메라가 옆으로 미끄러지고(slide초), 햄찌들은 차례로(follow초 간격) 달려서(run px/s) 문을 지나 따라온다
+// 구역이 바뀌면: 카메라가 옆(또는 아래)으로 미끄러지고(slide초), 햄찌들은 차례로(follow초 간격) 달려서(run px/s) 문을 지나 따라온다
 const TRAVEL={slide:.8,follow:.1,run:300,card:1.8};
-// 갈 곳 팻말 높이: 보통 문 위, 경기장 구역은 울타리와 겹치지 않게 문 아래
-const signY=z=>z.id==='arena'?GATE.bottom+92:GATE.top-28;
+// 문 양쪽의 갈 곳 팻말 위치와 화살표 방향(a 구역 쪽 팻말은 b를, b 구역 쪽 팻말은 a를 가리킨다)
+const gateSigns=g=>g.axis==='x'
+ ?[{x:g.at-95,y:g.from-28,dir:'right',to:g.b},{x:g.at+95,y:g.from-28,dir:'left',to:g.a}]
+ :[{x:(g.from+g.to)/2,y:g.at-118,dir:'down',to:g.b},{x:(g.from+g.to)/2,y:g.at+290,dir:'up',to:g.a}];
 const zoneRect=z=>({left:z.left,right:z.right,top:z.top,bottom:z.bottom});
-const flightBounds=z=>({left:z.left+30,right:z.right-30,top:190,bottom:1140});
+const flightBounds=z=>({left:z.left+30,right:z.right-30,top:z.top+190,bottom:z.top+1140});
 const zoneView=(z,view)=>({x:view?.x??z.cx,y:view?.y??z.cy,zoom:view?.zoom??ZOOM.min,bounds:zoneRect(z)});
+// 구역 사이 가는 길: 메인(광산 입구)을 거친다
+const zonePath=(from,to)=>from===to?[from]:from==='hub'||to==='hub'?[from,to]:[from,'hub',to];
 const josa=(word,a,b)=>{const c=word.charCodeAt(word.length-1);return c>=0xac00&&c<=0xd7a3&&(c-0xac00)%28?a:b;};
 const INK='#6b4a30';
 function label(c,text,x,y,size=17){
@@ -153,8 +159,9 @@ export class VillageWorld{
   const manifest=await fetch(new URL('manifest.web.json',base)).then(r=>{if(!r.ok)throw Error('마을 리소스를 열 수 없어요');return r.json();});
   this.sprites={};await Promise.all(manifest.assets.map(async p=>{this.sprites[p.id]={...p,image:await this.res.rig.image(new URL(p.path,base))};}));
   this.pinkTree=this.pinkLeaves('tree');
-  this.background=document.createElement('canvas');this.background.width=WORLD.width;this.background.height=WORLD.height;
-  this.paintGround(this.background.getContext('2d'));this.bind();
+  // 바닥은 구역마다 한 장씩(빈 모서리는 그리지 않아 메모리를 아낀다)
+  this.backgrounds=ZONES.map(z=>{const cv=document.createElement('canvas');cv.width=ZONE.w;cv.height=ZONE.h;const g=cv.getContext('2d');g.translate(-z.left,-z.top);this.paintGround(g);return{z,cv};});
+  this.bind();
   if(typeof document!=='undefined'&&this.canvas.parentElement){this.buildPack();this.buildName();}
   return this;
  }
@@ -184,8 +191,11 @@ export class VillageWorld{
  spotFor(i){const list=SPOTS[this.zone]??SPOTS.hub;return list[i%list.length];}
  // 가는 길: 지금 구역에서 목표 구역까지 경계 문을 차례로 지난다(문 앞 → 문 너머)
  routeTo(h,target,i){
-  const pts=[];let k=zoneAt(h.x).i;const to=zoneAt(target[0]).i,jitter=((i%3)-1)*28;
-  while(k!==to){const dir=to>k?1:-1,edge=(dir>0?k+1:k)*ZONE.w;pts.push([edge-dir*55,GATE.y+jitter],[edge+dir*55,GATE.y+jitter]);k+=dir;}
+  const pts=[],jitter=((i%3)-1)*28,list=zonePath(zoneAt(h.x,h.y).id,zoneAt(target[0],target[1]).id);
+  for(let k=0;k+1<list.length;k++){
+   const g=gateBetween(list[k],list[k+1]),c=gateCenter(g),dir=g.a===list[k]?1:-1;   // a → b 방향이면 +1
+   if(g.axis==='x')pts.push([c.x-dir*55,c.y+jitter],[c.x+dir*55,c.y+jitter]);else pts.push([c.x+jitter,c.y-dir*55],[c.x+jitter,c.y+dir*55]);
+  }
   pts.push(target);return pts;
  }
  // 햄찌 실제 위치 갱신: 지친 햄찌는 쉼터 모닥불 곁에서 쉬고, 나머지는 공이 있는 구역 자리로 달려간다
@@ -263,9 +273,9 @@ export class VillageWorld{
   // 길: 경계 문 ↔ 구역 안 중심, 구역 안 건물 ↔ 광장
   const g=GATE.y,routes=[
    [[720,g],[620,g-10],[560,g-30]],   // 4 토템 마당(가운데 흙마당으로)
-   [[720,g],[860,g],[960,g-20]],[[1440,g],[1300,g],[1200,g-20]],[[1000,760],[905,480]],[[1160,760],[1260,480]],[[990,900],[900,1000]],[[1170,900],[1250,1000]],   // 1 광산 입구
-   [[1440,g],[1480,g-60],[ARENA_DOORS[0].x-6,ARENA.y+10]],[[ARENA_DOORS[1].x+6,ARENA.y+10],[2120,g-60],[2160,g]],   // 2 특성 경기장
-   [[2160,g],[2300,g-10],[2440,760]],[[2440,760],[2520,740]],   // 3 이름 우물
+   [[720,g],[860,g],[960,g-20]],[[1440,g],[1300,g],[1200,g-20]],[[1000,760],[905,480]],[[1160,760],[1260,480]],[[990,920],[880,1000]],[[1170,920],[1250,980]],[[1080,950],[1080,1300]],   // 1 광산 입구
+   [[1080,1260],[1080,ARENA_DOORS[0].y+20]],   // 2 특성 경기장(위쪽 문 → 경기장 출입구)
+   [[1440,g],[1600,g],[1720,760]],[[1720,760],[1800,740]],   // 3 이름 우물
   ];
   for(const points of routes){path(c,points,96,'#82965d');path(c,points,89,'#d2b47d');path(c,points,78,'#ead09b');}
   // 2구역: 원형 경기장 바닥(울타리는 깊이 순서대로 따로 그린다)
@@ -285,7 +295,7 @@ export class VillageWorld{
   ellipse(c,1080,770,228,196,'#d2b47d');ellipse(c,1080,768,220,188,'#ead09b');
   for(const [dx,dy,rx,ry,col] of [[0,8,104,70,'#efb46c'],[-30,30,60,40,'#f2c27e'],[36,-10,62,40,'#f2c27e'],[0,6,80,52,'#f0a85d']])ellipse(c,HOLE.x+dx,HOLE.y+dy,rx,ry,col);
   // 물웅덩이(레퍼런스의 하늘색 웅덩이)
-  for(const [x,y,rx,ry] of [[640,330,34,20],[1000,1010,30,18],[1600,960,44,24],[2380,930,46,26],[2700,780,30,18]]){ellipse(c,x,y,rx+5,ry+4,'#8fbf8a');ellipse(c,x,y,rx,ry,'#9fd8d4');ellipse(c,x-rx*.3,y-ry*.3,rx*.35,ry*.25,'#c9eeea');}
+  for(const [x,y,rx,ry] of [[640,330,34,20],[960,1050,28,16],[1320,1520,40,22],[870,2180,34,20],[1660,930,46,26],[1980,780,30,18]]){ellipse(c,x,y,rx+5,ry+4,'#8fbf8a');ellipse(c,x,y,rx,ry,'#9fd8d4');ellipse(c,x-rx*.3,y-ry*.3,rx*.35,ry*.25,'#c9eeea');}
   for(let i=0;i<620;i++){
    const x=rand(i+310)*WORLD.width,y=rand(i+970)*WORLD.height;
    if(x<beachEdge(y)+20||((x-ARENA.x)/ARENA.rx)**2+((y-ARENA.y)/ARENA.ry)**2<1.1||((x-1080)/230)**2+((y-770)/200)**2<1||((x-460)/200)**2+((y-790)/236)**2<1)continue;
@@ -293,11 +303,13 @@ export class VillageWorld{
    if(i%9===0){c.fillStyle=i%2?'#f7e5af':'#eec29e';c.beginPath();c.arc(x,y-9,3,0,7);c.fill();}
   }
   // 구역 경계 울타리 덤불: 문 자리만 비워 둔다(구역이 확실히 나뉘어 보이게)
-  for(const edge of [720,1440,2160,2880])for(let y=-20;y<WORLD.height+40;y+=46){
-   if(edge<2880&&y>GATE.top-34&&y<GATE.bottom+34)continue;
-   const x=edge+(rand(y+edge)-.5)*14,r=34+rand(y*3+edge)*12;
-   ellipse(c,x,y+6,r+3,r*.8+3,'#5f7d43');ellipse(c,x,y,r,r*.8,'#7f9f55');ellipse(c,x-r*.3,y-r*.3,r*.45,r*.32,'#9cbb6a');
-  }
+  const bush=(x,y,seed)=>{const r=34+rand(seed*3)*12;ellipse(c,x,y+6,r+3,r*.8+3,'#5f7d43');ellipse(c,x,y,r,r*.8,'#7f9f55');ellipse(c,x-r*.3,y-r*.3,r*.45,r*.32,'#9cbb6a');};
+  const gap=(axis,at,v)=>GATES.some(g=>g.axis===axis&&g.at===at&&v>g.from-34&&v<g.to+34);
+  // 세로 경계(x=at, y 범위)와 가로 경계(y=at, x 범위)
+  for(const [at,y0,y1] of [[720,0,1280],[1440,0,1280],[2160,0,1280],[720,1280,2560],[1440,1280,2560]])
+   for(let y=y0-20;y<y1+40;y+=46)if(!gap('x',at,y))bush(at+(rand(y+at)-.5)*14,y,y+at);
+  for(const [at,x0,x1] of [[1280,0,2160],[2560,720,1440]])
+   for(let x=x0;x<x1+40;x+=46)if(!gap('y',at,x))bush(x,at+(rand(x+at)-.5)*14,x*7+at);
  }
  bind(){
   const c=this.canvas,point=e=>{const b=c.getBoundingClientRect();return{x:(e.clientX-b.left)*450/b.width,y:(e.clientY-b.top)*800/b.height};};
@@ -444,20 +456,26 @@ export class VillageWorld{
   if(who>=0){c.fillStyle='#7cc46a';c.strokeStyle='#3d6d33';c.beginPath();c.arc(d.x+19,d.y-58,9,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#fff';c.font='900 11px Game, sans-serif';c.fillText(String(who+1),d.x+19,d.y-54);}
   c.restore();
  }
- // 경기장 울타리 한 변(통나무 난간 + 말뚝). 왼쪽·오른쪽 변 가운데는 출입구로 비운다.
- // 구역 경계 문: 굵은 나무 기둥 두 개 + 이 구역에서 보이는 쪽에 갈 곳 팻말(화살표 + 이웃 구역 이름)
- drawGatePosts(c,edge){
-  for(const y of [GATE.top-6,GATE.bottom+6]){ellipse(c,edge,y+3,16,6,'#4a3a2238');c.fillStyle='#8a5a36';c.strokeStyle=INK;c.lineWidth=2.6;c.beginPath();c.roundRect(edge-9,y-58,18,60,5);c.fill();c.stroke();ellipse(c,edge,y-57,9,4,'#c8935e',INK,1.8);}
+ // 경기장 울타리 한 변(통나무 난간 + 말뚝). 위쪽 변 가운데는 출입구로 비운다.
+ // 구역 경계 문: 굵은 나무 기둥 두 개(세로 경계면 위·아래, 가로 경계면 왼쪽·오른쪽)
+ drawGatePosts(c,g){
+  const posts=g.axis==='x'?[[g.at,g.from-6],[g.at,g.to+6]]:[[g.from-6,g.at],[g.to+6,g.at]];
+  for(const [x,y] of posts){ellipse(c,x,y+3,16,6,'#4a3a2238');c.fillStyle='#8a5a36';c.strokeStyle=INK;c.lineWidth=2.6;c.beginPath();c.roundRect(x-9,y-58,18,60,5);c.fill();c.stroke();ellipse(c,x,y-57,9,4,'#c8935e',INK,1.8);}
  }
+ // 갈 곳 팻말: 기둥 + 화살표 판자(이웃 구역 번호와 이름). 위·아래 방향은 판자 왼쪽에 세모 화살표.
  drawGateSign(c,x,y,dir,z){
   c.save();c.translate(x,y);ellipse(c,0,3,12,4,'#4a3a2238');
   c.fillStyle='#9a6a40';c.strokeStyle=INK;c.lineWidth=2;c.beginPath();c.roundRect(-4,-58,8,60,3);c.fill();c.stroke();
-  c.font='900 14px Game, sans-serif';const text=`${z.no} ${z.name}`,w=c.measureText(text).width+40;
-  const bx=dir>0?-w/2+6:-w/2-6;
+  c.font='900 14px Game, sans-serif';const text=`${z.no} ${z.name}`,side=dir==='right'||dir==='left',w=c.measureText(text).width+(side?40:52);
+  const bx=dir==='right'?-w/2+6:dir==='left'?-w/2-6:-w/2;
   c.fillStyle='#f2dfb6';c.lineWidth=2.4;c.beginPath();
-  if(dir>0){c.moveTo(bx,-84);c.lineTo(bx+w-12,-84);c.lineTo(bx+w,-70);c.lineTo(bx+w-12,-56);c.lineTo(bx,-56);}else{c.moveTo(bx+12,-84);c.lineTo(bx+w,-84);c.lineTo(bx+w,-56);c.lineTo(bx+12,-56);c.lineTo(bx,-70);}
+  if(dir==='right'){c.moveTo(bx,-84);c.lineTo(bx+w-12,-84);c.lineTo(bx+w,-70);c.lineTo(bx+w-12,-56);c.lineTo(bx,-56);}
+  else if(dir==='left'){c.moveTo(bx+12,-84);c.lineTo(bx+w,-84);c.lineTo(bx+w,-56);c.lineTo(bx+12,-56);c.lineTo(bx,-70);}
+  else c.roundRect(bx,-84,w,28,5);
   c.closePath();c.fill();c.stroke();
-  c.fillStyle='#5a3d27';c.textAlign='center';c.fillText(text,bx+w/2+(dir>0?-4:4),-65);
+  c.fillStyle='#5a3d27';c.textAlign='center';
+  if(side)c.fillText(text,bx+w/2+(dir==='right'?-4:4),-65);
+  else{c.fillText(text,bx+w/2+8,-65);const ax=bx+14,ay=-70;c.beginPath();if(dir==='down'){c.moveTo(ax-7,ay-5);c.lineTo(ax+7,ay-5);c.lineTo(ax,ay+6);}else{c.moveTo(ax-7,ay+5);c.lineTo(ax+7,ay+5);c.lineTo(ax,ay-6);}c.closePath();c.fill();}
   c.restore();
  }
  drawFence(c,a,b){
@@ -653,7 +671,7 @@ export class VillageWorld{
  render(){
   const c=this.context,cam=this.camera,s=this.getState(),f=fatigueState(s),tired=f.count>=f.max;
   c.save();c.setTransform(c.canvas.width/450,0,0,c.canvas.height/800,0,0);c.clearRect(0,0,450,800);
-  c.save();c.translate(225,400);c.scale(cam.zoom,cam.zoom);c.translate(-cam.x,-cam.y);c.drawImage(this.background,0,0);
+  c.save();c.translate(225,400);c.scale(cam.zoom,cam.zoom);c.translate(-cam.x,-cam.y);for(const b of this.backgrounds??[])c.drawImage(b.cv,b.z.left,b.z.top);
   this.sprite(c,'mine-hole',HOLE.x,HOLE.y+45,132,91);
   label(c,'광산 입구',HOLE.x,HOLE.y-64,19);
   c.fillStyle='#fff4cb';c.beginPath();const bounce=s.settings.motion?Math.sin(this.time*3)*3:0;c.moveTo(HOLE.x-6,HOLE.y-51+bounce);c.lineTo(HOLE.x+6,HOLE.y-51+bounce);c.lineTo(HOLE.x,HOLE.y-43+bounce);c.fill();
@@ -675,15 +693,13 @@ export class VillageWorld{
   for(const b of BANNERS)objects.push({depth:b.y,draw:()=>this.drawBanner(c,b,s)});
   for(const r of RUINS)objects.push({depth:r[1],draw:()=>this.drawRuin(c,r)});
   const pts=octagon();for(let k=0;k<8;k++){const a=pts[k],b=pts[(k+1)%8];objects.push({depth:(a[1]+b[1])/2,draw:()=>this.drawFence(c,a,b)});}
-  // 경기장 이름표는 허수아비 줄 아래, 해바라기 문양 위에 바닥 글씨처럼
-  objects.push({depth:ARENA.y-120,draw:()=>label(c,'특성 경기장',ARENA.x,ARENA.y-108,16)});
+  // 경기장 이름표는 위쪽 출입구 바로 안, 해바라기 문양 위에 바닥 글씨처럼
+  objects.push({depth:ARENA.y-180,draw:()=>label(c,'특성 경기장',ARENA.x,ARENA.y-160,16)});
   for(const d of dummiesFor(s))objects.push({depth:d.y,draw:()=>this.drawDummy(c,d,s)});
   // 구역 경계 문 기둥과 양쪽 팻말(이 구역에서 갈 수 있는 이웃 구역)
-  for(let k=1;k<ZONES.length;k++){const edge=k*ZONE.w,west=ZONES[k-1],east=ZONES[k];
-   objects.push({x:edge,depth:GATE.top-6,draw:()=>this.drawGatePosts(c,edge)});
-   const at=z=>signY(z);
-   objects.push({x:edge-95,depth:at(west),draw:()=>this.drawGateSign(c,edge-95,at(west),1,east)});
-   objects.push({x:edge+95,depth:at(east),draw:()=>this.drawGateSign(c,edge+95,at(east),-1,west)});}
+  for(const g of GATES){const ctr=gateCenter(g);
+   objects.push({x:ctr.x,y:ctr.y,depth:g.axis==='x'?g.from-6:g.at,draw:()=>this.drawGatePosts(c,g)});
+   for(const sg of gateSigns(g))objects.push({x:sg.x,y:sg.y,depth:sg.y,draw:()=>this.drawGateSign(c,sg.x,sg.y,sg.dir,zoneById(sg.to))});}
   const crew=this.suction?this.suction.crew:this.crewPositions();
   crew.forEach((p,i)=>{
    const f=!this.suction&&this.flights.get(i);let gx=p.x,gy=p.y,lift=0,clip=p.clip,t=p.t,face=p.face,size=.68;
@@ -707,8 +723,8 @@ export class VillageWorld{
    if(!this.aim&&Math.hypot(this.ball.vx,this.ball.vy)<9)label(c,this.ball.zone!=='hub'?'당겨서 굴려요':tired?'햄찌들이 지쳤어요':s.renewal.village.prepared?'당겨서 구멍으로!':'톡! 씨앗 챙기기',this.ball.x,this.ball.y+37,13);
   }});
   // 경계 문·팻말은 화면 밖(먼 구역)이면 건너뛴다(x가 없는 나머지는 그대로 그린다)
-  const half=225/cam.zoom+280;
-  objects.filter(o=>o.x==null||Math.abs(o.x-cam.x)<half).sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
+  const half=225/cam.zoom+280,halfY=400/cam.zoom+320;
+  objects.filter(o=>o.x==null||Math.abs(o.x-cam.x)<half&&Math.abs((o.y??cam.y)-cam.y)<halfY).sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());
   // 걷은 생산기·바뀐 이름이 위로 솟았다 사라진다
   for(const p of this.pops){const k=(this.time-p.t)/1.2;c.save();c.globalAlpha=1-k*k;
    if(p.text.startsWith('+')){const y=p.y-k*40;if(p.golden)this.res.draw(c,'golden-seed',p.x-22,y-6,18,18);else this.res.draw(c,'seed',p.x-22,y-6,11,17);label(c,p.text,p.x+8,y,20);}

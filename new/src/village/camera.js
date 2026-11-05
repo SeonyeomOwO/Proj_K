@@ -1,6 +1,7 @@
 export const VIEW={width:450,height:800};
-// 마을 = 화면 한 장 크기 구역(720x1280) 4개를 가로로 이은 땅. 가장 작게 보면 구역 하나가 화면에 꼭 맞는다.
-export const WORLD={width:2880,height:1280};
+// 마을 = 화면 한 장 크기 구역(720x1280) 4개: 가운데 위 메인, 왼쪽·오른쪽·아래에 하나씩(빈 모서리는 보이지 않음).
+// 가장 작게 보면 구역 하나가 화면에 꼭 맞는다.
+export const WORLD={width:2160,height:2560};
 export const ZOOM={min:.625,max:1.65};
 // 메인 구역(광산 입구) 한가운데. 카메라는 bounds(지금 구역) 밖으로 나가지 않는다.
 export const HOME={x:1080,y:640,zoom:.625,bounds:{left:720,right:1440,top:0,bottom:1280}};
