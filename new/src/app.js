@@ -112,7 +112,7 @@ function buildHud() {
  <div class="upgrades" id="upgrades"></div>
  <nav class="nav brown" aria-label="게임 메뉴">${[['equipment', 'pickaxe', '장비'], ['mastery', 'mastery', '마스터리'], ['rebirth', 'rebirth', '환생'], ['hamsters', 'hamster_face', '햄찌단'], ['shop', 'shop', '상점']].map(([act, icon, label]) => B(act, I(icon) + '<span class="stroke">' + label + '</span>')).join('')}</nav>`;
   a.apply(hud);
-  if(renewalMode){game.classList.add('renewal-game');hud.insertAdjacentHTML('beforeend',`<div class="mine-controls">${B('mine-menu','메뉴','brown')}${B('mine-return','귀환','brown')}${B('mine-prepare','탐사 준비','brown')}<div class="village-controls">${B('village-travel','빠른 이동','brown')}${B('village-home','중앙','brown','aria-label="마을 중앙으로 이동"')}<div class="village-zoom" aria-label="마을 확대와 축소">${B('village-zoom-in','＋','brown','aria-label="마을 확대"')}${B('village-zoom-out','−','brown','aria-label="마을 축소"')}</div><p class="village-hint">드래그로 이동 · 휠 / 두 손가락으로 확대</p></div></div>`);}
+  if(renewalMode){game.classList.add('renewal-game');hud.insertAdjacentHTML('beforeend',`<div class="mine-controls">${B('mine-menu','메뉴','brown')}${B('mine-return','귀환','brown')}${B('mine-prepare','탐사 준비','brown')}<div class="village-controls">${B('village-travel','빠른 이동','brown')}${B('village-home','중앙','brown','aria-label="마을 중앙으로 이동"')}<div class="village-zoom" aria-label="마을 확대와 축소">${B('village-zoom-in','＋','brown','aria-label="마을 확대"')}${B('village-zoom-out','−','brown','aria-label="마을 축소"')}</div><p class="village-hint">공을 당겨 문으로 굴리면 옆 구역으로 · 두 손가락으로 확대</p></div></div>`);}
   renderUpgrades();
   updateHud();
 }

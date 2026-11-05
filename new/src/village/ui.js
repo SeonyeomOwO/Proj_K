@@ -9,7 +9,7 @@ export function villageModal(name,s,{B}){
   // 쉼터의 돌봄 나무(공·씨앗·배부름, 해바라기씨로 배움)
   +B('tree-care','돌봄 나무 · 공과 씨앗 키우기','cta')
   +B('mine-forge','대장간으로')+B('village-close','마을 둘러보기','cta secondary')};
- if(name==='village-travel')return{title:'어디로 갈까요?',body:`<div class="mine-menu-grid">${B('village-entrance','광산 입구')}${B('mine-forge','대장간')}${B('mastery','마스터리')}${B('village-rest','쉼터')}</div><p class="footnote">마을을 드래그해서 이동하고, 건물을 직접 눌러도 돼요.<br>휠 또는 두 손가락으로 확대·축소할 수 있어요.</p>`};
+ if(name==='village-travel')return{title:'어디로 갈까요?',body:`<div class="mine-menu-grid">${B('village-entrance','광산 입구')}${B('mine-forge','대장간')}${B('mastery','마스터리')}${B('village-rest','쉼터')}</div><p class="footnote">마을은 구역 4개예요: 1 광산 입구 · 2 특성 경기장 · 3 이름 우물 · 4 토템 마당.<br>등나무 공을 당겨 구역 경계의 문으로 굴리면 옆 구역으로 넘어가고 햄찌들이 따라와요.</p>`};
  return null;
 }
 // 쉼터 창의 칸·남은 시간(열려 있는 동안 화면 갱신 때 다시 그린다)

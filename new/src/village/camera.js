@@ -1,12 +1,15 @@
 export const VIEW={width:450,height:800};
-export const WORLD={width:1800,height:1600};
-export const ZOOM={min:.55,max:1.65};
-export const HOME={x:990,y:900,zoom:.62};
+// 마을 = 화면 한 장 크기 구역(720x1280) 4개를 가로로 이은 땅. 가장 작게 보면 구역 하나가 화면에 꼭 맞는다.
+export const WORLD={width:2880,height:1280};
+export const ZOOM={min:.625,max:1.65};
+// 메인 구역(광산 입구) 한가운데. 카메라는 bounds(지금 구역) 밖으로 나가지 않는다.
+export const HOME={x:1080,y:640,zoom:.625,bounds:{left:720,right:1440,top:0,bottom:1280}};
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function constrain(camera){
  camera.zoom=clamp(camera.zoom,ZOOM.min,ZOOM.max);
+ const b=camera.bounds??{left:0,right:WORLD.width,top:0,bottom:WORLD.height};
  const hx=VIEW.width/(2*camera.zoom),hy=VIEW.height/(2*camera.zoom);
- camera.x=clamp(camera.x,hx,WORLD.width-hx);camera.y=clamp(camera.y,hy,WORLD.height-hy);
+ camera.x=clamp(camera.x,b.left+hx,b.right-hx);camera.y=clamp(camera.y,b.top+hy,b.bottom-hy);
  return camera;
 }
 export function worldPoint(camera,p){return{x:camera.x+(p.x-VIEW.width/2)/camera.zoom,y:camera.y+(p.y-VIEW.height/2)/camera.zoom};}
