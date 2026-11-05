@@ -43,7 +43,7 @@ const WELL=prop('well'),WELL_MOUTH={x:WELL.x,y:WELL.y-24*WELL_ART.k,r:66};
 // 햄찌를 받는 연출 시간(초): 구멍은 삼켰다가(swallow) 퉤 뱉고(spit), 우물은 들어갔다가(dive) 이름을 정하면 튀어나온다(pop)
 // 디즈니식 과장: 움츠렸다(예비 동작) 쭉 늘어나며 튀어나가고(늘임) 꼭대기에서 잠깐 머물렀다(행 타임) 쿵 눌린 뒤 통 튀며 출렁 멈춘다(여운).
 // spit·pop·ballSpit은 앞쪽 rumble초 동안 구멍·우물 속에서 우르르 부풀며 떨다가(예비) 펑 하고 뱉는다.
-const ACT={swallow:.42,rumble:.42,spit:1.17,popRumble:.36,pop:1.06,charge:1.28,ballRumble:.32,ballFly:.55,ballSpit:1.27};
+const ACT={swallow:.24,rumble:.42,spit:1.17,popRumble:.36,pop:1.06,charge:1.28,ballRumble:.32,ballFly:.55,ballSpit:1.27};
 const CHARGE={seeds:.5,crouch:.14,jump:.34};   // 충전: 씨앗 쏙쏙 → 움츠림 → 점프 → 착지(나머지)
 const clamp01=k=>Math.max(0,Math.min(1,k));
 // 꼭대기에서 느려지는 시간 왜곡(0→1): 처음과 끝은 빠르고 가운데에서 둥실 머문다
@@ -840,10 +840,9 @@ export class VillageWorld{
     const u=f.t/FLING.dive,r=arc(f.from,WELL_MOUTH,u,90);flyArc(r,.035);size*=1-.85*clamp01((u-.7)/.3);rot=(f.from.x<=WELL_MOUTH.x?1:-1)*Math.PI*.85*r.k*r.k;clip='startle';t=.27;}
    else if(f?.phase==='inwell')return;   // 이름이 정해질 때까지 우물 속(보이지 않음)
    else if(f?.phase==='swallow'){
-    // 붙잡힘(앞 35%): 제자리에서 구멍 쪽으로 쭈욱 늘어나며 버둥 → 국수처럼 후루룩 빨려 들어간다
-    const u=f.t/ACT.swallow;clip='startle';t=.27;sa=Math.atan2(HOLE.y-f.from.y,HOLE.x-f.from.x);feet=false;
-    if(u<.35){const k=u/.35;gx=f.from.x+Math.sin(this.time*70)*2*k;gy=f.from.y;st=.6*k;lift=6*k;}
-    else{const e=((u-.35)/.65)**3;gx=f.from.x+(HOLE.x-f.from.x)*e;gy=f.from.y+(HOLE.y-f.from.y)*e;size*=1-e*.92;st=.6+e*.3;rot=e*Math.PI*1.5;}}
+    // 늘어나지 않고, 빠르게 한 바퀴 빙글 돌며 점점 작아져 구멍 속으로 쏙(점점 빨라짐)
+    const u=clamp01(f.t/ACT.swallow),e=u*u;clip='startle';t=.1;held=renewalPose('idle',0,i,{loop:true});
+    gx=f.from.x+(HOLE.x-f.from.x)*e;gy=f.from.y+(HOLE.y-f.from.y)*e;size*=1-.95*u**1.3;rot=(f.dir>Math.PI/2||f.dir<-Math.PI/2?-1:1)*Math.PI*2*e;}
    else if(f?.phase==='spit'||f?.phase==='pop'){
     // 우르르(구멍·우물 속, 안 보임) → 펑! 늘어난 채 튀어나와 공중제비를 돌며 꼭대기에서 둥실 머물다 떨어진다
     const spit=f.phase==='spit',wait=spit?ACT.rumble:ACT.popRumble,u=(f.t-wait)/((spit?ACT.spit:ACT.pop)-wait);
@@ -861,13 +860,13 @@ export class VillageWorld{
    const inside=f&&(f.phase==='dive'||f.phase==='swallow');
    objects.push({depth:this.suction?3000:f?.phase==='dive'?WELL.y+1:f?.phase==='swallow'?HOLE.y+1:gy,draw:()=>{
     let x=gx,y=gy,sz=size,pst=st,psa=sa,pfeet=feet,prot=rot;
-    // 광산으로 출발: 차례로 구멍 쪽으로 쭉 늘어나 빙글 돌며 빨려 들어간다
-    if(this.suction){const k=Math.max(0,Math.min(1,(this.suction.time-i*.045)/.6)),ease=k*k*k;pst=motion?.55*Math.sin(Math.min(1,k*1.6)*Math.PI/2):0;psa=Math.atan2(HOLE.y-y,HOLE.x-x);pfeet=false;prot=motion?ease*Math.PI*2:0;
-     x+=(HOLE.x-x)*ease;y+=(HOLE.y-y)*ease;sz*=1-ease;if(sz<.01)return;clip='startle';t=.27;}
+    // 광산으로 출발: 차례로 한 바퀴 빙글 돌며 점점 작아져 구멍 속으로 쏙(늘어나지 않음)
+    if(this.suction){const k=Math.max(0,Math.min(1,(this.suction.time-i*.045)/.6)),ease=k*k*k;pst=0;prot=motion?ease*Math.PI*2:0;
+     x+=(HOLE.x-x)*ease;y+=(HOLE.y-y)*ease;sz*=1-ease;if(sz<.01)return;clip='startle';t=.1;}
     if(lift>1){c.fillStyle='#4a3a2240';c.beginPath();c.ellipse(x,y+4,17*sz/.68*Math.max(.5,1-lift/260),5,0,0,Math.PI*2);c.fill();}
     const cy=y-lift-26*sz/.68,changed=pst||prot;
     if(changed){c.save();if(prot){c.translate(x,cy);c.rotate(prot);c.translate(-x,-cy);}if(pst)jelly(c,x,pfeet?y-lift:cy,psa,pst);}
-    drawActor(c,this.res,{x,y:y-lift,size:sz,clip,skin:this.skin(s,i),t:motion?t:0,face,emote:true,showTool:false,loop:true,poseOverride:this.suction?null:held});
+    drawActor(c,this.res,{x,y:y-lift,size:sz,clip,skin:this.skin(s,i),t:motion?t:0,face,emote:true,showTool:false,loop:true,poseOverride:this.suction?renewalPose('idle',0,i,{loop:true}):held});
     if(changed)c.restore();
     // 뱉긴 햄찌: 머리 위로 별이 빙글빙글
     if(daze>0){c.save();c.globalAlpha=daze;for(let j=0;j<3;j++){const a=this.time*7+j*Math.PI*2/3;star(c,x+Math.cos(a)*22,y-lift-50+Math.sin(a)*7,7.5,'#ffe27a',INK);}c.restore();}
