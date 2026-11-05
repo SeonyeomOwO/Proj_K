@@ -1,7 +1,7 @@
 export const VIEW={width:450,height:800};
-export const WORLD={width:1400,height:1700};
+export const WORLD={width:1800,height:1600};
 export const ZOOM={min:.55,max:1.65};
-export const HOME={x:700,y:865,zoom:.82};
+export const HOME={x:990,y:900,zoom:.62};
 export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function constrain(camera){
  camera.zoom=clamp(camera.zoom,ZOOM.min,ZOOM.max);

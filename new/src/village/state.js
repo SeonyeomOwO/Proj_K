@@ -3,6 +3,7 @@ import {THEMES} from '../mining/mineral-themes.js';
 import {MAPS as LAYOUTS} from '../mining/map-layouts.js';
 import {TRAITS} from '../mining/mining-rules.js';
 import {masteryBonus} from '../mastery-state.js';
+import {CONFIG} from '../../data/config.js';
 
 // 마을 공통 피곤함(모바일 스테미너, 2026-11-03 확정): 탐사 1번 = 1칸, max칸이 다 차면 광산에 못 들어가고,
 // 시간이 지나면 recoverMs마다 1칸씩 풀린다(앱을 꺼 둔 시간 포함). 숫자는 검토용 임시 값 — 회복 1분은 테스트용이고
@@ -28,6 +29,38 @@ export function recoverFatigue(s,amount=1,now=Date.now()){
  const v=s.renewal.village;settleFatigue(v,s,now);if(!v.fatigue)return false;
  v.fatigue=Math.max(0,v.fatigue-amount);if(!v.fatigue)v.fatigueSince=now;return true;
 }
+// 생산기(레퍼런스의 토템·닻): 햄찌들이 광산에 있던 시간(초)만큼 쌓이고, 마을에 돌아와 톡 누르거나 햄찌를 던져 맞혀 걷는다.
+// 숫자는 검토용 임시 값(밸런스 단계에서 정함).
+export const GENERATORS={
+ totem:{name:'해바라기 토템',currency:'seeds',perSecond:.12,cap:80},
+ mill:{name:'황금 풍차',currency:'golden',perSecond:1/240,cap:3},
+};
+// 한 번 탐사에서 셈하는 시간 상한(앱을 켜 둔 채 오래 둬도 무한히 쌓이지 않게)
+export const GENERATOR_RUN_CAP=1800;
+export function fillGenerators(s,seconds){
+ const v=s.renewal.village,t=Math.min(GENERATOR_RUN_CAP,Math.max(0,Number(seconds)||0));
+ for(const [id,g] of Object.entries(GENERATORS))v.stock[id]=Math.min(g.cap,(v.stock[id]??0)+g.perSecond*t);
+}
+// 쌓인 만큼(정수)을 지갑에 넣고 나머지 소수는 남긴다. 걷은 개수를 돌려준다.
+export function collectGenerator(s,id){
+ const g=GENERATORS[id],r=s.renewal,v=r.village;if(!g||v.scene!=='village')return 0;
+ const key=g.currency==='golden'?'golden':'seeds',room=Math.max(0,CONFIG.walletCap-(r[key]??0)),n=Math.min(room,Math.floor(v.stock[id]??0));
+ if(n<=0)return 0;r[key]=(r[key]??0)+n;v.stock[id]-=n;return n;
+}
+// 햄찌 이름표: 기본 이름이 붙어 있고, 마을 우물에 햄찌를 던져 넣으면 바꿀 수 있다.
+export const NAME_POOL=['도토리','콩떡','모찌','호두','깨비','찹쌀','보리','밤톨','감자','꿀떡','솜이','통통','땅콩','쑥떡','호빵','누룽지','말랑','두부','호박','차돌'];
+export const NAME_MAX=8;
+const cleanName=name=>typeof name==='string'?[...name.replace(/\s+/g,' ').trim()].slice(0,NAME_MAX).join(''):'';
+export const hamsterName=(s,i)=>s.renewal?.village?.names?.[i]||NAME_POOL[i]||`햄찌 ${i+1}`;
+export function renameHamster(s,i,name){
+ const v=s.renewal.village,n=cleanName(name);if(!n||!(i>=0&&i<6)||!Array.isArray(v.names))return null;
+ v.names[i]=n;return n;
+}
+// 다른 햄찌와 겹치지 않고 지금 이름과도 다른 무작위 이름
+export function randomName(s,i,rng=Math.random){
+ const used=new Set(s.renewal.village.names),pool=NAME_POOL.filter(n=>!used.has(n));
+ return pool.length?pool[Math.floor(rng()*pool.length)]:NAME_POOL[i];
+}
 export function initializeVillage(s,now=Date.now()){
  const r=s.renewal,old=r.village;
  const v=r.village=old&&typeof old==='object'?old:{};
@@ -39,6 +72,10 @@ export function initializeVillage(s,now=Date.now()){
  v.lastReturnId=count(v.lastReturnId,r.runId);
  v.pack=count(v.pack??ballCapacity(s),ballCapacity(s));
  v.prepared=!!v.prepared;
+ // 생산기에 쌓인 양(소수까지 보관)과 햄찌 이름표
+ const stock=v.stock&&typeof v.stock==='object'?v.stock:{};v.stock={};
+ for(const [id,g] of Object.entries(GENERATORS)){const n=Number(stock[id]);v.stock[id]=Number.isFinite(n)?Math.min(g.cap,Math.max(0,n)):0;}
+ v.names=Array.from({length:6},(_,i)=>cleanName(v.names?.[i])||NAME_POOL[i]);
  // An existing expedition always wins over a stale scene flag.
  v.scene=r.run&&r.run.phase!=='ended'?'mine':'village';
  if(r.run?.phase==='ended'){settleMining(s);arriveVillage(s,now);}
@@ -93,5 +130,7 @@ export function arriveVillage(s,now=Date.now()){
  settleFatigue(v,s,now);const was=v.fatigue;
  v.fatigue=Math.min(FATIGUE.max,v.fatigue+FATIGUE.perRun);if(!was)v.fatigueSince=now;
  v.prepared=false;v.lastReturnId=r.runId;
+ // 광산에 있던 시간(층을 내려가도 이어지는 탐사 시계)만큼 생산기가 찬다
+ fillGenerators(s,r.run.time);
  return true;
 }

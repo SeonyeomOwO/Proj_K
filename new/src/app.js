@@ -1359,6 +1359,7 @@ if (fixture || new URLSearchParams(location.search).has('dev'))
     // 검증용 상태 접근. fixture는 저장하지 않으므로 여기서 바꾼 값은 새로고침하면 사라진다.
     state: () => s,
     world: () => world,
+    village: () => village,
     advance(seconds, fps = 60) {
       if (dungeonLoading) endDungeonLoading();
       const wasPaused = paused;

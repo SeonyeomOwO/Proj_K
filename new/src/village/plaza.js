@@ -1,7 +1,7 @@
 import {clamp} from './camera.js';
-export const HOLE={x:700,y:640,rx:39,ry:24};
-export const BALL_HOME={x:700,y:800};
-export const PLAZA={left:585,right:815,top:594,bottom:1040};
+export const HOLE={x:1060,y:1000,rx:39,ry:24};
+export const BALL_HOME={x:1060,y:1160};
+export const PLAZA={left:945,right:1175,top:954,bottom:1400};
 export function freshBall(){return{...BALL_HOME,vx:0,vy:0,angle:0};}
 export function aimVelocity(origin,pointer){
  const dx=origin.x-pointer.x,dy=origin.y-pointer.y,d=Math.hypot(dx,dy),k=Math.min(1,110/Math.max(1,d));
