@@ -251,9 +251,7 @@ export class VillageWorld{
  // ── 구역 이동: 카메라가 옆 구역으로 미끄러지고, 도착하면 구역 이름표가 뜨고, 햄찌들이 차례로 따라온다 ──
  goZone(id,view){
   const z=zoneById(id),from=zoneById(this.zone);this.zone=z.id;this.hidePack?.();this.hideName?.();this.hideFloor?.();this.aim=null;this.fling=null;
-  // 카메라는 출발·도착 두 구역을 합친 칸 안에서만 움직인다(그 바깥 이웃 구역·빈 곳이 비치지 않게)
-  const union={left:Math.min(from.left,z.left),right:Math.max(from.right,z.right),top:Math.min(from.top,z.top),bottom:Math.max(from.bottom,z.bottom)};
-  this.slide={from:{x:this.camera.x,y:this.camera.y,zoom:this.camera.zoom},to:zoneView(z,view),union,t:0};
+  this.slide={from:{x:this.camera.x,y:this.camera.y,zoom:this.camera.zoom},to:zoneView(z,view),t:0};
   if(from.id!==z.id){this.arrival={name:z.name,t:this.time+TRAVEL.slide*.6};this.crew.forEach((h,i)=>{h.route=null;h.wait=TRAVEL.follow*(i+1)+rand(i+this.time)*.08;});}
  }
  spotFor(i){const list=SPOTS[this.zone]??SPOTS.hub;return list[i%list.length];}
@@ -763,11 +761,9 @@ export class VillageWorld{
   // 화면 넘김: 옆 구역으로 부드럽게 미끄러진 뒤 그 구역 안에 카메라를 묶는다
   if(this.slide){
    // 살짝 뒤로 물러났다(예비) 휙 넘어가서 조금 지나쳤다 돌아온다(오버슈트)
-   // 넘어가는 동안 살짝 당겨 들어가(확대) 생긴 여유 안에서만 물러나고 지나친다 — 두 구역 바깥은 절대 비치지 않는다
+   // 살짝 뒤로 물러났다(예비) 휙 넘어가서 조금 지나쳤다 돌아온다(오버슈트)
    const sl=this.slide;sl.t+=Math.min(.1,dt);const k=Math.min(1,sl.t/TRAVEL.slide),b=1.2*1.525,e=k<.5?((2*k)**2*((b+1)*2*k-b))/2:((2*k-2)**2*((b+1)*(2*k-2)+b)+2)/2;
-   const zoom=(sl.from.zoom+(sl.to.zoom-sl.from.zoom)*k*k*(3-2*k))*(1+.1*Math.sin(Math.PI*k)**.6),u=sl.union,hx=225/zoom,hy=400/zoom;
-   const x=sl.from.x+(sl.to.x-sl.from.x)*e,y=sl.from.y+(sl.to.y-sl.from.y)*e;
-   this.camera={x:Math.max(u.left+hx,Math.min(u.right-hx,x)),y:Math.max(u.top+hy,Math.min(u.bottom-hy,y)),zoom,bounds:sl.to.bounds};
+   this.camera={x:sl.from.x+(sl.to.x-sl.from.x)*e,y:sl.from.y+(sl.to.y-sl.from.y)*e,zoom:sl.from.zoom+(sl.to.zoom-sl.from.zoom)*k*k*(3-2*k),bounds:sl.to.bounds};
    if(k>=1){this.camera={...sl.to};this.slide=null;}
   }
   if(this.suction){
