@@ -4,7 +4,7 @@
 .renewal-game #hud > :not(.mine-controls){display:none}
 .mine-controls{position:absolute;inset:0;pointer-events:none}
 /* 마을 공 위 씨앗 말풍선: ◀ 씨앗 개수 ▶ · MAX (화면 크기에 맞춰 커진 게임 단위라 px가 크다) */
-.pack-bubble{position:absolute;z-index:40;transform:translate(-50%,-100%);display:none;grid-template-columns:auto auto auto auto auto;align-items:center;gap:10px;padding:16px 18px 12px;background:#fff6dc;border:5px solid #6b4a30;border-radius:30px;box-shadow:0 8px 0 #6b4a3055;font-family:Game,sans-serif;color:#4a3122;touch-action:manipulation}
+.pack-bubble{position:absolute;z-index:40;transform:translate(-50%,-100%);display:none;grid-template-columns:auto auto auto auto auto auto;align-items:center;gap:10px;padding:16px 18px 12px;background:#fff6dc;border:5px solid #6b4a30;border-radius:30px;box-shadow:0 8px 0 #6b4a3055;font-family:Game,sans-serif;color:#4a3122;touch-action:manipulation}
 .pack-bubble.open{display:grid}
 .pack-bubble[hidden]{display:none}
 .pack-bubble img{width:34px;height:52px;object-fit:contain}
@@ -14,6 +14,9 @@
 .pack-bubble button:active{transform:translateY(4px);box-shadow:0 1px 0 #a8792d}
 .pack-bubble button svg{width:34px;height:34px;fill:#6b4a30}
 .pack-bubble .pack-max{width:auto;padding:0 16px;font:900 28px Game,sans-serif;color:#4a3122;background:#ffe08a}
+/* 넣기: 공에 씨앗을 넣어 출발 준비(초록 버튼) */
+.pack-bubble .pack-fill{width:auto;padding:0 20px;font:900 30px Game,sans-serif;color:#fff;background:#7cc46a;border-color:#3d6d33;box-shadow:0 5px 0 #3d6d33;white-space:nowrap;text-shadow:0 2px 0 #3d6d33}
+.pack-bubble .pack-fill:active{box-shadow:0 1px 0 #3d6d33}
 .pack-bubble small{grid-column:1/-1;text-align:center;font-size:22px;color:#8a6a4a}
 /* 이름 우물 말풍선: [새 이름 입력] [주사위] [바꾸기] */
 .name-bubble{grid-template-columns:auto auto auto}
