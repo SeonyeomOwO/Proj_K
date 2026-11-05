@@ -1,4 +1,4 @@
-import {drawActor} from '../mining/animation/motion.js';
+import {drawActor,renewalPose} from '../mining/animation/motion.js';
 import {frame} from '../mining/renderer.js';
 import {fatigueState,canDepart,equipVillageTrait,villageCrew,traitUnlocked,GENERATORS,collectGenerator,hamsterName,renameHamster,randomName,NAME_MAX} from './state.js';
 import {enhancementQuote,ballCapacity,GOLDEN_NAME} from '../mining/game-state.js';
@@ -824,13 +824,14 @@ export class VillageWorld{
   crew.forEach((p,i)=>{
    const f=!this.suction&&this.flights.get(i);let gx=p.x,gy=p.y,lift=0,clip=p.clip,t=p.t,face=p.face,size=.68;
    // st/sa = 늘임 세기·방향, feet = 발을 축으로(착지·뜀) 아니면 몸 가운데를 축으로, rot = 공중제비, daze = 어질어질 별
-   let st=0,sa=Math.PI/2,feet=true,rot=0,daze=0;
+   let st=0,sa=Math.PI/2,feet=true,rot=0,daze=0,held=null;
    const flyArc=(r,h)=>{gx=r.x;gy=r.y;lift=r.lift;st=Math.min(.5,r.sp*h);sa=r.a;feet=false;};
    // 우르르 따라 달릴 때: 통통 뛰며 땅에 닿을 때 납작, 떠오를 때 쭉
    if(p.running&&!f){const ph=(this.time*13+i*1.3)%Math.PI;lift=Math.sin(ph)*10;st=-.14*Math.cos(2*ph);}
-   // 집어서 당기는 동안: 모양은 그대로 두고 부들부들 떤다(세게 당길수록 더 세게) — 놓으면 날아간다
+   // 집어서 당기는 동안: 놀란 표정으로 부들부들 떤다(늘어나지 않음, 세게 당길수록 더 세게) — 놓으면 날아간다
    if(this.fling?.i===i&&!f){const dx=this.fling.pointer.x-this.fling.origin.x,dy=this.fling.pointer.y-this.fling.origin.y,d=Math.hypot(dx,dy);
-    if(d>6&&motion){const a=.6+2.4*Math.min(1,d/180);gx+=Math.sin(this.time*95)*a;lift+=Math.abs(Math.cos(this.time*83))*a*.6;}}
+    // 몸은 평소 자세(idle) 그대로, 표정만 화들짝(동그란 눈 + '!' 말풍선)
+    if(d>6){held=renewalPose('idle',this.time+i*.71,i,{loop:true});clip='startle';t=.1;if(motion){const a=.6+2.4*Math.min(1,d/180);gx+=Math.sin(this.time*95)*a;lift+=Math.abs(Math.cos(this.time*83))*a*.6;}}}
    if(f?.phase==='fly'){gx=f.x;gy=f.y;const sp=Math.hypot(f.vx,f.vy);lift=Math.min(34,sp*.07);clip='startle';t=Math.min(.5,f.t);face=f.vx>=0?1:-1;
     st=Math.min(.42,sp/2000);sa=Math.atan2(f.vy,f.vx);feet=false;
     const b=f.bump!=null?this.time-f.bump:9;if(b<.4){st=-.4*Math.exp(-b*8)*Math.cos(b*30);sa=f.bumpA;}}
@@ -866,7 +867,7 @@ export class VillageWorld{
     if(lift>1){c.fillStyle='#4a3a2240';c.beginPath();c.ellipse(x,y+4,17*sz/.68*Math.max(.5,1-lift/260),5,0,0,Math.PI*2);c.fill();}
     const cy=y-lift-26*sz/.68,changed=pst||prot;
     if(changed){c.save();if(prot){c.translate(x,cy);c.rotate(prot);c.translate(-x,-cy);}if(pst)jelly(c,x,pfeet?y-lift:cy,psa,pst);}
-    drawActor(c,this.res,{x,y:y-lift,size:sz,clip,skin:this.skin(s,i),t:motion?t:0,face,emote:true,showTool:false,loop:true});
+    drawActor(c,this.res,{x,y:y-lift,size:sz,clip,skin:this.skin(s,i),t:motion?t:0,face,emote:true,showTool:false,loop:true,poseOverride:this.suction?null:held});
     if(changed)c.restore();
     // 뱉긴 햄찌: 머리 위로 별이 빙글빙글
     if(daze>0){c.save();c.globalAlpha=daze;for(let j=0;j<3;j++){const a=this.time*7+j*Math.PI*2/3;star(c,x+Math.cos(a)*22,y-lift-50+Math.sin(a)*7,7.5,'#ffe27a',INK);}c.restore();}
