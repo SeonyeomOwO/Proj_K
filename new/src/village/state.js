@@ -61,6 +61,25 @@ export function randomName(s,i,rng=Math.random){
  const used=new Set(s.renewal.village.names),pool=NAME_POOL.filter(n=>!used.has(n));
  return pool.length?pool[Math.floor(rng()*pool.length)]:NAME_POOL[i];
 }
+// 출발 층(마을 '지하' 깃발): 5층마다 저장돼 그 층부터 탐사를 시작할 수 있다(1층은 늘 열림).
+// 가장 깊은 저장 층을 고른 상태(startTop)면 더 깊이 저장될 때 따라 내려가고, 직접 얕은 층을 골랐으면 그대로 둔다.
+export const FLOOR_SAVE=5;
+export function savedFloors(s){
+ const top=Math.min(CONFIG.maxFloor,Math.max(1,Math.floor(Number(s.lifetimeMax)||1))),list=[1];
+ for(let f=FLOOR_SAVE;f<=top;f+=FLOOR_SAVE)list.push(f);
+ return list;
+}
+export function syncStartFloor(s){
+ const v=s.renewal.village,list=savedFloors(s);
+ if(v.startTop!==false||!list.includes(v.startFloor)){v.startFloor=list.at(-1);v.startTop=true;}
+ // 탐사 중에는 지금 내려가 있는 층(s.floor)을 건드리지 않는다
+ if(v.scene!=='mine')s.floor=v.startFloor;
+ return v.startFloor;
+}
+export function setStartFloor(s,floor){
+ const v=s.renewal.village,list=savedFloors(s);if(v.scene!=='village'||!list.includes(floor))return false;
+ v.startFloor=floor;v.startTop=floor===list.at(-1);s.floor=floor;return true;
+}
 export function initializeVillage(s,now=Date.now()){
  const r=s.renewal,old=r.village;
  const v=r.village=old&&typeof old==='object'?old:{};
@@ -78,7 +97,9 @@ export function initializeVillage(s,now=Date.now()){
  v.names=Array.from({length:6},(_,i)=>cleanName(v.names?.[i])||NAME_POOL[i]);
  // An existing expedition always wins over a stale scene flag.
  v.scene=r.run&&r.run.phase!=='ended'?'mine':'village';
+ v.startTop=v.startTop!==false;v.startFloor=Number.isInteger(v.startFloor)?v.startFloor:null;
  if(r.run?.phase==='ended'){settleMining(s);arriveVillage(s,now);}
+ syncStartFloor(s);
  return v;
 }
 export function canDepart(s,now=Date.now()){
@@ -117,14 +138,14 @@ export function equipVillageTrait(s,i,trait){
 }
 export function departVillage(s,now=Date.now()){
  if(!canDepart(s,now)||!s.renewal.village.prepared)return false;
- const r=s.renewal;
+ const r=s.renewal;syncStartFloor(s);
  if(!startMining(s,{seeds:r.village.pack}))return false;
  r.village.scene='mine';r.village.prepared=false;return true;
 }
 export function arriveVillage(s,now=Date.now()){
  const r=s.renewal,v=r.village;
  if(!r.run||r.run.phase!=='ended')return false;
- settleMining(s);v.scene='village';
+ settleMining(s);v.scene='village';syncStartFloor(s);
  if(v.lastReturnId===r.runId)return false;
  // 귀환하는 순간 1칸이 쌓인다(중간에 그만둬도 1판). 비어 있던 상태라면 회복 시계는 지금부터 시작한다.
  settleFatigue(v,s,now);const was=v.fatigue;

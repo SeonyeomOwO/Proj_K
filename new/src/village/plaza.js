@@ -43,9 +43,36 @@ function sideGate(z,side){
   :side==='north'?g.axis==='y'&&g.at===z.top&&g.b===z.id:g.axis==='y'&&g.at===z.bottom&&g.a===z.id);
 }
 const within=(v,g)=>v>g.from+R&&v<g.to-R;
+// ── 2 특성 경기장 울타리(바닥 그림에 그려진 둥근 울타리): 위·아래 출입구로만 드나든다 ──
+// 둥근 네모(초타원 |dx/rx|^n + |dy/ry|^n = 1)로 그림 속 울타리 선을 따른다.
+export const FENCE={x:1080,y:1941,rx:350,ry:425,n:3.6,door:57};
+const fenceF=(dx,dy,a,b)=>Math.abs(dx/a)**FENCE.n+Math.abs(dy/b)**FENCE.n;
+export const insideFence=p=>fenceF(p.x-FENCE.x,p.y-FENCE.y,FENCE.rx,FENCE.ry)<1;
+// 반지름 r인 몸(공·햄찌)이 울타리를 지나지 못하게 밀어내고 튕긴다(e = 튕김 세기). 부딪히면 바깥쪽을 향한 법선을 돌려준다.
+export function fenceCollide(p,r,e=.45){
+ const dx=p.x-FENCE.x,dy=p.y-FENCE.y;
+ if(Math.abs(dx)<FENCE.door-r*.3&&Math.abs(dy)>FENCE.ry*.75)return null;   // 출입구 통로
+ const inside=fenceF(dx,dy,FENCE.rx,FENCE.ry)<1,a=inside?FENCE.rx-r:FENCE.rx+r,b=inside?FENCE.ry-r:FENCE.ry+r,f=fenceF(dx,dy,a,b);
+ if(inside?f<=1:f>=1)return null;
+ const k=f**(-1/FENCE.n);p.x=FENCE.x+dx*k;p.y=FENCE.y+dy*k;
+ let nx=Math.sign(dx)*Math.abs(dx/a)**(FENCE.n-1)/a,ny=Math.sign(dy)*Math.abs(dy/b)**(FENCE.n-1)/b;const l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;
+ if(inside){nx=-nx;ny=-ny;}   // 몸이 있어야 할 쪽을 향하게
+ const vn=p.vx*nx+p.vy*ny;if(vn<0){p.vx-=(1+e)*vn*nx;p.vy-=(1+e)*vn*ny;}
+ return{nx,ny};
+}
+// 건물·소품 바닥 자리(타원)에 반지름 r인 몸이 들어가지 못하게 밀어내고 튕긴다
+export function solidCollide(p,r,o,e=.45){
+ const ax=o.rx+r,by=o.ry+r,dx=p.x-o.x,dy=p.y-o.y;if(Math.abs(dx)>=ax||Math.abs(dy)>=by)return null;
+ const f=(dx/ax)**2+(dy/by)**2;if(f>=1)return null;
+ const k=f>1e-9?1/Math.sqrt(f):1;p.x=o.x+(f>1e-9?dx*k:0);p.y=o.y+(f>1e-9?dy*k:by);
+ let nx=(p.x-o.x)/(ax*ax),ny=(p.y-o.y)/(by*by);const l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;
+ const vn=p.vx*nx+p.vy*ny;if(vn<0){p.vx-=(1+e)*vn*nx;p.vy-=(1+e)*vn*ny;}
+ return{nx,ny};
+}
 // 한 걸음: 구역 벽에 튕기고, 문 자리에서 경계를 넘으면 ball.zone이 이웃 구역으로 바뀐다.
+// solids = 건물·소품 바닥 자리(마을 world.js가 넘김), 경기장에서는 울타리에도 튕긴다.
 // Prediction and live motion share the same small-step collision solver. 구멍에 들어가면 true.
-export function stepBall(ball,dt){
+export function stepBall(ball,dt,solids=[]){
  for(let left=Math.min(.1,dt);left>1e-8;left-=1/120){
   const h=Math.min(left,1/120);ball.x+=ball.vx*h;ball.y+=ball.vy*h;
   let z=zoneById(ball.zone);
@@ -60,6 +87,8 @@ export function stepBall(ball,dt){
   z=zoneById(ball.zone);const v=walls(z);
   if(ball.x<v.left||ball.x>v.right){const gate=sideGate(z,ball.x<v.left?'west':'east');if(gate)ball.y=clamp(ball.y,gate.from+R,gate.to-R);}
   if(ball.y<v.top||ball.y>v.bottom){const gate=sideGate(z,ball.y<v.top?'north':'south');if(gate)ball.x=clamp(ball.x,gate.from+R,gate.to-R);}
+  if(z.id==='arena')fenceCollide(ball,R);
+  for(const o of solids)if(o.zone===z.id)solidCollide(ball,R,o);
   const decay=Math.exp(-1.35*h);ball.vx*=decay;ball.vy*=decay;ball.angle+=(ball.vx+ball.vy)*h/20;
   if(Math.hypot(ball.vx,ball.vy)<9){
    ball.vx=ball.vy=0;
@@ -69,8 +98,8 @@ export function stepBall(ball,dt){
  }
  return false;
 }
-export function trajectory(ball,velocity){
+export function trajectory(ball,velocity,solids=[]){
  const b={...ball,...velocity},points=[];
- for(let i=0;i<32;i++){const hit=stepBall(b,1/30);points.push({x:b.x,y:b.y});if(hit||(!b.vx&&!b.vy))break;}
+ for(let i=0;i<32;i++){const hit=stepBall(b,1/30,solids);points.push({x:b.x,y:b.y});if(hit||(!b.vx&&!b.vy))break;}
  return points;
 }

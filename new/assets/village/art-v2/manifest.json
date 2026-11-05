@@ -1,0 +1,478 @@
+{
+  "version": 2,
+  "sheets": {
+    "home": {
+      "path": "web/home.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 142628
+    },
+    "care": {
+      "path": "web/care.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 152772
+    },
+    "mastery": {
+      "path": "web/mastery.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 160782
+    },
+    "tools": {
+      "path": "web/tools.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 126810
+    },
+    "well": {
+      "path": "web/well.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 132678
+    },
+    "production": {
+      "path": "web/production.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 186760
+    },
+    "totem": {
+      "path": "web/totem.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 134710
+    },
+    "displays": {
+      "path": "web/displays.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 107560
+    },
+    "arena": {
+      "path": "web/arena.webp",
+      "width": 941,
+      "height": 1672,
+      "bytes": 110366
+    },
+    "terrain-hub": {
+      "path": "web/terrain-hub.webp",
+      "width": 941,
+      "height": 1672,
+      "bytes": 55952
+    },
+    "terrain-well": {
+      "path": "web/terrain-well.webp",
+      "width": 941,
+      "height": 1672,
+      "bytes": 39878
+    },
+    "terrain-totem": {
+      "path": "web/terrain-totem.webp",
+      "width": 941,
+      "height": 1672,
+      "bytes": 46908
+    },
+    "env-trees": {
+      "path": "web/env-trees.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 153098
+    },
+    "env-decor": {
+      "path": "web/env-decor.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 110542
+    },
+    "env-signs": {
+      "path": "web/env-signs.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 65956
+    },
+    "entrance-details": {
+      "path": "web/entrance-details.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 147572
+    },
+    "mine-flags-v2": {
+      "path": "web/mine-flags-v2.webp",
+      "width": 2048,
+      "height": 683,
+      "bytes": 84482
+    }
+  },
+  "frames": {
+    "home-base": {
+      "sheet": "home",
+      "bounds": [
+        63,
+        23,
+        658,
+        630
+      ]
+    },
+    "home-wheel": {
+      "sheet": "home",
+      "bounds": [
+        876,
+        131,
+        424,
+        469
+      ]
+    },
+    "home-sign": {
+      "sheet": "home",
+      "bounds": [
+        1538,
+        185,
+        354,
+        361
+      ]
+    },
+    "care-base": {
+      "sheet": "care",
+      "bounds": [
+        31,
+        4,
+        720,
+        638
+      ]
+    },
+    "care-pillow": {
+      "sheet": "care",
+      "bounds": [
+        820,
+        249,
+        554,
+        377
+      ]
+    },
+    "care-ball": {
+      "sheet": "care",
+      "bounds": [
+        1581,
+        78,
+        294,
+        532
+      ]
+    },
+    "mastery-base": {
+      "sheet": "mastery",
+      "bounds": [
+        35,
+        17,
+        648,
+        641
+      ]
+    },
+    "mastery-book": {
+      "sheet": "mastery",
+      "bounds": [
+        792,
+        185,
+        536,
+        325
+      ]
+    },
+    "mastery-telescope": {
+      "sheet": "mastery",
+      "bounds": [
+        1518,
+        143,
+        423,
+        403
+      ]
+    },
+    "tools-base": {
+      "sheet": "tools",
+      "bounds": [
+        42,
+        11,
+        729,
+        638
+      ]
+    },
+    "tools-bird": {
+      "sheet": "tools",
+      "bounds": [
+        908,
+        158,
+        361,
+        369
+      ]
+    },
+    "tools-flag": {
+      "sheet": "tools",
+      "bounds": [
+        1525,
+        197,
+        399,
+        292
+      ]
+    },
+    "well-base": {
+      "sheet": "well",
+      "bounds": [
+        74,
+        11,
+        622,
+        658
+      ]
+    },
+    "well-bucket": {
+      "sheet": "well",
+      "bounds": [
+        981,
+        198,
+        197,
+        311
+      ]
+    },
+    "well-column": {
+      "sheet": "well",
+      "bounds": [
+        1520,
+        214,
+        348,
+        353
+      ]
+    },
+    "storage-base": {
+      "sheet": "production",
+      "bounds": [
+        66,
+        68,
+        569,
+        601
+      ]
+    },
+    "mill-base": {
+      "sheet": "production",
+      "bounds": [
+        727,
+        30,
+        591,
+        634
+      ]
+    },
+    "mill-rotor": {
+      "sheet": "production",
+      "bounds": [
+        1479,
+        118,
+        450,
+        443
+      ]
+    },
+    "totem-base": {
+      "sheet": "totem",
+      "bounds": [
+        81,
+        67,
+        539,
+        554
+      ]
+    },
+    "totem-flower": {
+      "sheet": "totem",
+      "bounds": [
+        754,
+        95,
+        531,
+        491
+      ]
+    },
+    "wood-sign": {
+      "sheet": "totem",
+      "bounds": [
+        1457,
+        207,
+        468,
+        341
+      ]
+    },
+    "stump": {
+      "sheet": "displays",
+      "bounds": [
+        99,
+        284,
+        485,
+        280
+      ]
+    },
+    "workwear": {
+      "sheet": "displays",
+      "bounds": [
+        801,
+        132,
+        443,
+        433
+      ]
+    },
+    "pajamas": {
+      "sheet": "displays",
+      "bounds": [
+        1464,
+        136,
+        469,
+        428
+      ]
+    },
+    "arena-ground": {
+      "sheet": "arena",
+      "bounds": [
+        0,
+        0,
+        941,
+        1672
+      ]
+    },
+    "terrain-hub": {
+      "sheet": "terrain-hub",
+      "bounds": [
+        0,
+        0,
+        941,
+        1672
+      ]
+    },
+    "terrain-well": {
+      "sheet": "terrain-well",
+      "bounds": [
+        0,
+        0,
+        941,
+        1672
+      ]
+    },
+    "terrain-totem": {
+      "sheet": "terrain-totem",
+      "bounds": [
+        0,
+        0,
+        941,
+        1672
+      ]
+    },
+    "tree-olive": {
+      "sheet": "env-trees",
+      "bounds": [
+        9,
+        12,
+        667,
+        658
+      ]
+    },
+    "tree-lime": {
+      "sheet": "env-trees",
+      "bounds": [
+        729,
+        28,
+        576,
+        641
+      ]
+    },
+    "tree-pink": {
+      "sheet": "env-trees",
+      "bounds": [
+        1369,
+        12,
+        675,
+        659
+      ]
+    },
+    "bush-daisies": {
+      "sheet": "env-decor",
+      "bounds": [
+        99,
+        140,
+        535,
+        408
+      ]
+    },
+    "boulder": {
+      "sheet": "env-decor",
+      "bounds": [
+        787,
+        199,
+        464,
+        337
+      ]
+    },
+    "bench-honey": {
+      "sheet": "env-decor",
+      "bounds": [
+        1405,
+        116,
+        542,
+        466
+      ]
+    },
+    "wood-fence": {
+      "sheet": "env-signs",
+      "bounds": [
+        75,
+        216,
+        457,
+        236
+      ]
+    },
+    "facility-sign": {
+      "sheet": "env-signs",
+      "bounds": [
+        662,
+        195,
+        593,
+        302
+      ]
+    },
+    "wood-panel": {
+      "sheet": "env-signs",
+      "bounds": [
+        1351,
+        230,
+        664,
+        205
+      ]
+    },
+    "gate-post": {
+      "sheet": "entrance-details",
+      "bounds": [
+        105,
+        143,
+        224,
+        462
+      ]
+    },
+    "banner-stand": {
+      "sheet": "mine-flags-v2",
+      "bounds": [
+        142,
+        20,
+        445,
+        643
+      ]
+    },
+    "banner-floor": {
+      "sheet": "mine-flags-v2",
+      "bounds": [
+        788,
+        85,
+        470,
+        528
+      ]
+    },
+    "banner-best": {
+      "sheet": "mine-flags-v2",
+      "bounds": [
+        1467,
+        85,
+        471,
+        528
+      ]
+    }
+  }
+}
