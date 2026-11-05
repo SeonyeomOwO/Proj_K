@@ -517,7 +517,8 @@ export class VillageWorld{
   if(motion)for(let i=0;i<5;i++){const t=(this.time*.9+i*.21)%1;c.globalAlpha=(1-t)*.9;c.fillStyle='#ffd27a';c.beginPath();c.arc(fx+Math.sin(i*2.3+t*4)*10*scale,fy-10-t*44*scale,1.8,0,Math.PI*2);c.fill();}
   c.restore();
  }
- forgeFlame(c,b,motion){const cycle=motion?(this.time%1.6)/1.6:.2;this.flames(c,b.x+61,b.y-50,cycle<.35?Math.sin(cycle/.35*Math.PI):0,motion);}
+ // 불은 화덕 아치 입구 바닥(모루 바로 위)에서 솟아 아치 안을 채운다(건물 크기 비율로 맞춤)
+ forgeFlame(c,b,motion){const cycle=motion?(this.time%1.6)/1.6:.2;this.flames(c,b.x+b.w*.332,b.y-b.h*.262,cycle<.35?Math.sin(cycle/.35*Math.PI):0,motion,.9);}
  // 쉼터 앞 모닥불(레퍼런스 초가집 옆 모닥불): 장작 두 개 + 늘 일렁이는 작은 불
  drawCampfire(c,motion){
   const {x,y}=CAMPFIRE;ellipse(c,x,y+2,30,9,'#4a3a2233');
