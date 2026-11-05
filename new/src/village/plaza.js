@@ -42,7 +42,6 @@ function sideGate(z,side){
  return GATES.find(g=>side==='west'?g.axis==='x'&&g.at===z.left&&g.b===z.id:side==='east'?g.axis==='x'&&g.at===z.right&&g.a===z.id
   :side==='north'?g.axis==='y'&&g.at===z.top&&g.b===z.id:g.axis==='y'&&g.at===z.bottom&&g.a===z.id);
 }
-const within=(v,g)=>v>g.from+R&&v<g.to-R;
 // ── 2 특성 경기장 울타리(바닥 그림에 그려진 둥근 울타리): 위·아래 출입구로만 드나든다 ──
 // 둥근 네모(초타원 |dx/rx|^n + |dy/ry|^n = 1)로 그림 속 울타리 선을 따른다.
 export const FENCE={x:1080,y:1941,rx:350,ry:425,n:3.6,door:57};
@@ -78,15 +77,13 @@ export function stepBall(ball,dt,solids=[]){
   let z=zoneById(ball.zone);
   if(z.id==='hub'&&insideHole(ball))return true;
   const w=walls(z),cross=(id,axis,sign)=>{ball.zone=id;if(axis==='x')ball.vx=sign*Math.max(Math.abs(ball.vx),ENTRY_SPEED.x);else ball.vy=sign*Math.max(Math.abs(ball.vy),ENTRY_SPEED.y);};
+  // 이웃 구역이 있는 변은 통째로 열려 있다(길 어디로든 왼쪽·오른쪽·아래로 굴러 나가면 그 구역으로 넘어감). 이웃이 없는 변만 벽.
   let g;
-  if(ball.x<w.left){if((g=sideGate(z,'west'))&&within(ball.y,g)){if(ball.x<z.left)cross(g.a,'x',-1);}else{ball.x=w.left;ball.vx=Math.abs(ball.vx)*.45;}}
-  else if(ball.x>w.right){if((g=sideGate(z,'east'))&&within(ball.y,g)){if(ball.x>z.right)cross(g.b,'x',1);}else{ball.x=w.right;ball.vx=-Math.abs(ball.vx)*.45;}}
-  if(ball.y<w.top){if((g=sideGate(z,'north'))&&within(ball.x,g)){if(ball.y<z.top)cross(g.a,'y',-1);}else{ball.y=w.top;ball.vy=Math.abs(ball.vy)*.45;}}
-  else if(ball.y>w.bottom){if((g=sideGate(z,'south'))&&within(ball.x,g)){if(ball.y>z.bottom)cross(g.b,'y',1);}else{ball.y=w.bottom;ball.vy=-Math.abs(ball.vy)*.45;}}
-  // 문 통로(벽 너머 두 구역 사이)에서는 문 기둥 사이를 벗어나지 않는다
+  if(ball.x<w.left){if(g=sideGate(z,'west')){if(ball.x<z.left)cross(g.a,'x',-1);}else{ball.x=w.left;ball.vx=Math.abs(ball.vx)*.45;}}
+  else if(ball.x>w.right){if(g=sideGate(z,'east')){if(ball.x>z.right)cross(g.b,'x',1);}else{ball.x=w.right;ball.vx=-Math.abs(ball.vx)*.45;}}
+  if(ball.y<w.top){if(g=sideGate(z,'north')){if(ball.y<z.top)cross(g.a,'y',-1);}else{ball.y=w.top;ball.vy=Math.abs(ball.vy)*.45;}}
+  else if(ball.y>w.bottom){if(g=sideGate(z,'south')){if(ball.y>z.bottom)cross(g.b,'y',1);}else{ball.y=w.bottom;ball.vy=-Math.abs(ball.vy)*.45;}}
   z=zoneById(ball.zone);const v=walls(z);
-  if(ball.x<v.left||ball.x>v.right){const gate=sideGate(z,ball.x<v.left?'west':'east');if(gate)ball.y=clamp(ball.y,gate.from+R,gate.to-R);}
-  if(ball.y<v.top||ball.y>v.bottom){const gate=sideGate(z,ball.y<v.top?'north':'south');if(gate)ball.x=clamp(ball.x,gate.from+R,gate.to-R);}
   if(z.id==='arena')fenceCollide(ball,R);
   for(const o of solids)if(o.zone===z.id)solidCollide(ball,R,o);
   const decay=Math.exp(-1.35*h);ball.vx*=decay;ball.vy*=decay;ball.angle+=(ball.vx+ball.vy)*h/20;
