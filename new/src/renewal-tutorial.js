@@ -9,20 +9,19 @@
 // hold: 그 동작을 시작(손가락으로 잡기)하기 전까지 광산 시간을 멈춘다(밝힌 대상이 움직여 버리지 않게).
 // 진행(s.renewal.tutorial = {stage, step, ran})은 저장된다. 이미 프롤로그를 본 예전 저장은 튜토리얼 없이 시작한다.
 import {RENEWAL_TUTORIAL_TEXT as TEXT} from '../data/renewal-tutorial.js';
-import {CONFIG as C,TIERS} from '../data/config.js';
+import {CONFIG as C} from '../data/config.js';
 import {mineCamera,toScreen} from './mining/renderer.js';
 import {center,TILE,RISE,strike,isMineable,hitCell} from './mining/model.js';
 import {predictBall} from './mining/ball.js';
 import {canFling} from './mining/fling.js';
 import {ballPositionClear} from './mining/terrain-collision.js';
 import {screenPoint} from './village/camera.js';
-import {BUILDINGS,BANNERS} from './village/world.js';
-import {HOLE} from './village/plaza.js';
+import {BUILDINGS,PROPS} from './village/world.js';
+import {HOLE,BALL_HOME} from './village/plaza.js';
 import {traitDisplays} from './village/trait-displays.js';
 import {nodeLevel,nodes} from './mastery-state.js';
 import {masteryPrice} from '../data/mastery.js';
-import {canDepart} from './village/state.js';
-import {enhancementQuote} from './mining/game-state.js';
+import {canDepart,hamsterName} from './village/state.js';
 
 const q=sel=>()=>{const n=document.querySelector(sel);return n&&n.offsetParent!==null?n:null;};
 const union=(...rs)=>{rs=rs.filter(Boolean);if(!rs.length)return null;const x=Math.min(...rs.map(r=>r.x)),y=Math.min(...rs.map(r=>r.y));return{x,y,w:Math.max(...rs.map(r=>r.x+r.w))-x,h:Math.max(...rs.map(r=>r.y+r.h))-y};};
@@ -60,6 +59,18 @@ function openHoleNow(m){
   if(hits())return;
  }
  m.ball.x=home.x;m.ball.y=home.y;
+}
+// 공을 구멍으로 굴릴 때: 공과 구멍 사이 일자 길에 선 햄찌들은 잠시 길 옆으로 비켜 서서 기다린다(길이 한눈에 보이게)
+function clearLane(m){
+ const p=m.holeAt;if(!p)return;const b=m.ball,top=Math.min(p.y,b.y)-30,bottom=Math.max(p.y,b.y)+30;
+ const sideL=p.x-62,sideR=p.x+92;let k=0;
+ for(const h of m.crew){
+  h.wait=Math.max(h.wait??0,8);   // 길 옆에서 잠깐 쉬며 지켜본다(짐·잠은 그대로)
+  if(Math.abs(h.x-p.x)<58&&h.y>top&&h.y<bottom&&!h.fling){
+   h.x=k%2?sideR:sideL;h.y=Math.min(b.y-35,Math.max(b.y-115,h.y));h.route=[];h.goal=null;h.work=null;h.stand=null;if(!h.cargo&&!h.sleeping)h.clip='idle';k++;
+  }
+ }
+ m.navRevision++;
 }
 // 잠든 햄찌 만들기(깨우기 연습용): 가장 공 가까이 있는 한가한 햄찌가 지쳐 쿨쿨
 function napNow(m){
@@ -99,7 +110,7 @@ const MINE=[
   done:c=>!!run(c).holeAt},
  {id:'m-hole-result',kind:'info',ready:settled,target:c=>{const m=run(c),p=m.holeAt;return p&&canvasHole(mineRect(m,p.x,p.y,TILE*1.4,TILE*1.4));}},
  // 공을 구멍에 굴려 아래층으로(보통 동굴 맵에서 다시 볼 때는 공이 곧게 갈 자리·길을 마련해 준다)
- {id:'m-descend',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,skipIf:c=>run(c).depth>=2,onEnter:c=>{const m=run(c);m.ghostBall=true;if(!m.tutorialMap)openHoleNow(m);},
+ {id:'m-descend',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,skipIf:c=>run(c).depth>=2,onEnter:c=>{const m=run(c);m.ghostBall=true;if(!m.tutorialMap)openHoleNow(m);clearLane(m);},
   target:c=>{const m=run(c),p=m.holeAt;if(!p)return null;return canvasHole(ballRect(m),mineRect(m,p.x,p.y,TILE*1.1,TILE*1.1));},
   done:c=>run(c).phase==='transition'||run(c).depth>=2},
  {id:'m-wait-floor',kind:'wait',done:c=>{const m=run(c);if(m.depth>=2)delete m.ghostBall;return m.phase==='mining'&&m.depth>=2;}},
@@ -113,11 +124,17 @@ const MINE=[
  {id:'m-cart',kind:'action',hold:c=>!run(c).aim,target:c=>canvasHole(mineRect(run(c),run(c).cart.x,run(c).cart.y-10,96,78)),
   done:c=>(run(c).cart.launchAt??-1)>=c.enteredAt},
  {id:'m-cart-result',kind:'info',ready:c=>{const k=run(c).cart;return !Math.hypot(k.vx??0,k.vy??0)&&run(c).time-c.enteredAt>.6;},target:c=>canvasHole(mineRect(run(c),run(c).cart.x,run(c).cart.y-10,104,86))},
- {id:'m-crate',kind:'action',skipIf:c=>!crateCell(run(c)),hold:throwHold,
-  target:c=>{const m=run(c),cell=crateCell(m);if(!cell)return null;const h=steady(c,m);if(!h)return null;return canvasHole(cellRect(m,cell.id,1.2),mineRect(m,h.x,h.y-8,64,72));},
-  done:c=>!crateCell(run(c))||eventSince(run(c),'crate',c.enteredAt)},
- {id:'m-crate-result',kind:'info',skipIf:c=>!run(c).drops.some(d=>d.golden),ready:c=>settled(c)&&run(c).time-c.enteredAt>.9,
-  target:c=>{const m=run(c),g=m.drops.filter(d=>d.golden).map(d=>mineRect(m,d.x,d.y,40,40));return g.length?canvasHole(...g):null;}},
+ // 황금 상자: ① 상자 자리만 먼저 보여 주고 → ② 햄찌를 한 번 던져 그쪽을 파 보게 하고 → ③ 내려앉은 뒤 판 자리를 보여 주며 넘어간다
+ // (상자는 바위 속에 묻혀 있어 여러 번 파야 열리므로, 한 번 던져 보는 데까지만 붙잡는다)
+ {id:'m-crate-show',kind:'info',skipIf:c=>!crateCell(run(c)),onEnter:c=>{c.shared.crate=crateCell(run(c))?.id;},
+  target:c=>{const m=run(c);return c.shared.crate!=null?canvasHole(cellRect(m,c.shared.crate,1.5)):null;}},
+ {id:'m-crate',kind:'action',skipIf:c=>c.shared.crate==null||!run(c).cells[c.shared.crate]?.solid,hold:throwHold,
+  target:c=>{const m=run(c),h=steady(c,m);if(!h)return null;return canvasHole(cellRect(m,c.shared.crate,1.3),mineRect(m,h.x,h.y-8,64,72));},
+  done:c=>{const m=run(c),h=m.crew.find(h=>h.fling);if(h)c.shared.thrower=h.id;return !!h||eventSince(m,'slam',c.enteredAt);}},
+ {id:'m-crate-result',kind:'info',skipIf:c=>c.shared.crate==null,ready:settled,
+  target:c=>{const m=run(c),h=m.crew.find(h=>h.id===c.shared.thrower);return canvasHole(cellRect(m,c.shared.crate,1.4),h&&mineRect(m,h.x,h.y-8,70,76));},
+  text:c=>{const m=run(c),cell=m.cells[c.shared.crate];return !cell?.solid?'상자가 열렸어요! 황금 해바라기씨가 나왔어요.\n햄찌가 수레에 담아야 내 것이 돼요. 도구 놀이터에서 특별한 힘을 배우는 데 써요.'
+   :'쾅! 상자 쪽을 팠어요.\n상자는 바위 속 깊이 묻혀 있어 몇 번 더 파야 열려요. 햄찌들도 같이 파 줄 거예요.';}},
  {id:'m-return',kind:'action',target:q('#hud [data-act="mine-return"]'),done:c=>scene(c)==='village'||run(c)?.phase==='ended'}
 ];
 const tree=id=>n=>n.id===id;
@@ -131,39 +148,50 @@ function equipPair(c){
  let best=null;for(const p of crew)for(const d of shows){const k=Math.abs(Math.hypot(p.x-d.x,p.y-d.y)-110);if(!best||k<best.k)best={p,d,k};}
  return best;
 }
+// 공을 화면 끝으로 굴려 옆 구역으로: 공 + 그쪽 끝 길을 함께 밝힌다
+const ballHole=c=>villageRect(c.village,c.village.ball.x,c.village.ball.y,80,80);
+const edge=(c,side)=>{const z=c.village.camera,hx=225/z.zoom,hy=400/z.zoom;
+ return side==='east'?villageRect(c.village,z.x+hx-50,c.village.ball.y,100,160):side==='west'?villageRect(c.village,z.x-hx+50,c.village.ball.y,100,160):villageRect(c.village,c.village.ball.x,z.y+hy-150,160,100);};
+// 넘어간 구역에 햄찌들이 다 따라올 때까지(길어도 6초) 덮지 않고 기다린다
+const arrive=(id,zone)=>({id,kind:'wait',onEnter:c=>{c.memo.t=c.clock;},done:c=>c.village.zone===zone&&!c.village.slide&&(c.village.crew.every(h=>!h.route&&!h.moving)||c.clock-c.memo.t>6)});
+const WELL_PROP=PROPS.find(p=>p.id==='well');
 const VILLAGE=[
  {id:'v-close',kind:'action',skipIf:c=>!c.ui.modal,target:q('#modal-root [data-act="village-close"]'),done:c=>!c.ui.modal},
+ // 1) 첫 탐사로 얻은 해바라기씨로 마스터리 배우기
  {id:'v-mastery',kind:'action',noModal:true,onEnter:c=>c.actions.villageHome(),target:c=>building(c,'mastery'),done:c=>c.ui.modal==='mastery'},
  {id:'v-learn',kind:'action',target:q('#modal-root .map-node[data-id="home_root"]'),valid:c=>c.ui.modal==='mastery',back:'v-mastery',
   skipIf:c=>nodeLevel(c.s,'home_root')>=1||!affordable(c.s,'home_root'),done:c=>nodeLevel(c.s,'home_root')>=1},
  {id:'v-learned',kind:'action',skipIf:c=>c.ui.modal!=='mastery',target:closeButton,done:c=>!c.ui.modal},
- {id:'v-tools',kind:'action',noModal:true,target:c=>building(c,'playground'),done:c=>c.ui.modal==='mastery'},
- {id:'v-tools-learn',kind:'action',target:q('#modal-root .map-node[data-id="root"]'),valid:c=>c.ui.modal==='mastery',back:'v-tools',
-  skipIf:c=>nodeLevel(c.s,'root')>=1||!affordable(c.s,'root'),done:c=>nodeLevel(c.s,'root')>=1},
- {id:'v-tools-done',kind:'action',skipIf:c=>c.ui.modal!=='mastery',target:closeButton,done:c=>!c.ui.modal},
- {id:'v-forge',kind:'action',noModal:true,target:c=>building(c,'forge'),done:c=>c.ui.modal==='mine-forge'},
- {id:'v-enhance',kind:'action',target:q('#modal-root [data-act="mine-enhance"]'),valid:c=>c.ui.modal==='mine-forge',back:'v-forge',
-  onEnter:c=>{c.memo.seeds=c.s.renewal.seeds;c.shared.pick={...c.s.renewal.pick};},skipIf:c=>{const q=enhancementQuote(c.s);return !q||c.s.renewal.seeds<q.cost;},done:c=>c.s.renewal.seeds<c.memo.seeds||c.clicked('[data-act="mine-enhance"]')},
- // 강화 결과(성공·유지·파괴)를 짚어 주고 닫는다
- {id:'v-forge-done',kind:'action',skipIf:c=>c.ui.modal!=='mine-forge',target:closeButton,done:c=>!c.ui.modal,
-  text:c=>{const a=c.shared.pick,b=c.s.renewal.pick,label=TIERS[b.tier]+'+'+b.level;
-   if(!a)return TEXT['v-forge-done'];
-   if(b.tier>a.tier||b.tier===a.tier&&b.level>a.level)return `강화 성공! 곡괭이가 ${label}이 됐어요.\n다음 탐사부터 모든 햄찌가 더 세게 캐요. X를 눌러 닫아요.`;
-   if(b.tier<a.tier||b.level<a.level)return `앗, 곡괭이가 부서져 ${label}로 돌아갔어요.\n강화는 높을수록 위험해요. X를 눌러 닫아요.`;
-   return `아쉽게 실패했어요. 곡괭이는 ${label} 그대로예요.\n씨앗이 모이면 다시 도전해요. X를 눌러 닫아요.`;}},
- {id:'v-flag',kind:'action',noModal:true,target:c=>{const b=BANNERS.find(b=>b.kind==='floor');return canvasHole(villageRect(c.village,b.x,b.y-78,74,160));},done:c=>!!c.village.floorBox?.classList.contains('open')},
- {id:'v-flag-pick',kind:'action',target:q('.floor-bubble [data-floor="ok"]'),valid:c=>!!c.village.floorBox?.classList.contains('open'),back:'v-flag',done:c=>!c.village.floorBox?.classList.contains('open')},
- // 공을 아래로 굴려 특성 경기장으로 → 햄찌들이 따라오면 장비에 햄찌를 던져 특성 끼기 → 광산 입구로 돌아오기
- {id:'v-zone',kind:'action',noModal:true,target:c=>canvasHole(villageRect(c.village,c.village.ball.x,c.village.ball.y,80,80),villageRect(c.village,1080,1210,150,90)),
-  done:c=>c.village.zone==='arena'},
- {id:'v-arrive',kind:'wait',onEnter:c=>{c.memo.t=c.clock;},done:c=>!c.village.slide&&(c.village.crew.every(h=>!h.route&&!h.moving)||c.clock-c.memo.t>6)},
+ // 2) 공을 오른쪽으로 굴려 이름 우물로 → 햄찌를 우물에 던져 이름 바꾸기 → 우물에서 튀어나온 햄찌의 새 이름 보기
+ {id:'v-go-well',kind:'action',noModal:true,target:c=>canvasHole(ballHole(c),edge(c,'east')),done:c=>c.village.zone==='well'},
+ arrive('v-arrive-well','well'),
+ {id:'v-name',kind:'action',noModal:true,
+  target:c=>{const v=c.village,p=steadyVillager(c);if(!p)return null;return canvasHole(villageRect(v,p.x,p.y-24,66,74),villageRect(v,WELL_PROP.x,WELL_PROP.y-WELL_PROP.h*.3,230,170));},
+  done:c=>{if(c.village.naming!=null){c.shared.named=c.village.naming;c.shared.oldName=hamsterName(c.s,c.village.naming);return true;}return false;}},
+ {id:'v-name-pick',kind:'action',target:q('.name-bubble.open'),done:c=>c.village.naming==null},
+ {id:'v-name-done',kind:'info',noModal:true,onEnter:c=>{c.memo.t=c.clock;},ready:c=>!c.village.flights.size&&c.clock-c.memo.t>.6,
+  target:c=>{const p=c.village.crewPositions()[c.shared.named??0];return p&&canvasHole(villageRect(c.village,p.x,p.y-30,96,104));},
+  text:c=>{const now=hamsterName(c.s,c.shared.named??0),old=c.shared.oldName;return old&&old!==now?`${old}의 새 이름은 '${now}'!\n머리 위 이름표가 바뀌었어요. 이름은 언제든 우물에서 다시 바꿀 수 있어요.`:TEXT['v-name-done'];}},
+ // 3) 공을 왼쪽으로 굴려 다시 광산 입구로
+ {id:'v-go-hub',kind:'action',noModal:true,target:c=>canvasHole(ballHole(c),edge(c,'west')),done:c=>c.village.zone==='hub'},
+ arrive('v-arrive-hub','hub'),
+ // 4) 공을 아래로 굴려 특성 경기장으로 → 장비에 햄찌를 던져 특성 바꾸기
+ // 공은 광장 가운데(아래 길 바로 위)에 두어 곧게 아래로 굴러가게(오른쪽에 멈춰 있으면 쉼터·모닥불에 막힌다)
+ {id:'v-go-arena',kind:'action',noModal:true,onEnter:c=>{const b=c.village.ball;if(c.village.zone==='hub'&&!b.vx&&!b.vy){b.x=BALL_HOME.x;b.y=BALL_HOME.y;}},target:c=>canvasHole(ballHole(c),edge(c,'south')),done:c=>c.village.zone==='arena'},
+ arrive('v-arrive-arena','arena'),
  {id:'v-equip',kind:'action',noModal:true,onEnter:c=>{c.memo.traits=traitsKey(c.s);c.shared.traits=[...c.s.renewal.traits];},
   target:c=>{const b=c.memo.pair??=equipPair(c);if(!b)return null;const p=c.village.crewPositions()[b.p.i]??b.p;return canvasHole(villageRect(c.village,p.x,p.y-24,66,74),villageRect(c.village,b.d.x,b.d.y+b.d.dy,b.d.w+20,b.d.h+40));},
   done:c=>traitsKey(c.s)!==c.memo.traits,skipIf:c=>c.village.zone!=='arena'},
- // 던진 햄찌가 내려앉아 새 옷(특성)을 입은 모습을 보여 준 뒤 설명
+ // 던진 햄찌가 내려앉아 새 옷(특성)을 입은 모습을 보여 준 뒤 설명 → 다음을 누르면 광산 입구로(경기장 위쪽 문은 좁아 공을 대신 옮겨 준다)
  {id:'v-equip-done',kind:'info',noModal:true,skipIf:c=>c.village.zone!=='arena',onEnter:c=>{c.memo.t=c.clock;},ready:c=>!c.village.flights.size&&c.clock-c.memo.t>.5,onNext:c=>c.actions.villageEntrance(),
   target:c=>{const i=c.s.renewal.traits.findIndex((t,k)=>t!==(c.shared.traits??[])[k]),p=c.village.crewPositions()[i<0?0:i];return p&&canvasHole(villageRect(c.village,p.x,p.y-26,84,92));}},
- {id:'v-back',kind:'wait',onEnter:c=>{c.memo.t=c.clock;},done:c=>c.village.zone==='hub'&&!c.village.slide&&(c.village.crew.every(h=>!h.route)||c.clock-c.memo.t>6)},
+ arrive('v-back','hub'),
+ // 5) 씨앗을 넣지 않은 빈 공을 구멍에 넣어 보기 → 구멍이 퉤 뱉어 내는 것까지 보고 설명
+ {id:'v-empty',kind:'action',noModal:true,skipIf:c=>c.s.renewal.village.prepared||!canDepart(c.s),
+  target:c=>canvasHole(villageRect(c.village,c.village.ball.x,c.village.ball.y,76,76),villageRect(c.village,HOLE.x,HOLE.y,150,110)),done:c=>!!c.village.ballSpit},
+ {id:'v-empty-result',kind:'info',noModal:true,skipIf:c=>c.s.renewal.village.prepared,onEnter:c=>{c.memo.t=c.clock;},ready:c=>!c.village.ballSpit&&c.clock-c.memo.t>.4,
+  target:c=>canvasHole(villageRect(c.village,c.village.ball.x,c.village.ball.y,90,90),villageRect(c.village,HOLE.x,HOLE.y,150,110))},
+ // 6) 공에 씨앗을 넣고 다시 출발하면 튜토리얼 끝
  {id:'v-pack',kind:'action',noModal:true,skipIf:c=>c.s.renewal.village.prepared||!canDepart(c.s),target:c=>canvasHole(villageRect(c.village,c.village.ball.x,c.village.ball.y,76,76)),
   done:c=>!!c.village.pack?.classList.contains('open')||c.s.renewal.village.prepared},
  {id:'v-fill',kind:'action',noModal:true,skipIf:c=>c.s.renewal.village.prepared,target:q('.pack-bubble:not(.name-bubble):not(.floor-bubble) [data-pack="fill"]'),
@@ -172,6 +200,13 @@ const VILLAGE=[
   target:c=>canvasHole(villageRect(c.village,c.village.ball.x,c.village.ball.y,76,76),villageRect(c.village,HOLE.x,HOLE.y,150,110)),
   done:c=>!!c.village.suction||scene(c)==='mine'}
 ];
+// 마을에서 밝혀 둘 햄찌: 그 단계 동안 한 마리로 고정(날아가 있지 않은 햄찌 중 우물에 가장 가까운)
+function steadyVillager(c){
+ const v=c.village,crew=v.crewPositions();
+ if(c.memo.who==null||v.flights.has(c.memo.who)&&!v.fling){const free=crew.map((p,i)=>({p,i})).filter(o=>!v.flights.has(o.i));if(!free.length)return null;
+  free.sort((a,b)=>Math.hypot(a.p.x-WELL_PROP.x,a.p.y-WELL_PROP.y)-Math.hypot(b.p.x-WELL_PROP.x,b.p.y-WELL_PROP.y));c.memo.who=free[0].i;}
+ return crew[c.memo.who];
+}
 function affordable(s,id){const n=nodes(s).find(tree(id));return !!n&&(n.currency==='golden'?s.renewal.golden:s.renewal.seeds)>=masteryPrice(n,nodeLevel(s,id),s.masteryBook.page);}
 
 export function createRenewalTutorial({game,canvas,getState,ui,actions,mine,village,enabled=true}){
