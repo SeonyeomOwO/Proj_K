@@ -39,6 +39,8 @@ function expression(c,skin,pose,type,face){
  }c.restore();
 }
 function bubble(c,label,x,y,t){c.save();c.translate(x,y-Math.sin(t*2)*2);c.fillStyle='#fff4dd';c.strokeStyle='#654534';c.lineWidth=1.4;const w=label==='헥헥'?32:26;c.beginPath();c.roundRect(-w/2,-12,w,21,8);c.fill();c.stroke();c.font='bold 12px Ham, sans-serif';c.textAlign='center';c.fillStyle='#654534';c.fillText(label,0,3);c.restore();}
+// 손잡이(0,0 ~ 0,-21) 기준 도구 그림의 가운데·크기. 드릴은 손잡이 고리가 앞발에 오고 몸통·날이 앞으로 뻗는다.
+const HELD_TOOLS={drill:{x:36,y:-10,w:92,h:47},dynamite:{x:9,y:-21,w:64,h:48}};
 export function drawActor(c,res,{x=0,y=0,size=1,clip='mine',skin='miner',weapon='pickaxe_d',t=0,index=0,face=1,emote=true,prop='ore-stone',showTool=true,style='elastic',loop=false,poseOverride=null,carryOverride=null,weaponScale=1}={}){
  const pose=poseOverride??renewalPose(clip,t,index,{style,loop}),hasTool=showTool&&['mine','walk','idle','tired','pajamas'].includes(clip),original=style==='original';
  c.save();c.translate(x,y);c.scale(size,size);c.globalAlpha*=pose.alpha??1;
@@ -46,7 +48,9 @@ export function drawActor(c,res,{x=0,y=0,size=1,clip='mine',skin='miner',weapon=
  c.fillStyle='#54352222';c.beginPath();c.ellipse(0,1,36*(pose.size??1)*shadow,8*shadow,0,0,Math.PI*2);c.fill();
  c.translate((pose.shift??0)*face,0);
  c.scale(pose.size??1,pose.size??1);if(pose.spin){c.translate(0,-35+pose.bob);c.rotate(pose.spin);c.translate(0,35);pose.bob=0;}
- drawHamsterRig(c,res.rig,{type:skin,weapon,pose,face,hideWeapon:!hasTool,weaponScale});
+ // 특성 도구: 드릴은 손잡이를 쥐고 앞으로 겨누고, 다이너마이트는 묶음을 받쳐 든다(광산 소품 그림 그대로)
+ const held=HELD_TOOLS[weapon],customWeapon=held&&res.draw?ctx=>res.draw(ctx,weapon,held.x,held.y,held.w,held.h):null;
+ drawHamsterRig(c,res.rig,{type:skin,weapon,pose,face,hideWeapon:!hasTool,weaponScale,customWeapon});
  const phase=t%(MOTION_INFO[clip]?.duration??2.1),blink=(t+index*.6)%4.4>4.28;
  const exp=['sleep','rest','pajamas','eat'].includes(clip)||blink?'closed':['drill','bomb'].includes(clip)?'squeeze':clip==='startle'&&phase<.46?'wide':!original&&pose.stage==='hit'?'squeeze':null;expression(c,skin,pose,exp,face);
  if(!hasTool){

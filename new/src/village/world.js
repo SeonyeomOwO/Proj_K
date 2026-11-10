@@ -75,7 +75,8 @@ const ARENA_DOOR={x:FENCE.x,out:FENCE.y-FENCE.ry-45,in:FENCE.y-FENCE.ry+70};
 // ── 공·날아가는 햄찌가 지나가지 못하는 바닥 자리(타원) ──
 // 건물은 그림 아래쪽 72%(벽과 기단)를 덮는다: 앞에서 오면 기단에 부딪히고, 뒤로 돌아가면 지붕 뒤에서 벽에 막힌다.
 const footprint=(o,size,zone,k=.4,top=.72)=>({zone,id:o.id,x:o.x,y:o.y-size.h*top/2,rx:size.w*k,ry:size.h*top/2});
-const baseSkin=i=>i===3?'star':'miner';   // 광산과 같은 기본 옷(4번째가 별 잠옷)
+// 광산과 같은 기본 옷: 모두 작업 모자 + 파란 멜빵(잠옷은 경기장에서 '잠옷' 특성을 꼈을 때만)
+const baseSkin=()=>'miner';
 const wornBy=(s,trait)=>{const r=s.renewal,i=r.traits.indexOf(trait);return i>=0?i:(r.traits2??[]).indexOf(trait);};
 const FLING={grab:30,drag:1.6,stop:14,walk:240,dive:.55};
 // 구역이 바뀌면: 카메라가 옆(또는 아래)으로 미끄러지고(slide초), 햄찌들은 차례로(follow초 간격) 달려서(run px/s) 문을 지나 따라온다

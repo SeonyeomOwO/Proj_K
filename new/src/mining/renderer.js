@@ -18,6 +18,7 @@ import {FLING_LAND} from './worker-pose.js';
 import {BALL} from './ball.js';
 import {jelly,bump,tremble,dizzy,star} from './animation/juice.js';
 import {gloryAura,gloryHalo,gloryTrail,gloryEvent,gloryShake,gloryVignette} from './glory-fx.js';
+import {TIERS} from '../../data/config.js';
 // 등나무 공의 과장 연출: 당기면 당기는 쪽으로 늘어나며 덜덜, 구를 땐 가는 방향으로 쭉, 튕기면 그 방향으로 납작 출렁
 function ballJuice(s,b,still){
  if(still)return{x:0,y:0,a:0,st:0};
@@ -25,6 +26,12 @@ function ballJuice(s,b,still){
  if(a?.what==='ball'){const d=Math.hypot(a.dx,a.dy);if(d>6){const k=Math.min(1,d/BALL.maxPull),tr=k>.6?tremble(s.time,(k-.6)/.4):{x:0,y:0};return{x:tr.x,y:tr.y*.5,a:Math.atan2(a.dy,a.dx),st:Math.min(.3,d/350)};}}
  const age=s.time-(b.bumpAt??-9);if(age>=0&&age<.4)return{x:0,y:0,a:b.bumpA,st:bump(age,Math.min(.4,.14+(b.bumpV??0)/1500))};
  const sp=Math.hypot(b.vx??0,b.vy??0);return sp>40?{x:0,y:0,a:Math.atan2(b.vy,b.vx),st:Math.min(.22,sp/2600)}:{x:0,y:0,a:0,st:0};
+}
+// 햄찌가 손에 드는 도구: 드릴·다이너마이트 특성이면 그 도구, 아니면 대장간 곡괭이 등급(s.pickTier)의 곡괭이
+const TOOL_TRAITS=['drill','dynamite'];
+function heldWeapon(s,h){
+ const t=TOOL_TRAITS.find(t=>h.trait===t)??TOOL_TRAITS.find(t=>h.trait2===t);
+ return t??'pickaxe_'+(TIERS[s.pickTier??0]??'D').toLowerCase();
 }
 // 세게 부딪힌 자리에서 작은 별이 팡 튄다(o.bumpAt·bumpA·bumpV를 남기는 공·수레 공용)
 function impactStars(c,s,o,r,still,min=300){
@@ -191,7 +198,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   // 황금 기운: 금빛 꼬리(날아갈 때)와 발밑·몸 둘레 금빛(몸 뒤에 먼저 그림)
   if(!s.transition){gloryTrail(c,s,'h'+original.id,h.x,h.y+FOOT_OFFSET-38*ACTOR_SIZE,!!fl&&!(fl.landing>0),reducedMotion);gloryAura(c,s,h,original.id,reducedMotion);}
   if(stretch){c.save();jelly(c,h.x,h.y+FOOT_OFFSET-38*ACTOR_SIZE,fl.vis.a,stretch);}
-  drawActor(c,actorRes,{x:h.x+shake.x,y:h.y+FOOT_OFFSET+shake.y,size:ACTOR_SIZE,clip:held?'startle':h.clip,skin:h.skin,t:held?.1:h.motion,index:0,face:h.face,showTool:!h.cargo&&!h.care&&(!h.sleeping||h.clip==='pajamas'),emote:held||!!h.care||h.sleeping,prop:'fragment:'+(h.cargo??'stone'),poseOverride:p,carryOverride,weaponScale:MINING_WEAPON_SCALE});
+  drawActor(c,actorRes,{x:h.x+shake.x,y:h.y+FOOT_OFFSET+shake.y,size:ACTOR_SIZE,clip:held?'startle':h.clip,skin:h.skin,weapon:heldWeapon(s,original),t:held?.1:h.motion,index:0,face:h.face,showTool:!h.cargo&&!h.care&&(!h.sleeping||h.clip==='pajamas'),emote:held||!!h.care||h.sleeping,prop:'fragment:'+(h.cargo??'stone'),poseOverride:p,carryOverride,weaponScale:MINING_WEAPON_SCALE});
   if(stretch)c.restore();
   if(!s.transition)gloryHalo(c,s,h,original.id,reducedMotion);
   // 내려앉은 뒤 잠깐 어질어질: 머리 위로 별이 빙글빙글
@@ -212,7 +219,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  // 그림자 햄찌(마스터리): 반투명하게 바위를 함께 캔다
  for(const g of s.shadows??[])objects.push({depth:g.y+FOOT_OFFSET,draw(){
   const left=g.until-s.time;c.save();c.globalAlpha=Math.min(.5,left*1.2,(s.time-(g.until-(s.mods?.shadow??3)))*2);
-  drawActor(c,fragmentResources(res,{variant:0,width:null,angle:0,alpha:1,unmirror:g.face}),{x:g.x,y:g.y+FOOT_OFFSET,size:ACTOR_SIZE,clip:'mine',skin:'miner',t:(s.time*1.4)%2.1,index:0,face:center(g.cell)[0]>=g.x?1:-1,showTool:true,emote:false,weaponScale:MINING_WEAPON_SCALE});
+  drawActor(c,fragmentResources(res,{variant:0,width:null,angle:0,alpha:1,unmirror:g.face}),{x:g.x,y:g.y+FOOT_OFFSET,size:ACTOR_SIZE,clip:'mine',skin:'miner',weapon:heldWeapon(s,{}),t:(s.time*1.4)%2.1,index:0,face:center(g.cell)[0]>=g.x?1:-1,showTool:true,emote:false,weaponScale:MINING_WEAPON_SCALE});
   c.restore();
  }});
  objects.sort((a,b)=>a.depth-b.depth).forEach(o=>o.draw());

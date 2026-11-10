@@ -91,6 +91,8 @@ export function startMining(s,{seeds=ballCapacity(s),themeId,layoutId,traits}={}
  const {power,speed,reward,glory}=miningGrowth(s);
  // 황금 기운 단계(연출용): 높을수록 햄찌 둘레 금빛·던지기 꼬리·타격 불꽃이 화려해진다
  m.glory={levels:glory,tier:gloryTier(glory)};
+ // 탐사에서 햄찌들이 드는 곡괭이 그림 = 대장간에서 강화한 공용 곡괭이 등급(D→C로 오르면 C 곡괭이)
+ m.pickTier=r.pick.tier;
  // 대장 햄찌는 기본 +25%에 '대장의 힘'을 더해 더 세게 캔다
  for(const h of m.crew){h.power=power*(h.leader?1+LEADER.power+mods.leaderPower:1);h.period/=speed;h.speed*=1+mods.walk;}
  m.rewardMultiplier=reward;r.run=m;return true;

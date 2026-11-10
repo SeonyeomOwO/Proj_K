@@ -80,7 +80,8 @@ export function rigGeometry(type,weapon,pose,placement={}) {
   const skin=RIG.skins[type]??RIG.skins.miner,w=RIG.weapons[weapon]??RIG.weapons.pickaxe_d;
   return {body:skin.body,weapon,weaponAsset:w.asset,grips:[[0,0],[0,-w.handSpacing]].map(p=>rigWorldPoint(p,pose,placement,true)),tip:rigWorldPoint(weaponPoint(weapon,w.tip),pose,placement,true)};
 }
-export function drawHamsterRig(ctx,assets,{type='miner',weapon='pickaxe_d',pose=sampleHamsterPose(),x=0,y=0,face=1,debug=false,hideWeapon=false,weaponScale=1}={}) {
+// customWeapon(ctx): 곡괭이 대신 쥐는 다른 도구(드릴·다이너마이트 등)를 손잡이 자리(0,0 ~ 0,-handSpacing)에 그린다.
+export function drawHamsterRig(ctx,assets,{type='miner',weapon='pickaxe_d',pose=sampleHamsterPose(),x=0,y=0,face=1,debug=false,hideWeapon=false,weaponScale=1,customWeapon=null}={}) {
   const skin=RIG.skins[type]??RIG.skins.miner;
   const actualWeapon=RIG.weapons[weapon]?weapon:'pickaxe_d';
   const {w,align,scale}=weaponTransform(actualWeapon),body=assets.manifest.frames[skin.body];
@@ -91,10 +92,13 @@ export function drawHamsterRig(ctx,assets,{type='miner',weapon='pickaxe_d',pose=
   if(!hideWeapon){
     const grip=rotate([pose.gripX,pose.gripY],pose.tilt);
     ctx.save();ctx.translate(grip[0]*pose.sx,grip[1]*pose.sy);ctx.rotate(pose.angle+pose.tilt);
+    if(customWeapon){ctx.save();ctx.scale(weaponScale,weaponScale);customWeapon(ctx);ctx.restore();}
+    else{
     ctx.save();ctx.rotate(align);ctx.scale(scale*weaponScale,scale*weaponScale);
     const f=assets.manifest.frames[w.asset];
     assets.draw(ctx,w.asset,-w.grip[0],-w.grip[1],f.w,f.h,false);
     ctx.restore();
+    }
     // Both tiny paws cover the shaft. They cannot slide off when the equipped art changes.
     assets.draw(ctx,skin.paws[0],-8,-8,16,16);
     assets.draw(ctx,skin.paws[1],-8,-w.handSpacing*weaponScale-8,16,16);

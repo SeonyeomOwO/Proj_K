@@ -75,7 +75,7 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
  for(const [i,[x,y]]of spots.entries()){
   const node=navigation(s).nodes.filter(n=>s.crew.every(h=>Math.hypot(h.x-n.x,h.y-n.y)>spacing&&(pocket||hitCell(h.x,h.y)!==hitCell(n.x,n.y)))).sort((a,b)=>Math.hypot(a.x-x*50,a.y-y*50)-Math.hypot(b.x-x*50,b.y-y*50))[0];
   const individuality=noise(i,seed,43);
-  s.crew.push({id:i,stamina:CARE.maxStamina+mod('stamina'),maxStamina:CARE.maxStamina+mod('stamina'),fullCap:CARE.fullness+mod('fullness'),fullness:0,sleeping:false,care:null,careTime:0,foodTarget:null,x:node.x,y:node.y,skin:i===3?'star':'miner',role:'worker',clip:'idle',face:i%2?-1:1,motion:i*.37,walkTime:0,moveBlend:0,breathTime:i*.47,route:[],goal:null,work:null,command:-1,mineTime:.3+i*.29,period:1.8+individuality*.65,speed:76+individuality*18,gait:.88+individuality*.25,cargo:null,wait:i*.19,stuck:0,delivered:0});
+  s.crew.push({id:i,stamina:CARE.maxStamina+mod('stamina'),maxStamina:CARE.maxStamina+mod('stamina'),fullCap:CARE.fullness+mod('fullness'),fullness:0,sleeping:false,care:null,careTime:0,foodTarget:null,x:node.x,y:node.y,skin:'miner',role:'worker',clip:'idle',face:i%2?-1:1,motion:i*.37,walkTime:0,moveBlend:0,breathTime:i*.47,route:[],goal:null,work:null,command:-1,mineTime:.3+i*.29,period:1.8+individuality*.65,speed:76+individuality*18,gait:.88+individuality*.25,cargo:null,wait:i*.19,stuck:0,delivered:0});
  }
  s.mineralRules=mineralRules;s.minedValue=0;s.securedValue=0;s.lostValue=0;s.goldenFound=0;s.securedGolden=0;s.lostGolden=0;
  for(const h of s.crew){h.baseSkin=h.skin;h.trait='none';equipTrait(s,h.id,traits[h.id]??'none');
