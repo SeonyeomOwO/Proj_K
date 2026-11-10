@@ -53,7 +53,7 @@ const ACT={swallow:.24,rumble:.42,spit:1.17,popRumble:.36,pop:1.06,charge:1.28,b
 const CHARGE={seeds:.5,crouch:.14,jump:.34};   // 충전: 씨앗 쏙쏙 → 움츠림 → 점프 → 착지(나머지)
 // 공용 과장 연출 도구(hang·arc·landing·jelly·star): src/mining/animation/juice.js
 const CAMPFIRE={x:1150,y:1000};
-const BANNERS=[{x:940,y:705,kind:'floor'},{x:1220,y:705,kind:'best'}];
+export const BANNERS=[{x:940,y:705,kind:'floor'},{x:1220,y:705,kind:'best'}];
 const RUINS=[[1515,500,112],[2070,530,105]];
 const DECOR=[
  {id:'flowerbed',x:600,y:1080,w:105,h:72},{id:'flowerbed',x:860,y:2300,w:105,h:72},{id:'flowerbed',x:1300,y:2300,w:105,h:72},
