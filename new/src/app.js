@@ -1072,7 +1072,7 @@ async function start() {
       ui: () => ({ modal, busy: dungeonLoading || prologueActive || sceneChanging || gachaOn }),
       actions: { save, closeAll: () => close(true), villageHome: () => village.home(), villageEntrance: () => village.focusEntrance(),
         // 첫 탐사: 공에 씨앗을 가득 담아 마을을 거치지 않고 바로 광산으로
-        startRun: () => { if(!Village.prepareVillage(s,{seeds:Mining.ballCapacity(s),themeId:s.renewal.themeId})||!Village.departVillage(s))return false; paused=false;$('pause').checked=false;close(true);save();updateHud();world.render(s,0);return true; } } });
+        startRun: () => { if(!Village.prepareVillage(s,{seeds:Mining.ballCapacity(s),themeId:s.renewal.themeId})||!Village.departVillage(s,Date.now(),{tutorial:true}))return false; paused=false;$('pause').checked=false;close(true);save();updateHud();world.render(s,0);return true; } } });
     else tutorial = createTutorial({ game, enabled: !renewalMode&&(!fixture || tutorialPreview), getState: () => s, ui: () => ({ modal, tab, busy: dungeonLoading || prologueActive, gacha: gachaOn }), actions:{ open: name => open(name), closeAll: () => close(true), refresh: () => mutate(), save, notify } });
     updatePasses();
     $('loading').remove();

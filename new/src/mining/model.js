@@ -1,6 +1,6 @@
 // Shared by the game and design preview. Speeds, hit counts and layouts are review values.
 import {getTheme} from './mineral-themes.js';
-import {getLayout,LAYOUTS,CAVE,caveLayout,holeNeedFor,rareShare,crateCount} from './map-layouts.js';
+import {getLayout,LAYOUTS,CAVE,TUTORIAL_CAVE,caveLayout,holeNeedFor,rareShare,crateCount} from './map-layouts.js';
 import {COLS,ROWS,TILE,ORIGIN,RISE,key,xy,center,hitCell,noise,neighbors,isMineable} from './grid.js';
 import {spawnMinedDrop,updateMinedDrops,canPickDrop} from './drop-system.js';
 import {navigation,routesFrom,setDestination,moveWorker,BODY_RADIUS,BODY_GAP,clearSegment,syncSleepingPasses,restingSpotClear} from './navigation.js';
@@ -27,9 +27,10 @@ export const CRATE={perFloor:1,hits:4,golden:3};
 // step: 동굴 맵에서 이번 탐사 동안 내려간 층 수(0=첫 층). 맵 크기와 구멍 조건이 여기서 정해진다.
 // depth: 지하 몇 층인지. 동굴 맵의 희귀 광석 비율과 황금 상자 개수가 여기서 정해진다.
 // mods: 출발할 때 모은 마스터리 효과(mining-mastery.js의 miningMods). 맵·햄찌 수·기운 등에 쓰고 s.mods로 들고 다닌다.
-export function createState(seed=1,{themeId='base',layoutId='classic',careEnabled=true,mineralRules='varied',traits=[],traits2=[],step=0,depth=1,mods={}}={}){
+// tutorialMap: 프롤로그 뒤 첫 탐사의 지하 1층은 튜토리얼 전용 맵(map-layouts.js TUTORIAL_CAVE)
+export function createState(seed=1,{themeId='base',layoutId='classic',careEnabled=true,mineralRules='varied',traits=[],traits2=[],step=0,depth=1,mods={},tutorialMap=false}={}){
  const mod=k=>mods?.[k]??0;
- const theme=getTheme(themeId),cave=layoutId===CAVE.id?caveLayout(seed,step):null,map=cave?{id:CAVE.id,rows:cave.rows}:getLayout(layoutId);
+ const theme=getTheme(themeId),cave=layoutId===CAVE.id?(tutorialMap?TUTORIAL_CAVE:caveLayout(seed,step)):null,map=cave?{id:CAVE.id,rows:cave.rows}:getLayout(layoutId);
  const layout=map.rows.map(row=>[...row].map(v=>v!=='.'&&v!=='~'));
  const cells=layout.flatMap((row,y)=>row.map((solid,x)=>{
   const copper=(x<4&&y>=3&&y<=6)||(x>=8&&y>=10&&y<=13),jade=x>=7&&y>=2&&y<=6;
@@ -55,19 +56,21 @@ export function createState(seed=1,{themeId='base',layoutId='classic',careEnable
  }));
  const holeCell=cave?cells[key(cave.hole.x,cave.hole.y)]:cells.find(c=>isMineable(c)&&c.y>=3&&c.y<=6&&neighbors(c.id).some(n=>!cells[n].solid));holeCell.hole=true;
  // 동굴: 바위를 holeNeed개 부숴야 구멍을 캘 수 있다(그 전엔 잠김 → isMineable이 false).
- const holeNeed=cave?Math.max(2,holeNeedFor(step)-mod('holeEase')):0;if(holeNeed)holeCell.locked=true;
+ const holeNeed=cave?cave.holeNeed??Math.max(2,holeNeedFor(step)-mod('holeEase')):0;if(holeNeed)holeCell.locked=true;
+ if(cave?.holeHits)holeCell.hp=holeCell.maxHp=cave.holeHits;
  // 상자는 구멍·수레 근처(아래쪽 줄)를 피해 길에 맞닿은 안쪽 바위에 시드로 정해 박는다. 처음부터 보여서 노릴 수 있다.
  // 동굴에서는 처음 공간에 바로 붙지 않은 바위 속(한 칸 이상 파야 닿음)에 묻는다.
  const touchesOpen=c=>neighbors(c.id).some(n=>!cells[n].solid);
  cells.filter(c=>isMineable(c)&&!c.hole&&(cave?!touchesOpen(c):c.y>=2&&c.y<=11&&touchesOpen(c)))
-  .sort((a,b)=>noise(a.x,a.y,seed+77)-noise(b.x,b.y,seed+77)).slice(0,cave?crateCount(seed,depth,mod('crateChance')):CRATE.perFloor)
+  .sort((a,b)=>noise(a.x,a.y,seed+77)-noise(b.x,b.y,seed+77)).slice(0,cave?.noCrates?0:cave?crateCount(seed,depth,mod('crateChance')):CRATE.perFloor)
   .forEach(c=>{c.crate=true;c.hp=c.maxHp=CRATE.hits;});
  // 동굴: 해금한 층 도구·화분을 바위 속에 묻는다(tools.js)
- if(cave)buryTools(cells,seed,mods);
+ if(cave&&!tutorialMap)buryTools(cells,seed,mods);
  // 동굴: 수레는 처음 공간 왼쪽 아래, 공은 오른쪽 아래(벽에서 몸 반지름+여유만큼 띄움)
  const pocket=cave&&{left:ORIGIN+cave.pocket.x*TILE,right:ORIGIN+(cave.pocket.x+cave.pocket.w)*TILE,top:ORIGIN+cave.pocket.y*TILE,bottom:ORIGIN+(cave.pocket.y+cave.pocket.h)*TILE};
- const cart=pocket?{x:pocket.left+50,y:pocket.bottom-42}:{x:177,y:653},ballAt=pocket?{x:pocket.right-28,y:pocket.bottom-28}:{x:283,y:704};
- const s={seed,careEnabled,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{...cart,radius:34,vx:0,vy:0},ball:{...ballAt,radius:BALL.radius,vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds},holeNeed,floorBroken:0,floorStart:0,
+ const tile=p=>({x:ORIGIN+p.x*TILE,y:ORIGIN+p.y*TILE});
+ const cart=cave?.cartAt?tile(cave.cartAt):pocket?{x:pocket.left+50,y:pocket.bottom-42}:{x:177,y:653},ballAt=cave?.ballAt?tile(cave.ballAt):pocket?{x:pocket.right-28,y:pocket.bottom-28}:{x:283,y:704};
+ const s={seed,careEnabled,tutorialMap:!!tutorialMap,phase:'mining',depth:1,seeds:[],nextSeed:0,lostOre:0,aim:null,holeAt:null,transition:null,result:null,themeId:theme.id,layoutId:map.id,cells,crew:[],time:0,revision:0,navRevision:0,commandRevision:0,focus:null,drops:[],secured:0,mined:0,hole:null,events:[],nextDrop:0,lootAccumulator:0,paused:false,grid:false,cartStand:key(4,13),cart:{...cart,radius:34,vx:0,vy:0},ball:{...ballAt,radius:BALL.radius,vx:0,vy:0,angle:0,contacts:[],seeds:CARE.initialSeeds},holeNeed,floorBroken:0,floorStart:0,
   mods:{...mods},shadows:[],windfallAt:mod('windfall')?windfallEvery(mod('windfall')):null,lastFlingAt:-9};
  // 동굴의 처음 공간은 좁아서 햄찌끼리 조금 붙어 서도 된다(겹쳐 지나가기 규칙과 같은 이유). 증원된 햄찌(5·6번째)는 둘째 줄.
  const count=Math.min(6,4+mod('crew'));

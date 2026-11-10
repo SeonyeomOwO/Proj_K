@@ -20,7 +20,8 @@ export function launchBall(s){
  s.ball.vx=a.dx*BALL.power;s.ball.vy=a.dy*BALL.power;s.ball.contacts=[];s.navRevision++;return true;
 }
 export function holeContains(s,b){
- const p=s.holeAt;return s.hole!==null&&p&&Math.hypot(b.x-p.x,b.y-p.y)<18;
+ // 튜토리얼 첫 층은 처음 굴려 보는 거라 구멍이 조금 더 넓게 공을 빨아들인다
+ const p=s.holeAt;return s.hole!==null&&p&&Math.hypot(b.x-p.x,b.y-p.y)<(s.tutorialMap?34:18);
 }
 // Same substeps for the aiming guide and live motion. Prediction never changes
 // workers, seeds, terrain or rewards; it only returns contact information.

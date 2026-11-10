@@ -9,10 +9,11 @@
 // hold: 그 동작을 시작(손가락으로 잡기)하기 전까지 광산 시간을 멈춘다(밝힌 대상이 움직여 버리지 않게).
 // 진행(s.renewal.tutorial = {stage, step, ran})은 저장된다. 이미 프롤로그를 본 예전 저장은 튜토리얼 없이 시작한다.
 import {RENEWAL_TUTORIAL_TEXT as TEXT} from '../data/renewal-tutorial.js';
-import {CONFIG as C} from '../data/config.js';
+import {CONFIG as C,TIERS} from '../data/config.js';
 import {mineCamera,toScreen} from './mining/renderer.js';
 import {center,TILE,RISE,strike,isMineable,hitCell} from './mining/model.js';
 import {predictBall} from './mining/ball.js';
+import {canFling} from './mining/fling.js';
 import {ballPositionClear} from './mining/terrain-collision.js';
 import {screenPoint} from './village/camera.js';
 import {BUILDINGS,BANNERS} from './village/world.js';
@@ -67,24 +68,56 @@ function napNow(m){
 }
 const crateCell=m=>m.cells.find(x=>x.crate&&x.solid);
 
+// 결과 단계(ready): 직접 해 본 동작이 끝까지 보인 뒤(햄찌가 내려앉고, 바위가 깨지고, 수레가 멈춘 뒤)에야 말풍선으로 결과를 짚어 준다.
+const flying=m=>m.crew.some(h=>h.fling&&!(h.fling.landing>0));
+const settled=c=>!flying(run(c))&&(run(c).time-c.enteredAt)>.7;
+const cellRect=(m,id,k=1.15)=>{const[x,y]=center(id);return mineRect(m,x,y,TILE*k,TILE*k);};
+const holeCell=m=>m.cells.find(x=>x.hole);
+// 던질 바위: 햄찌 가까이 있는, 지금 캘 수 있는 바위(구멍 바위 제외)
+function nearRock(m,h){return m.cells.filter(x=>isMineable(x)&&!x.hole&&!x.crate).map(x=>{const[cx,cy]=center(x.id);return{x,d:Math.hypot(cx-h.x,cy-h.y)};}).sort((a,b)=>a.d-b.d)[0]?.x;}
+// 밝혀 둘 햄찌는 그 단계 동안 한 마리로 고정(짐을 들거나 날아가 버리면 다른 한가한 햄찌로)
+// 던질 수 있는 햄찌가 없으면(모두 짐을 나르는 중 등) null → 덮지도 멈추지도 않고 한 마리가 손이 빌 때까지 기다린다
+const steady=(c,m)=>{let h=m.crew.find(h=>h.id===c.memo.pick);if(m.aim?.what==='hamster')return m.crew.find(o=>o.id===m.aim.id)??h;if(!h||!canFling(h)){h=m.crew.find(canFling)??null;c.memo.pick=h?.id;}return h;};
+const throwHold=c=>!run(c).aim&&!!steady(c,run(c));
+const goal=m=>`${Math.min(m.floorBroken??0,m.holeNeed??0)}/${m.holeNeed??0}`;
 const MINE=[
  {id:'m-welcome',kind:'info',target:()=>({canvas:{x:10,y:100,w:430,h:660}})},
- {id:'m-throw',kind:'action',hold:c=>!run(c).aim,target:c=>{const m=run(c),h=c.memo.pick??=freeHamster(m);return canvasHole(mineRect(m,h.x,h.y-8,72,80));},
-  done:c=>run(c).crew.some(h=>h.fling)||eventSince(run(c),'slam',c.enteredAt)},
- // 1층은 구멍을 바로 열어 두고 공을 굴려 곧장 아래층으로
- {id:'m-descend',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,skipIf:c=>run(c).depth>=2,onEnter:c=>{run(c).ghostBall=true;openHoleNow(run(c));},
+ // 햄찌 + 던질 바위를 함께 밝힌다. 잡기 전까지는 광산 시간을 멈춰 둔다.
+ {id:'m-throw',kind:'action',hold:throwHold,
+  target:c=>{const m=run(c),h=steady(c,m);if(!h)return null;if(c.memo.rockFor!==h.id){c.memo.rockFor=h.id;c.shared.rock=nearRock(m,h)?.id;}return canvasHole(mineRect(m,h.x,h.y-8,72,80),c.shared.rock!=null&&cellRect(m,c.shared.rock));},
+  done:c=>{const m=run(c),h=m.crew.find(h=>h.fling);if(h)c.shared.thrower=h.id;return !!h||eventSince(m,'slam',c.enteredAt);}},
+ {id:'m-throw-result',kind:'info',ready:settled,
+  target:c=>{const m=run(c),h=m.crew.find(h=>h.id===c.shared.thrower);return canvasHole(h&&mineRect(m,h.x,h.y-8,80,84),c.shared.rock!=null&&cellRect(m,c.shared.rock,1.3));}},
+ {id:'m-goal',kind:'info',skipIf:c=>!run(c).holeNeed||!run(c).cells.some(x=>x.hole&&x.locked),target:()=>({canvas:{x:13,y:62,w:128,h:34}}),
+  text:c=>`바위를 ${run(c).holeNeed}개 깨면 맨 위의 구멍 바위가 풀려요.\n왼쪽 위에서 몇 개 깼는지 볼 수 있어요(지금 ${goal(run(c))}).`},
+ // 바위를 더 깨는 동안은 광산이 그대로 흐르고, 남은 개수를 말풍선에 보여 준다
+ {id:'m-dig',kind:'action',skipIf:c=>!run(c).cells.some(x=>x.hole&&x.locked),text:c=>`바위를 더 깨 봐요! (${goal(run(c))})\n햄찌를 당겨 바위에 던지면 금방 깨져요. 햄찌들도 알아서 캐고 있어요.`,
+  target:()=>({canvas:{x:10,y:100,w:430,h:640}}),done:c=>!run(c).cells.some(x=>x.hole&&x.locked)},
+ {id:'m-unlock',kind:'info',skipIf:c=>!!run(c).holeAt,ready:settled,target:c=>{const m=run(c),h=holeCell(m);return h&&canvasHole(cellRect(m,h.id,1.4));}},
+ {id:'m-hole',kind:'action',skipIf:c=>!!run(c).holeAt,hold:throwHold,
+  target:c=>{const m=run(c),h=steady(c,m),k=holeCell(m);if(!h)return null;return canvasHole(mineRect(m,h.x,h.y-8,72,80),k&&cellRect(m,k.id,1.2));},
+  done:c=>!!run(c).holeAt},
+ {id:'m-hole-result',kind:'info',ready:settled,target:c=>{const m=run(c),p=m.holeAt;return p&&canvasHole(mineRect(m,p.x,p.y,TILE*1.4,TILE*1.4));}},
+ // 공을 구멍에 굴려 아래층으로(보통 동굴 맵에서 다시 볼 때는 공이 곧게 갈 자리·길을 마련해 준다)
+ {id:'m-descend',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,skipIf:c=>run(c).depth>=2,onEnter:c=>{const m=run(c);m.ghostBall=true;if(!m.tutorialMap)openHoleNow(m);},
   target:c=>{const m=run(c),p=m.holeAt;if(!p)return null;return canvasHole(ballRect(m),mineRect(m,p.x,p.y,TILE*1.1,TILE*1.1));},
   done:c=>run(c).phase==='transition'||run(c).depth>=2},
  {id:'m-wait-floor',kind:'wait',done:c=>{const m=run(c);if(m.depth>=2)delete m.ghostBall;return m.phase==='mining'&&m.depth>=2;}},
- // 지친 햄찌를 하나 재워 두고 공을 굴려 깨워 본다
- {id:'m-feed',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,onEnter:c=>{c.memo.nap=napNow(run(c)).id;},
-  target:c=>{const m=run(c),h=m.crew.find(h=>h.id===c.memo.nap);return canvasHole(ballRect(m),h&&mineRect(m,h.x,h.y-8,70,76));},
-  done:c=>{const h=run(c).crew.find(h=>h.id===c.memo.nap);return !h||!h.sleeping||eventSince(run(c),'fed',c.enteredAt,e=>e.worker===h.id)||eventSince(run(c),'seed',c.enteredAt,e=>e.worker===h.id);}},
+ {id:'m-floor2',kind:'info',ready:c=>run(c).time-c.enteredAt>.4,target:()=>({canvas:{x:10,y:100,w:430,h:660}})},
+ // 지친 햄찌를 하나 재워 두고 공을 굴려 깨워 본다 → 씨앗을 먹고 일어나는 것까지 보고 결과
+ {id:'m-feed',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,onEnter:c=>{c.shared.nap=napNow(run(c)).id;},
+  target:c=>{const m=run(c),h=m.crew.find(h=>h.id===c.shared.nap);return canvasHole(ballRect(m),h&&mineRect(m,h.x,h.y-8,70,76));},
+  done:c=>{const h=run(c).crew.find(h=>h.id===c.shared.nap);return !h||!h.sleeping||eventSince(run(c),'fed',c.enteredAt,e=>e.worker===h.id)||eventSince(run(c),'seed',c.enteredAt,e=>e.worker===h.id);}},
+ {id:'m-feed-result',kind:'info',ready:c=>{const h=run(c).crew.find(h=>h.id===c.shared.nap);return !h||!h.sleeping&&!h.care&&run(c).time-c.enteredAt>.5||run(c).time-c.enteredAt>5;},
+  target:c=>{const m=run(c),h=m.crew.find(h=>h.id===c.shared.nap)??m.crew[0];return canvasHole(mineRect(m,h.x,h.y-8,84,88));}},
  {id:'m-cart',kind:'action',hold:c=>!run(c).aim,target:c=>canvasHole(mineRect(run(c),run(c).cart.x,run(c).cart.y-10,96,78)),
   done:c=>(run(c).cart.launchAt??-1)>=c.enteredAt},
- {id:'m-crate',kind:'action',skipIf:c=>!crateCell(run(c)),hold:c=>!run(c).aim,
-  target:c=>{const m=run(c),cell=crateCell(m);if(!cell)return null;const[x,y]=center(cell.id),h=c.memo.pick??=freeHamster(m);return canvasHole(mineRect(m,x,y,TILE*1.2,TILE*1.2),mineRect(m,h.x,h.y-8,64,72));},
+ {id:'m-cart-result',kind:'info',ready:c=>{const k=run(c).cart;return !Math.hypot(k.vx??0,k.vy??0)&&run(c).time-c.enteredAt>.6;},target:c=>canvasHole(mineRect(run(c),run(c).cart.x,run(c).cart.y-10,104,86))},
+ {id:'m-crate',kind:'action',skipIf:c=>!crateCell(run(c)),hold:throwHold,
+  target:c=>{const m=run(c),cell=crateCell(m);if(!cell)return null;const h=steady(c,m);if(!h)return null;return canvasHole(cellRect(m,cell.id,1.2),mineRect(m,h.x,h.y-8,64,72));},
   done:c=>!crateCell(run(c))||eventSince(run(c),'crate',c.enteredAt)},
+ {id:'m-crate-result',kind:'info',skipIf:c=>!run(c).drops.some(d=>d.golden),ready:c=>settled(c)&&run(c).time-c.enteredAt>.9,
+  target:c=>{const m=run(c),g=m.drops.filter(d=>d.golden).map(d=>mineRect(m,d.x,d.y,40,40));return g.length?canvasHole(...g):null;}},
  {id:'m-return',kind:'action',target:q('#hud [data-act="mine-return"]'),done:c=>scene(c)==='village'||run(c)?.phase==='ended'}
 ];
 const tree=id=>n=>n.id===id;
@@ -110,18 +143,26 @@ const VILLAGE=[
  {id:'v-tools-done',kind:'action',skipIf:c=>c.ui.modal!=='mastery',target:closeButton,done:c=>!c.ui.modal},
  {id:'v-forge',kind:'action',noModal:true,target:c=>building(c,'forge'),done:c=>c.ui.modal==='mine-forge'},
  {id:'v-enhance',kind:'action',target:q('#modal-root [data-act="mine-enhance"]'),valid:c=>c.ui.modal==='mine-forge',back:'v-forge',
-  onEnter:c=>{c.memo.seeds=c.s.renewal.seeds;},skipIf:c=>{const q=enhancementQuote(c.s);return !q||c.s.renewal.seeds<q.cost;},done:c=>c.s.renewal.seeds<c.memo.seeds||c.clicked('[data-act="mine-enhance"]')},
- {id:'v-forge-done',kind:'action',skipIf:c=>c.ui.modal!=='mine-forge',target:closeButton,done:c=>!c.ui.modal},
+  onEnter:c=>{c.memo.seeds=c.s.renewal.seeds;c.shared.pick={...c.s.renewal.pick};},skipIf:c=>{const q=enhancementQuote(c.s);return !q||c.s.renewal.seeds<q.cost;},done:c=>c.s.renewal.seeds<c.memo.seeds||c.clicked('[data-act="mine-enhance"]')},
+ // 강화 결과(성공·유지·파괴)를 짚어 주고 닫는다
+ {id:'v-forge-done',kind:'action',skipIf:c=>c.ui.modal!=='mine-forge',target:closeButton,done:c=>!c.ui.modal,
+  text:c=>{const a=c.shared.pick,b=c.s.renewal.pick,label=TIERS[b.tier]+'+'+b.level;
+   if(!a)return TEXT['v-forge-done'];
+   if(b.tier>a.tier||b.tier===a.tier&&b.level>a.level)return `강화 성공! 곡괭이가 ${label}이 됐어요.\n다음 탐사부터 모든 햄찌가 더 세게 캐요. X를 눌러 닫아요.`;
+   if(b.tier<a.tier||b.level<a.level)return `앗, 곡괭이가 부서져 ${label}로 돌아갔어요.\n강화는 높을수록 위험해요. X를 눌러 닫아요.`;
+   return `아쉽게 실패했어요. 곡괭이는 ${label} 그대로예요.\n씨앗이 모이면 다시 도전해요. X를 눌러 닫아요.`;}},
  {id:'v-flag',kind:'action',noModal:true,target:c=>{const b=BANNERS.find(b=>b.kind==='floor');return canvasHole(villageRect(c.village,b.x,b.y-78,74,160));},done:c=>!!c.village.floorBox?.classList.contains('open')},
  {id:'v-flag-pick',kind:'action',target:q('.floor-bubble [data-floor="ok"]'),valid:c=>!!c.village.floorBox?.classList.contains('open'),back:'v-flag',done:c=>!c.village.floorBox?.classList.contains('open')},
  // 공을 아래로 굴려 특성 경기장으로 → 햄찌들이 따라오면 장비에 햄찌를 던져 특성 끼기 → 광산 입구로 돌아오기
  {id:'v-zone',kind:'action',noModal:true,target:c=>canvasHole(villageRect(c.village,c.village.ball.x,c.village.ball.y,80,80),villageRect(c.village,1080,1210,150,90)),
   done:c=>c.village.zone==='arena'},
  {id:'v-arrive',kind:'wait',onEnter:c=>{c.memo.t=c.clock;},done:c=>!c.village.slide&&(c.village.crew.every(h=>!h.route&&!h.moving)||c.clock-c.memo.t>6)},
- {id:'v-equip',kind:'action',noModal:true,onEnter:c=>{c.memo.traits=traitsKey(c.s);},
+ {id:'v-equip',kind:'action',noModal:true,onEnter:c=>{c.memo.traits=traitsKey(c.s);c.shared.traits=[...c.s.renewal.traits];},
   target:c=>{const b=c.memo.pair??=equipPair(c);if(!b)return null;const p=c.village.crewPositions()[b.p.i]??b.p;return canvasHole(villageRect(c.village,p.x,p.y-24,66,74),villageRect(c.village,b.d.x,b.d.y+b.d.dy,b.d.w+20,b.d.h+40));},
   done:c=>traitsKey(c.s)!==c.memo.traits,skipIf:c=>c.village.zone!=='arena'},
- {id:'v-equip-done',kind:'info',noModal:true,skipIf:c=>c.village.zone!=='arena',onNext:c=>c.actions.villageEntrance()},
+ // 던진 햄찌가 내려앉아 새 옷(특성)을 입은 모습을 보여 준 뒤 설명
+ {id:'v-equip-done',kind:'info',noModal:true,skipIf:c=>c.village.zone!=='arena',onEnter:c=>{c.memo.t=c.clock;},ready:c=>!c.village.flights.size&&c.clock-c.memo.t>.5,onNext:c=>c.actions.villageEntrance(),
+  target:c=>{const i=c.s.renewal.traits.findIndex((t,k)=>t!==(c.shared.traits??[])[k]),p=c.village.crewPositions()[i<0?0:i];return p&&canvasHole(villageRect(c.village,p.x,p.y-26,84,92));}},
  {id:'v-back',kind:'wait',onEnter:c=>{c.memo.t=c.clock;},done:c=>c.village.zone==='hub'&&!c.village.slide&&(c.village.crew.every(h=>!h.route)||c.clock-c.memo.t>6)},
  {id:'v-pack',kind:'action',noModal:true,skipIf:c=>c.s.renewal.village.prepared||!canDepart(c.s),target:c=>canvasHole(villageRect(c.village,c.village.ball.x,c.village.ball.y,76,76)),
   done:c=>!!c.village.pack?.classList.contains('open')||c.s.renewal.village.prepared},
@@ -149,7 +190,7 @@ export function createRenewalTutorial({game,canvas,getState,ui,actions,mine,vill
  game.append(el);
  const blocks=Object.fromEntries([...el.querySelectorAll('.tut-block')].map(b=>[b.dataset.b,b])),ring=el.querySelector('.tut-ring'),bubble=el.querySelector('.tut-bubble');
  const title=el.querySelector('.tut-title'),detail=el.querySelector('.tut-detail'),actionsRow=el.querySelector('.tut-actions'),next=el.querySelector('.tut-next'),skip=el.querySelector('.tut-skip'),skipLabel=el.querySelector('.tut-skip-label');
- let visible=false,shownKind=null,entered=null,enteredAt=0,current=null,skipArmed=0,clock=0,lastMessage=null,memo={},holding=false,lastClick=null;
+ let visible=false,shownKind=null,entered=null,enteredAt=0,current=null,skipArmed=0,clock=0,lastMessage=null,memo={},shared={},holding=false,lastClick=null;
  // 단계가 시작된 뒤에 눌린 곳(버튼을 실제로 눌렀는지 확인하는 단계용)
  game.addEventListener('click',e=>{lastClick=e.target;},true);
  const state=s=>{const r=s?.renewal;if(!r)return null;if(!r.tutorial||typeof r.tutorial!=='object')r.tutorial={stage:r.prologueSeen?'done':'mine',step:0,ran:false};return r.tutorial;};
@@ -191,18 +232,21 @@ export function createRenewalTutorial({game,canvas,getState,ui,actions,mine,vill
   if(t.stage==='village'&&scene({s})!=='village'){finish(t);return;}
   const steps=chapter(t),step=steps[t.step];if(!step){advance(t,steps);return;}
   const key=t.stage+t.step;if(entered!==key){memo={};lastClick=null;}
-  const c={s,ui:u,actions,mine,village:village(),enteredAt,memo,clock,clicked:sel=>!!lastClick?.closest?.(sel)};
+  // memo = 이 단계에서만, shared = 다음 단계(결과 보여 주기)까지 넘겨 쓰는 기억
+  const c={s,ui:u,actions,mine,village:village(),enteredAt,memo,shared,clock,clicked:sel=>!!lastClick?.closest?.(sel)};
   if(entered!==key){entered=key;enteredAt=run({s})?.time??0;c.enteredAt=enteredAt;step.onEnter?.(c);if(step.skipIf?.(c)){advance(t,steps);return;}}
   if(step.done?.(c)){advance(t,steps);return;}
   if(step.valid&&!step.valid(c)){const i=steps.findIndex(x=>x.id===step.back);if(i>=0){t.step=i;entered=null;}hide();return;}
   if(step.noModal&&u.modal){hide();return;}
   if(step.kind==='wait'){hide();return;}
+  // 결과 단계: 동작이 끝까지 보일 때까지는 덮지 않고 기다렸다가 말풍선을 띄운다
+  if(step.ready&&!step.ready(c)){hide();return;}
   holding=!!step.hold?.(c);
   let hole=null;
   if(step.target){const r=step.target(c);if(r===null){hide();return;}
    if(r?.canvas)hole=fromCanvas(r.canvas);
    else if(r?.getBoundingClientRect){const b=r.getBoundingClientRect();if(!b.width){hide();return;}hole=toDesign(b);}}
-  show({hole,message:TEXT[step.id],kind:step.kind,label:step.last?'시작!':'다음',onNext:()=>{step.onNext?.(c);advance(t,steps);}});
+  show({hole,message:typeof step.text==='function'?step.text(c):TEXT[step.id],kind:step.kind,label:step.last?'시작!':'다음',onNext:()=>{step.onNext?.(c);advance(t,steps);}});
  }
  next.addEventListener('click',()=>current?.onNext?.());
  skip.addEventListener('click',()=>{if(!skipArmed){skipArmed=clock||Number.EPSILON;updateSkip();return;}const t=state(getState());if(t)finish(t);skipArmed=0;});
@@ -213,6 +257,6 @@ export function createRenewalTutorial({game,canvas,getState,ui,actions,mine,vill
   active:()=>{const t=state(getState());return enabled&&!!t&&t.stage!=='done';},
   holdsBuild:()=>false,drawRng:()=>undefined,
   reset(){entered=null;current=null;skipArmed=0;hide();},
-  restart(){const t=state(getState());if(!t)return;t.stage='mine';t.step=0;t.ran=false;entered=null;persist();}
+  restart(){const t=state(getState());if(!t)return;t.stage='mine';t.step=0;t.ran=false;entered=null;shared={};persist();}
  };
 }

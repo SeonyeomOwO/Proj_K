@@ -136,10 +136,10 @@ export function equipVillageTrait(s,i,trait){
  else r.traits[i]=trait;   // 두 칸이 다 차 있으면 첫째 칸을 바꾼다
  return{i,trait,removed:null,from};
 }
-export function departVillage(s,now=Date.now()){
+export function departVillage(s,now=Date.now(),{tutorial=false}={}){
  if(!canDepart(s,now)||!s.renewal.village.prepared)return false;
  const r=s.renewal;syncStartFloor(s);
- if(!startMining(s,{seeds:r.village.pack}))return false;
+ if(!startMining(s,{seeds:r.village.pack,tutorial}))return false;
  r.village.scene='mine';r.village.prepared=false;return true;
 }
 export function arriveVillage(s,now=Date.now()){

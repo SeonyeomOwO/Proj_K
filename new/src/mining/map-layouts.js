@@ -23,6 +23,24 @@ export const CAVE={id:'cave',name:'동굴',sizes:[[6,8],[6,9],[7,10],[7,11],[8,1
  // n번째 상자가 나올 확률(앞 상자가 나와야 다음을 굴림). 깊을수록 오르고, 3개 이상이면 잭팟.
  crates:[[.5,.02,.92],[0,.03,.6],[0,.016,.4],[0,.009,.25]]};
 export const MAPS=[{id:CAVE.id,name:CAVE.name},...LAYOUTS];
+// ── 튜토리얼 전용 첫 층(프롤로그 뒤 첫 탐사의 지하 1층에만, 2026-11-10) ──
+// 아래쪽 넓은 처음 공간(햄찌·수레·공) 위로 3칸 너비 통로가 곧게 뚫려 있고, 그 끝 바위가 구멍이다.
+// 바위 3개만 깨면 구멍이 풀리고(holeNeed), 구멍 바위는 한 번에 깨진다. 공은 구멍 바로 아래 줄에 두어 위로 곧게 굴리면 들어간다.
+// 상자·묻힌 도구 없음. 아래층부터는 보통 동굴.
+export const TUTORIAL_CAVE=Object.freeze({
+ rows:['          ','          ','          ','          ',
+  '  #.#.##  ',
+  '  #...##  ',
+  '  #...##  ',
+  '  #....#  ',
+  '  #....#  ',
+  '  #....#  ',
+  '  #....#  ',
+  '  ######  ',
+  '          ','          ','          ','          ','          '],
+ pocket:{x:3,y:7,w:4,h:4},hole:{x:4,y:4},map:{x:2,y:4,w:6,h:8},
+ holeNeed:3,holeHits:1,noCrates:true,ballAt:{x:4.5,y:10.45},cartAt:{x:6.15,y:10.2}
+});
 export const holeNeedFor=step=>Math.min(CAVE.holeNeed.max,CAVE.holeNeed.base+CAVE.holeNeed.perStep*step);
 export const rareShare=depth=>CAVE.rare.start+(CAVE.rare.deep-CAVE.rare.start)*Math.min(1,Math.max(0,(depth-1)/(CAVE.rare.fullDepth-1)));
 // bonus: 마스터리 '황금 상자 확률'(%p를 모든 굴림에 더함)
