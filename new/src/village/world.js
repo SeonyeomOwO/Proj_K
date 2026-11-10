@@ -691,7 +691,8 @@ export class VillageWorld{
  }
  // 던진 햄찌: 마을 위를 미끄러지듯 날다가 장비(특성)·우물(이름)·생산기(걷기)에 맞으면 그 일을 하고, 멈추면 제자리로 걸어 돌아간다.
  stepFlights(dt){
-  const s=this.getState(),B=flightBounds(zoneById(this.zone)),solids=this.solids().filter(o=>o.zone===this.zone);
+  // 경기장 장비 받침대는 던진 햄찌의 목표물이라 막지 않는다(공만 튕김)
+  const s=this.getState(),B=flightBounds(zoneById(this.zone)),solids=this.solids().filter(o=>o.zone===this.zone&&o.id!=='stump');
   for(const [i,f] of this.flights){
    f.t+=dt;
    if(f.phase==='fly'){
@@ -947,7 +948,7 @@ export class VillageWorld{
    else label(c,p.text,p.x,p.y-k*40,18);c.restore();}
   if(this.fling){
    // 햄찌 조준선: 같은 감속으로 미끄러질 길
-   const f=this.fling,v=aimVelocity(f.origin,f.pointer),b={x:f.origin.x,y:f.origin.y,vx:v.vx,vy:v.vy},pts=[],B=flightBounds(zoneById(this.zone)),solids=this.solids().filter(o=>o.zone===this.zone);
+   const f=this.fling,v=aimVelocity(f.origin,f.pointer),b={x:f.origin.x,y:f.origin.y,vx:v.vx,vy:v.vy},pts=[],B=flightBounds(zoneById(this.zone)),solids=this.solids().filter(o=>o.zone===this.zone&&o.id!=='stump');
    // 실제 비행과 같은 벽·건물·울타리 튕김으로 미리 그린다(우물에 닿으면 거기서 끝)
    aim:for(let i=0;i<40&&Math.hypot(b.vx,b.vy)>=FLING.stop;i++){for(let j=0;j<4;j++){const h=1/120;b.x+=b.vx*h;b.y+=b.vy*h;if(b.x<B.left||b.x>B.right){b.x=Math.max(B.left,Math.min(B.right,b.x));b.vx*=-.45;}if(b.y<B.top||b.y>B.bottom){b.y=Math.max(B.top,Math.min(B.bottom,b.y));b.vy*=-.45;}
     if(this.zone==='arena'&&fenceCollide(b,14)){b.vx*=.8;b.vy*=.8;}

@@ -26,6 +26,8 @@ export function holeContains(s,b){
 // workers, seeds, terrain or rewards; it only returns contact information.
 function contactAt(s,x,y,r){
  let contact=ballWorldContact(s,x,y,r);
+ // 튜토리얼 첫 내려가기: 공이 햄찌를 지나쳐 구멍까지 곧장 가게(s.ghostBall, renewal-tutorial.js)
+ if(s.ghostBall)return contact;
  for(const h of s.crew){
   const dx=x-h.x,dy=y-h.y,d=Math.hypot(dx,dy),gap=r+20;
   if(d>=gap)continue;

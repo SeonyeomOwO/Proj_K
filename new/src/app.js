@@ -1070,7 +1070,7 @@ async function start() {
     // 뉴 햄찌 광산: 프롤로그 → 첫 탐사(광산) → 마을 순서의 전용 튜토리얼(같은 말풍선 프리셋)
     if(renewalMode)tutorial = createRenewalTutorial({ game, canvas:$('world'), enabled:!fixture||tutorialPreview, getState: () => s, mine, village:()=>village,
       ui: () => ({ modal, busy: dungeonLoading || prologueActive || sceneChanging || gachaOn }),
-      actions: { save, closeAll: () => close(true), villageHome: () => village.home(),
+      actions: { save, closeAll: () => close(true), villageHome: () => village.home(), villageEntrance: () => village.focusEntrance(),
         // 첫 탐사: 공에 씨앗을 가득 담아 마을을 거치지 않고 바로 광산으로
         startRun: () => { if(!Village.prepareVillage(s,{seeds:Mining.ballCapacity(s),themeId:s.renewal.themeId})||!Village.departVillage(s))return false; paused=false;$('pause').checked=false;close(true);save();updateHud();world.render(s,0);return true; } } });
     else tutorial = createTutorial({ game, enabled: !renewalMode&&(!fixture || tutorialPreview), getState: () => s, ui: () => ({ modal, tab, busy: dungeonLoading || prologueActive, gacha: gachaOn }), actions:{ open: name => open(name), closeAll: () => close(true), refresh: () => mutate(), save, notify } });
