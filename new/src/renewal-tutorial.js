@@ -65,12 +65,23 @@ function clearLane(m){
  const p=m.holeAt;if(!p)return;const b=m.ball,top=Math.min(p.y,b.y)-30,bottom=Math.max(p.y,b.y)+30;
  const sideL=p.x-62,sideR=p.x+92;let k=0;
  for(const h of m.crew){
-  h.wait=Math.max(h.wait??0,8);   // 길 옆에서 잠깐 쉬며 지켜본다(짐·잠은 그대로)
-  if(Math.abs(h.x-p.x)<58&&h.y>top&&h.y<bottom&&!h.fling){
+  h.wait=Math.max(h.wait??0,30);h.yieldGoal=null;h.yieldFor=null;   // 길 옆에서 쉬며 지켜본다(공이 구멍에 들어갈 때까지 길로 돌아오지 않음)
+  if(Math.abs(h.x-p.x)<62&&h.y>top&&h.y<bottom&&!h.fling){
    h.x=k%2?sideR:sideL;h.y=Math.min(b.y-35,Math.max(b.y-115,h.y));h.route=[];h.goal=null;h.work=null;h.stand=null;if(!h.cargo&&!h.sleeping)h.clip='idle';k++;
   }
  }
  m.navRevision++;
+}
+// 튜토리얼 첫 층: 층 목표를 채운 것으로 하고 구멍 바위를 깨 구멍을 드러낸다(햄찌들이 마저 깨 준 셈)
+function revealHole(m){
+ const cell=m.cells.find(c=>c.hole);if(!cell||m.holeAt)return;const[x,y]=center(cell.id);
+ m.floorBroken=Math.max(m.floorBroken??0,m.holeNeed??0);cell.locked=false;m.navRevision++;m.events.push({type:'unlock',id:cell.id,time:m.time,x,y});
+ for(let i=0;i<20&&isMineable(cell)&&cell.solid;i++)strike(m,cell.id,{id:null,power:(cell.maxHp??5)+5,contact:{x,y}});
+}
+// 탐사의 끝 보여 주기: 햄찌들이 많이 지치고(배도 비우고) 공 속 씨앗은 3개만 남긴다 → 다 쓰면 모두 잠들어 탐사가 끝난다
+function tireOut(m){
+ for(const h of m.crew){h.stamina=Math.min(h.stamina,10);h.fullness=0;}
+ m.ball.seeds=Math.min(m.ball.seeds,3);
 }
 // 잠든 햄찌 만들기(깨우기 연습용): 가장 공 가까이 있는 한가한 햄찌가 지쳐 쿨쿨
 function napNow(m){
@@ -99,22 +110,33 @@ const MINE=[
   done:c=>{const m=run(c),h=m.crew.find(h=>h.fling);if(h)c.shared.thrower=h.id;return !!h||eventSince(m,'slam',c.enteredAt);}},
  {id:'m-throw-result',kind:'info',ready:settled,
   target:c=>{const m=run(c),h=m.crew.find(h=>h.id===c.shared.thrower);return canvasHole(h&&mineRect(m,h.x,h.y-8,80,84),c.shared.rock!=null&&cellRect(m,c.shared.rock,1.3));}},
- {id:'m-goal',kind:'info',skipIf:c=>!run(c).holeNeed||!run(c).cells.some(x=>x.hole&&x.locked),target:()=>({canvas:{x:13,y:62,w:128,h:34}}),
-  text:c=>`바위를 ${run(c).holeNeed}개 깨면 맨 위의 구멍 바위가 풀려요.\n왼쪽 위에서 몇 개 깼는지 볼 수 있어요(지금 ${goal(run(c))}).`},
- // 바위를 더 깨는 동안은 광산이 그대로 흐르고, 남은 개수를 말풍선에 보여 준다
- {id:'m-dig',kind:'action',skipIf:c=>!run(c).cells.some(x=>x.hole&&x.locked),text:c=>`바위를 더 깨 봐요! (${goal(run(c))})\n햄찌를 당겨 바위에 던지면 금방 깨져요. 햄찌들도 알아서 캐고 있어요.`,
-  target:()=>({canvas:{x:10,y:100,w:430,h:640}}),done:c=>!run(c).cells.some(x=>x.hole&&x.locked)},
- {id:'m-unlock',kind:'info',skipIf:c=>!!run(c).holeAt,ready:settled,target:c=>{const m=run(c),h=holeCell(m);return h&&canvasHole(cellRect(m,h.id,1.4));}},
- {id:'m-hole',kind:'action',skipIf:c=>!!run(c).holeAt,hold:throwHold,
-  target:c=>{const m=run(c),h=steady(c,m),k=holeCell(m);if(!h)return null;return canvasHole(mineRect(m,h.x,h.y-8,72,80),k&&cellRect(m,k.id,1.2));},
-  done:c=>!!run(c).holeAt},
- {id:'m-hole-result',kind:'info',ready:settled,target:c=>{const m=run(c),p=m.holeAt;return p&&canvasHole(mineRect(m,p.x,p.y,TILE*1.4,TILE*1.4));}},
- // 공을 구멍에 굴려 아래층으로(보통 동굴 맵에서 다시 볼 때는 공이 곧게 갈 자리·길을 마련해 준다)
- {id:'m-descend',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,skipIf:c=>run(c).depth>=2,onEnter:c=>{const m=run(c);m.ghostBall=true;if(!m.tutorialMap)openHoleNow(m);clearLane(m);},
+ // 한 번 던져 바위가 깨질 수 있다는 걸 본 뒤에는 붙잡지 않는다: 층 목표를 짚어 주고 나머지는 햄찌들이 마저 깨 구멍을 열어 준다
+ {id:'m-goal',kind:'info',skipIf:c=>!!run(c).holeAt,target:()=>({canvas:{x:13,y:62,w:128,h:34}}),
+  text:c=>`원래는 바위를 ${run(c).holeNeed||3}개 깨야 맨 위의 구멍 바위가 풀려요.\n왼쪽 위에 몇 개 깼는지 나와요. 이번엔 햄찌들이 마저 깨서 구멍을 열어 줄게요!`,
+  onNext:c=>{const m=run(c);if(m.tutorialMap)revealHole(m);else{m.ghostBall=true;openHoleNow(m);}}},
+ {id:'m-hole-result',kind:'info',ready:c=>!!run(c).holeAt&&settled(c),target:c=>{const m=run(c),p=m.holeAt;return p&&canvasHole(mineRect(m,p.x,p.y,TILE*1.4,TILE*1.4));}},
+ // 공을 구멍에 굴려 아래층으로: 공과 구멍 사이 일자 길에는 햄찌가 아예 없게 비켜 세운다(보통 동굴 맵에서 다시 볼 때는 길·자리도 마련)
+ {id:'m-descend',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,skipIf:c=>run(c).depth>=2,
+  onEnter:c=>{const m=run(c);if(!m.tutorialMap){m.ghostBall=true;openHoleNow(m);}clearLane(m);},
   target:c=>{const m=run(c),p=m.holeAt;if(!p)return null;return canvasHole(ballRect(m),mineRect(m,p.x,p.y,TILE*1.1,TILE*1.1));},
   done:c=>run(c).phase==='transition'||run(c).depth>=2},
  {id:'m-wait-floor',kind:'wait',done:c=>{const m=run(c);if(m.depth>=2)delete m.ghostBall;return m.phase==='mining'&&m.depth>=2;}},
  {id:'m-floor2',kind:'info',ready:c=>run(c).time-c.enteredAt>.4,target:()=>({canvas:{x:10,y:100,w:430,h:660}})},
+ // 황금 상자: ① 상자 자리만 먼저 보여 주고 → ② "햄찌를 던져 저길 한 번 파 볼까요?" → ③ 상자가 열려 황금 씨앗이 나오는 것까지 보고 설명
+ {id:'m-crate-show',kind:'info',skipIf:c=>!crateCell(run(c)),onEnter:c=>{c.shared.crate=crateCell(run(c))?.id;},
+  target:c=>{const m=run(c);return c.shared.crate!=null?canvasHole(cellRect(m,c.shared.crate,1.5)):null;}},
+ {id:'m-crate',kind:'action',skipIf:c=>c.shared.crate==null||!run(c).cells[c.shared.crate]?.solid,hold:throwHold,
+  target:c=>{const m=run(c),h=steady(c,m);if(!h)return null;return canvasHole(cellRect(m,c.shared.crate,1.3),mineRect(m,h.x,h.y-8,64,72));},
+  done:c=>{const m=run(c),h=m.crew.find(h=>h.fling);if(h)c.shared.thrower=h.id;return !!h||eventSince(m,'slam',c.enteredAt);}},
+ {id:'m-crate-result',kind:'info',skipIf:c=>c.shared.crate==null,
+  // 던진 햄찌가 내려앉았는데 상자가 아직이면, 햄찌들이 그 상자를 집중해서 파게 한다(광석 집중 채굴과 같은 명령) → 열려서 황금 씨앗이 나올 때까지 지켜본다
+  ready:c=>{const m=run(c),id=c.shared.crate,open=!m.cells[id]?.solid;
+   if(!open&&settled(c)&&m.focus!==id&&isMineable(m.cells[id])){m.focus=id;m.focusAt=m.time;m.commandRevision=(m.commandRevision??0)+1;}
+   if(open&&m.focus===id)m.focus=null;
+   return open&&settled(c)&&m.time-c.enteredAt>.9&&m.drops.some(d=>d.golden)||m.time-c.enteredAt>20;},
+  target:c=>{const m=run(c),g=m.drops.filter(d=>d.golden).map(d=>mineRect(m,d.x,d.y,44,44));return canvasHole(cellRect(m,c.shared.crate,1.4),...g);},
+  text:c=>{const m=run(c),open=!m.cells[c.shared.crate]?.solid;return open?'상자가 열려 황금 해바라기씨가 나왔어요!\n햄찌들이 주워 수레에 담아야 내 것이 돼요. 마을의 도구 놀이터에서 특별한 힘을 배우는 데 써요.'
+   :'쾅! 상자 쪽을 팠어요.\n상자는 몇 번 더 파야 열려요. 햄찌들도 같이 파 줄 거예요.';}},
  // 지친 햄찌를 하나 재워 두고 공을 굴려 깨워 본다 → 씨앗을 먹고 일어나는 것까지 보고 결과
  {id:'m-feed',kind:'action',hold:c=>!run(c).aim&&!run(c).ball.vx&&!run(c).ball.vy,onEnter:c=>{c.shared.nap=napNow(run(c)).id;},
   target:c=>{const m=run(c),h=m.crew.find(h=>h.id===c.shared.nap);return canvasHole(ballRect(m),h&&mineRect(m,h.x,h.y-8,70,76));},
@@ -124,18 +146,14 @@ const MINE=[
  {id:'m-cart',kind:'action',hold:c=>!run(c).aim,target:c=>canvasHole(mineRect(run(c),run(c).cart.x,run(c).cart.y-10,96,78)),
   done:c=>(run(c).cart.launchAt??-1)>=c.enteredAt},
  {id:'m-cart-result',kind:'info',ready:c=>{const k=run(c).cart;return !Math.hypot(k.vx??0,k.vy??0)&&run(c).time-c.enteredAt>.6;},target:c=>canvasHole(mineRect(run(c),run(c).cart.x,run(c).cart.y-10,104,86))},
- // 황금 상자: ① 상자 자리만 먼저 보여 주고 → ② 햄찌를 한 번 던져 그쪽을 파 보게 하고 → ③ 내려앉은 뒤 판 자리를 보여 주며 넘어간다
- // (상자는 바위 속에 묻혀 있어 여러 번 파야 열리므로, 한 번 던져 보는 데까지만 붙잡는다)
- {id:'m-crate-show',kind:'info',skipIf:c=>!crateCell(run(c)),onEnter:c=>{c.shared.crate=crateCell(run(c))?.id;},
-  target:c=>{const m=run(c);return c.shared.crate!=null?canvasHole(cellRect(m,c.shared.crate,1.5)):null;}},
- {id:'m-crate',kind:'action',skipIf:c=>c.shared.crate==null||!run(c).cells[c.shared.crate]?.solid,hold:throwHold,
-  target:c=>{const m=run(c),h=steady(c,m);if(!h)return null;return canvasHole(cellRect(m,c.shared.crate,1.3),mineRect(m,h.x,h.y-8,64,72));},
-  done:c=>{const m=run(c),h=m.crew.find(h=>h.fling);if(h)c.shared.thrower=h.id;return !!h||eventSince(m,'slam',c.enteredAt);}},
- {id:'m-crate-result',kind:'info',skipIf:c=>c.shared.crate==null,ready:settled,
-  target:c=>{const m=run(c),h=m.crew.find(h=>h.id===c.shared.thrower);return canvasHole(cellRect(m,c.shared.crate,1.4),h&&mineRect(m,h.x,h.y-8,70,76));},
-  text:c=>{const m=run(c),cell=m.cells[c.shared.crate];return !cell?.solid?'상자가 열렸어요! 황금 해바라기씨가 나왔어요.\n햄찌가 수레에 담아야 내 것이 돼요. 도구 놀이터에서 특별한 힘을 배우는 데 써요.'
-   :'쾅! 상자 쪽을 팠어요.\n상자는 바위 속 깊이 묻혀 있어 몇 번 더 파야 열려요. 햄찌들도 같이 파 줄 거예요.';}},
- {id:'m-return',kind:'action',target:q('#hud [data-act="mine-return"]'),done:c=>scene(c)==='village'||run(c)?.phase==='ended'}
+ // 탐사의 끝: 햄찌들이 지쳐 가고 → 공 속 씨앗을 다 써서 깨워 보고 → 씨앗이 떨어져 모두 잠들면 탐사가 끝나 마을로 돌아간다
+ {id:'m-tired',kind:'info',target:()=>({canvas:{x:342,y:16,w:95,h:42}}),onNext:c=>tireOut(run(c))},
+ {id:'m-useup',kind:'action',target:c=>canvasHole(ballRect(run(c)),{x:10,y:100,w:430,h:640}),
+  text:c=>`공에 남은 씨앗 ${run(c).ball.seeds}개!\n잠든 햄찌에게 공을 굴려 씨앗을 다 써 봐요.`,done:c=>run(c).ball.seeds<=0||run(c).phase==='ended'},
+ // 씨앗이 떨어지면 햄찌들이 금방 지쳐(기운을 조금만 남김) 하나둘 잠들고, 모두 잠들면 탐사가 끝나 마을로 돌아간다
+ {id:'m-end',kind:'action',tick:c=>{const m=run(c);if(m)for(const h of m.crew)if(!h.sleeping)h.stamina=Math.min(h.stamina,3);},target:()=>({canvas:{x:10,y:100,w:430,h:640}}),
+  text:c=>`씨앗을 다 썼어요! 햄찌들이 하나둘 잠들어요 (${run(c)?.crew.filter(h=>h.sleeping).length??0}/${run(c)?.crew.length??0})\n모두 잠들면 탐사가 끝나고 마을로 돌아가요. (중간에 그만두려면 오른쪽 아래 귀환)`,
+  done:c=>scene(c)==='village'||run(c)?.phase==='ended'}
 ];
 const tree=id=>n=>n.id===id;
 const building=(c,id)=>{const b=BUILDINGS.find(tree(id));return canvasHole(villageRect(c.village,b.x,b.y-b.h/2,b.w,b.h));};
@@ -270,6 +288,7 @@ export function createRenewalTutorial({game,canvas,getState,ui,actions,mine,vill
   // memo = 이 단계에서만, shared = 다음 단계(결과 보여 주기)까지 넘겨 쓰는 기억
   const c={s,ui:u,actions,mine,village:village(),enteredAt,memo,shared,clock,clicked:sel=>!!lastClick?.closest?.(sel)};
   if(entered!==key){entered=key;enteredAt=run({s})?.time??0;c.enteredAt=enteredAt;step.onEnter?.(c);if(step.skipIf?.(c)){advance(t,steps);return;}}
+  step.tick?.(c);   // 단계가 떠 있는 동안 매 프레임 할 일(예: 탐사 끝 무렵 햄찌들이 금방 지치게)
   if(step.done?.(c)){advance(t,steps);return;}
   if(step.valid&&!step.valid(c)){const i=steps.findIndex(x=>x.id===step.back);if(i>=0){t.step=i;entered=null;}hide();return;}
   if(step.noModal&&u.modal){hide();return;}
@@ -283,7 +302,8 @@ export function createRenewalTutorial({game,canvas,getState,ui,actions,mine,vill
    else if(r?.getBoundingClientRect){const b=r.getBoundingClientRect();if(!b.width){hide();return;}hole=toDesign(b);}}
   show({hole,message:typeof step.text==='function'?step.text(c):TEXT[step.id],kind:step.kind,label:step.last?'시작!':'다음',onNext:()=>{step.onNext?.(c);advance(t,steps);}});
  }
- next.addEventListener('click',()=>current?.onNext?.());
+ // '다음'은 말풍선만 있는 단계에서만(직접 해 보기 단계는 실제로 해야 넘어간다)
+ next.addEventListener('click',()=>{if(visible&&shownKind==='info')current?.onNext?.();});
  skip.addEventListener('click',()=>{if(!skipArmed){skipArmed=clock||Number.EPSILON;updateSkip();return;}const t=state(getState());if(t)finish(t);skipArmed=0;});
  return{
   update,

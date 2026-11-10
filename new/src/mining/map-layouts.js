@@ -41,6 +41,23 @@ export const TUTORIAL_CAVE=Object.freeze({
  pocket:{x:3,y:7,w:4,h:4},hole:{x:4,y:4},map:{x:2,y:4,w:6,h:8},
  holeNeed:3,holeHits:1,noCrates:true,ballAt:{x:4.5,y:10.45},cartAt:{x:6.15,y:10.2}
 });
+// 튜토리얼 지하 2층: 처음 공간 바로 위에 황금 상자가 붙어 있어(한 번 치면 열림) 햄찌를 던져 황금 씨앗을 캐 보고,
+// 공 속 씨앗을 다 쓰고 모두 잠들 때까지 지내 본다. 구멍은 위쪽 바위 속(이번 탐사에선 더 내려가지 않음).
+export const TUTORIAL_CAVE2=Object.freeze({
+ rows:['          ','          ','          ','          ',
+  '  ######  ',
+  '  ######  ',
+  '  ######  ',
+  '  #....#  ',
+  '  #....#  ',
+  '  #....#  ',
+  '  #....#  ',
+  '  ######  ',
+  '          ','          ','          ','          ','          '],
+ pocket:{x:3,y:7,w:4,h:4},hole:{x:5,y:4},map:{x:2,y:4,w:6,h:8},
+ holeNeed:8,noCrates:true,crates:[{x:4,y:6,hits:1}],ballAt:{x:5.9,y:10.45},cartAt:{x:4.35,y:10.2}
+});
+export const tutorialCave=n=>n===2?TUTORIAL_CAVE2:n?TUTORIAL_CAVE:null;
 export const holeNeedFor=step=>Math.min(CAVE.holeNeed.max,CAVE.holeNeed.base+CAVE.holeNeed.perStep*step);
 export const rareShare=depth=>CAVE.rare.start+(CAVE.rare.deep-CAVE.rare.start)*Math.min(1,Math.max(0,(depth-1)/(CAVE.rare.fullDepth-1)));
 // bonus: 마스터리 '황금 상자 확률'(%p를 모든 굴림에 더함)

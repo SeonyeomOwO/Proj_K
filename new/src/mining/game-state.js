@@ -46,7 +46,7 @@ export function validRun(m){
  if(!m.cart||!m.ball||!whole(m.ball.seeds,CONFIG.walletCap)||!whole(m.secured)||!whole(m.securedValue)||!whole(m.mined)||!whole(m.lostOre)||!whole(m.lostValue))return false;
  const finiteTree=v=>typeof v==='number'?Number.isFinite(v):v&&typeof v==='object'?Object.values(v).every(finiteTree):true;
  if(!finiteTree(m))return false;
- const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m),depth:m.depth,mods:m.mods,tutorialMap:!!m.tutorialMap});
+ const base=createState(m.seed,{themeId:m.themeId,layoutId:m.layoutId,step:caveStep(m),depth:m.depth,mods:m.mods,tutorialMap:m.tutorialMap||0});
  if(m.cells.some((c,i)=>!c||c.id!==i||c.kind!==base.cells[i].kind||typeof c.solid!=='boolean'||c.unbreakable!==base.cells[i].unbreakable||(c.unbreakable&&!c.solid)||!(c.hp>=0&&c.hp<=c.maxHp&&c.maxHp<=5)))return false;
  // 기운 최대치·배부름 한도는 마스터리로 늘어난다(햄찌마다 maxStamina·fullCap)
  if(m.crew.some((h,i)=>!h||h.id!==i||!TRAITS[h.trait]||h.trait2!=null&&!TRAITS[h.trait2]||!Array.isArray(h.route)||h.x<0||h.x>450||h.y<0||h.y>800||!(h.stamina>=0&&h.stamina<=Math.min(400,h.maxStamina??100))||!(h.fullness>=0&&h.fullness<=Math.min(8,h.fullCap??3))||h.cargo&&!h.cargoDrop))return false;
@@ -87,7 +87,7 @@ export function startMining(s,{seeds=ballCapacity(s),themeId,layoutId,traits,tut
  r.seeds-=packed;r.runId++;r.result=null;
  // 마스터리 효과를 출발할 때 한 번 모아 탐사에 넣는다(탐사 중에 배운 것은 다음 탐사부터)
  const mods=miningMods(k=>masteryBonus(s,k));
- const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits,traits2:mods.traitSlot?r.traits2:[],depth:s.floor,mods,tutorialMap:tutorial&&r.layoutId===CAVE.id});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
+ const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits,traits2:mods.traitSlot?r.traits2:[],depth:s.floor,mods,tutorialMap:tutorial&&r.layoutId===CAVE.id?1:0});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
  // Snapshot growth on departure; changing menus never resets an active swing.
  const {power,speed,reward,glory}=miningGrowth(s);
  // 황금 기운 단계(연출용): 높을수록 햄찌 둘레 금빛·던지기 꼬리·타격 불꽃이 화려해진다
