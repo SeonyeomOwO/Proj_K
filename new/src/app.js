@@ -109,7 +109,7 @@ function buildHud() {
  ${B('settings', I('settings'), 'gear brown', 'aria-label="설정"')}
  <div class="side-tools">${B('missions', I('mission') + '<span class="stroke">임무</span>', 'brown')}${B('dungeon', I('dungeon') + '<span class="stroke">던전</span>', 'brown')}</div>
  <div class="depth"><span>−</span><span id="depth-prev">11</span><strong class="current" id="depth-now">12</strong><span id="depth-next">13</span><span>−</span></div>
- ${B('auto', '<span class="auto-label stroke">자동 강화</span><span id="auto-toggle" class="toggle"></span><img class="auto-lock-overlay" src="assets/shop/auto-upgrade-lock-v1.webp" alt=""><span class="auto-lock-hint">패스로 해제</span>', 'auto brown', 'aria-pressed="false"')}
+ ${B('auto', '<span class="auto-label stroke">자동 강화</span><span id="auto-toggle" class="toggle"></span>' + (renewalMode ? '' : '<img class="auto-lock-overlay" src="assets/shop/auto-upgrade-lock-v1.webp" alt="">') + '<span class="auto-lock-hint">패스로 해제</span>', 'auto brown', 'aria-pressed="false"')}
  <div class="upgrades" id="upgrades"></div>
  <nav class="nav brown" aria-label="게임 메뉴">${[['equipment', 'pickaxe', '장비'], ['mastery', 'mastery', '마스터리'], ['rebirth', 'rebirth', '환생'], ['hamsters', 'hamster_face', '햄찌단'], ['shop', 'shop', '상점']].map(([act, icon, label]) => B(act, I(icon) + '<span class="stroke">' + label + '</span>')).join('')}</nav>`;
   a.apply(hud);
@@ -1088,8 +1088,10 @@ async function start() {
     if(masteryPreview){previewBoot=true;open(masteryPreview==='profile'?'profile':masteryPreview==='draft'?'build':'mastery');previewBoot=false;}
     if(shopPreview) open('shop');
     if(seasonPreview) open('missions');
-    a.warm();   // 상점·패스·광맥 배너 그림 등 나머지 시트는 첫 화면 뒤 한가할 때 한 장씩
-    setTimeout(preloadGacha, 3000);   // 뽑기 연출 그림(상자·배경·문양)은 시작 직후 한가할 때 미리 받아 둔다
+    // 상점·패스·광맥 배너 그림 등 나머지 시트는 첫 화면 뒤 한가할 때 한 장씩.
+    // 뉴 햄찌 광산엔 상점·패스·뽑기·광맥 배너가 없어 그 그림은 미리 받지 않는다(약 2.5MB 절약).
+    a.warm(renewalMode ? id => /^(shop|monthly|pass|auto-upgrade|vein-banner)/.test(id) : undefined);
+    if(!renewalMode)setTimeout(preloadGacha, 3000);   // 뽑기 연출 그림(상자·배경·문양)은 시작 직후 한가할 때 미리 받아 둔다
     if(gachaPreview)previewGacha();
     if(dungeonPreview){open('dungeon');if(['mine','tower'].includes(dungeonPreview)){dungeonPage=dungeonPreview;renderModal();}}
     hud.addEventListener('click', handle);

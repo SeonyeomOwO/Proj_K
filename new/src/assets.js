@@ -28,8 +28,9 @@ export class Assets {
     return this.pending[id] ||= this.image(this.master ? s.path : s.web || s.path).then(im => this.images[id] = im);
   }
   // 첫 화면을 띄운 뒤 아직 안 받은 시트를 한 장씩 한가할 때 받는다.
-  warm() {
-    const rest = Object.keys(this.manifest.sheets).filter(id => !this.pending[id]).sort((a, b) => rank(a) - rank(b));
+  // skip: 미리 받지 않을 시트(필요해지면 draw()가 그때 받는다)
+  warm(skip = () => false) {
+    const rest = Object.keys(this.manifest.sheets).filter(id => !this.pending[id] && !skip(id)).sort((a, b) => rank(a) - rank(b));
     const idle = fn => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 300));
     const next = () => {
       const id = rest.shift();

@@ -213,8 +213,10 @@ export class VillageWorld{
   const base=new URL('../../assets/village/',import.meta.url);
   // manifest.web.json: tools/build-renewal-assets.mjs가 만든 게임용 WebP 목록(원본 PNG 목록은 manifest.json)
   const manifest=await fetch(new URL('manifest.web.json',base)).then(r=>{if(!r.ok)throw Error('마을 리소스를 열 수 없어요');return r.json();});
-  this.sprites={};await Promise.all(manifest.assets.map(async p=>{this.sprites[p.id]={...p,image:await this.res.rig.image(new URL(p.path,base))};}));
   this.art=await VillageArt.load(this.res.rig);
+  // 새 마을 그림(art-v2)이 있으면 옛 스프라이트는 구멍과 새 그림이 없는 건물만 받는다(나머지 약 0.5MB는 안 받음)
+  const need=p=>!this.art||p.id==='mine-hole'||BUILDINGS.some(b=>b.id===p.id&&!this.art.has(b.id));
+  this.sprites={};await Promise.all(manifest.assets.filter(need).map(async p=>{this.sprites[p.id]={...p,image:await this.res.rig.image(new URL(p.path,base))};}));
   this.scenery=sceneryFor(ZONES);this.fixedSolids=null;
   // 바닥은 구역마다 한 장씩(빈 모서리는 그리지 않아 메모리를 아낀다)
   this.backgrounds=ZONES.map(z=>{const cv=document.createElement('canvas');cv.width=ZONE.w;cv.height=ZONE.h;const g=cv.getContext('2d');g.translate(-z.left,-z.top);this.art.ground(g,z);return{z,cv};});
@@ -790,7 +792,11 @@ export class VillageWorld{
  render(){
   const c=this.context,cam=this.camera,s=this.getState(),f=fatigueState(s),tired=f.count>=f.max;
   c.save();c.setTransform(c.canvas.width/450,0,0,c.canvas.height/800,0,0);c.clearRect(0,0,450,800);
-  c.save();c.translate(225,400);c.scale(cam.zoom,cam.zoom);c.translate(-cam.x,-cam.y);for(const b of this.backgrounds??[])c.drawImage(b.cv,b.z.left,b.z.top);
+  c.save();c.translate(225,400);c.scale(cam.zoom,cam.zoom);c.translate(-cam.x,-cam.y);
+  // 화면에 보이는 범위(여유 포함) 밖의 구역 바닥·풍경은 그리지 않는다
+  const vw=225/cam.zoom,vh=400/cam.zoom,view={l:cam.x-vw,r:cam.x+vw,t:cam.y-vh,b:cam.y+vh};
+  const seen=(x,y,m)=>x>view.l-m&&x<view.r+m&&y>view.t-m&&y<view.b+m;
+  for(const b of this.backgrounds??[])if(b.z.left<view.r&&b.z.left+ZONE.w>view.l&&b.z.top<view.b&&b.z.top+ZONE.h>view.t)c.drawImage(b.cv,b.z.left,b.z.top);
   // 광산 입구 연출: 꿀꺽(삼키면 오므라졌다 출렁) → 우르르(뱉기 전 부풀며 덜덜) → 펑!(크게 벌어졌다 출렁 + 흙먼지·돌멩이)
   const booms=[this.holeSpit,this.ballSpit&&this.ballSpit.t0+ACT.ballRumble].filter(b=>b!=null);
   let hsx=1,hsy=1,hdx=0,boomAge=9,rumble=0;
@@ -825,7 +831,7 @@ export class VillageWorld{
    if(building)this.rebuildDust(c,b,k);
    if(b.id==='forge'&&this.forgeReady(s))this.forgeFlame(c,b,motion);
   }}));
-  for(const p of this.scenery??[])objects.push({x:p.x,y:p.y,depth:p.y,draw:()=>{
+  for(const p of this.scenery??[])if(seen(p.x,p.y,Math.max(p.w,p.h)+40))objects.push({x:p.x,y:p.y,depth:p.y,draw:()=>{
    const z=zoneById(p.zone);c.save();c.beginPath();c.rect(z.left,z.top,ZONE.w,ZONE.h);c.clip();this.art.scenery(c,p,this.time,motion);c.restore();
   }});
   const painters={storage:this.drawStorage,mill:this.drawMill,totem:this.drawTotem,well:this.drawWell};
