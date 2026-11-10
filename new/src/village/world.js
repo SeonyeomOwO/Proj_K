@@ -877,7 +877,8 @@ export class VillageWorld{
    if(f?.landAt!=null&&f.phase==='back'){const L=landing(this.time-f.landAt,.75,f.landAmp??1);if(L.st||L.lift){lift+=L.lift;st=L.st;sa=Math.PI/2;feet=true;}}
    if(!motion){st=0;rot=0;}
    const inside=f&&(f.phase==='dive'||f.phase==='swallow');
-   objects.push({depth:this.suction?3000:f?.phase==='dive'?WELL.y+1:f?.phase==='swallow'?HOLE.y+1:gy,draw:()=>{
+   // 우물에서 퐁 튀어나오는 동안은 우물보다 앞에(공중 높이 떠 있어도 지면 위치로 정렬하면 우물 뒤로 숨어 버린다)
+   objects.push({depth:this.suction?3000:f?.phase==='dive'||f?.phase==='pop'?Math.max(gy,WELL.y+1):f?.phase==='swallow'?HOLE.y+1:gy,draw:()=>{
     let x=gx,y=gy,sz=size,pst=st,psa=sa,pfeet=feet,prot=rot;
     // 광산으로 출발: 차례로 한 바퀴 빙글 돌며 점점 작아져 구멍 속으로 쏙(늘어나지 않음)
     if(this.suction){const k=Math.max(0,Math.min(1,(this.suction.time-i*.045)/.6)),ease=k*k*k;pst=0;prot=motion?ease*Math.PI*2:0;
