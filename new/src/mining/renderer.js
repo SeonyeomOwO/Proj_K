@@ -17,6 +17,7 @@ import {FLING} from './fling.js';
 import {FLING_LAND} from './worker-pose.js';
 import {BALL} from './ball.js';
 import {jelly,bump,tremble,dizzy,star} from './animation/juice.js';
+import {gloryAura,gloryHalo,gloryTrail,gloryEvent,gloryShake,gloryVignette} from './glory-fx.js';
 // 등나무 공의 과장 연출: 당기면 당기는 쪽으로 늘어나며 덜덜, 구를 땐 가는 방향으로 쭉, 튕기면 그 방향으로 납작 출렁
 function ballJuice(s,b,still){
  if(still)return{x:0,y:0,a:0,st:0};
@@ -129,6 +130,7 @@ export const toScreen=(cam,p)=>({x:(p.x-cam.x)*cam.zoom+cam.sx,y:(p.y-cam.y)*cam
 export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showResult=true}){
  const cam=mineCamera(s);
  c.save();c.fillStyle='#2e2320';c.fillRect(0,0,450,800);c.translate(cam.sx,cam.sy);c.scale(cam.zoom,cam.zoom);c.translate(-cam.x,-cam.y);
+ {const sh=gloryShake(s,reducedMotion);if(sh.x||sh.y)c.translate(sh.x,sh.y);}
  if(terrainCache)c.drawImage(terrainCache,0,0,450,800);else paintTerrain(c,s,{damageTiles:res.damageTiles});
  drawTerrainImpacts(c,s,{terrainCache,damageTiles:res.damageTiles,reducedMotion});
  if(s.grid){c.save();c.strokeStyle='#fff6d948';c.lineWidth=.75;for(let y=0;y<=ROWS;y++)line(c,[[0,ORIGIN+y*TILE],[450,ORIGIN+y*TILE]],'#fff6d948',.75);for(let x=0;x<=COLS;x++)line(c,[[ORIGIN+x*TILE,0],[ORIGIN+x*TILE,800]],'#fff6d948',.75);c.restore();}
@@ -161,7 +163,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  const objects=[...s.drops.map(d=>({depth:d.y,draw(){
   const p=dropVisual(d);c.fillStyle='#36283b2b';c.beginPath();c.ellipse(p.x,p.y+d.width*.3,d.width*(.44-Math.min(.15,d.z*.002)),d.width*.12,0,0,Math.PI*2);c.fill();
   drawFragment(c,d.kind,p.x,p.y-d.z,d.width,{variant:d.variant,angle:d.angle,sx:1+d.impact,sy:1-d.impact});
- }})),{depth:cart.y+25,draw(){drawCart(c,s,cart,bounce,res,reducedMotion);}},{depth:ball.y+18,draw(){
+ }})),{depth:cart.y+25,draw(){gloryTrail(c,s,'cart',cart.x,cart.y-14,Math.hypot(cart.vx??0,cart.vy??0)>150,reducedMotion);drawCart(c,s,cart,bounce,res,reducedMotion);}},{depth:ball.y+18,draw(){
   const t=s.transition,k=t&&['suction','close','covered'].includes(t.stage)?t.stage==='suction'?Math.max(0,1-t.time/.38):0:1;
   if(k<=0)return;const diameter=ball.radius*2+1,r=diameter/2,hint=ballHint(s,reducedMotion);
   if(hint){
@@ -186,9 +188,12 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
   const shake=held&&!reducedMotion?tremble(s.time,Math.min(1,pull/FLING.hamster.maxPull)):{x:0,y:0};
   // 날아가는 중: 가는 방향으로 쭉 늘어난다(몸 가운데 기준)
   const fl=original.fling,stretch=fl&&!(fl.landing>0)&&fl.vis&&!reducedMotion?Math.min(.38,fl.vis.sp/1500):0;
+  // 황금 기운: 금빛 꼬리(날아갈 때)와 발밑·몸 둘레 금빛(몸 뒤에 먼저 그림)
+  if(!s.transition){gloryTrail(c,s,'h'+original.id,h.x,h.y+FOOT_OFFSET-38*ACTOR_SIZE,!!fl&&!(fl.landing>0),reducedMotion);gloryAura(c,s,h,original.id,reducedMotion);}
   if(stretch){c.save();jelly(c,h.x,h.y+FOOT_OFFSET-38*ACTOR_SIZE,fl.vis.a,stretch);}
   drawActor(c,actorRes,{x:h.x+shake.x,y:h.y+FOOT_OFFSET+shake.y,size:ACTOR_SIZE,clip:held?'startle':h.clip,skin:h.skin,t:held?.1:h.motion,index:0,face:h.face,showTool:!h.cargo&&!h.care&&(!h.sleeping||h.clip==='pajamas'),emote:held||!!h.care||h.sleeping,prop:'fragment:'+(h.cargo??'stone'),poseOverride:p,carryOverride,weaponScale:MINING_WEAPON_SCALE});
   if(stretch)c.restore();
+  if(!s.transition)gloryHalo(c,s,h,original.id,reducedMotion);
   // 내려앉은 뒤 잠깐 어질어질: 머리 위로 별이 빙글빙글
   if(fl?.landing>0&&!reducedMotion){const age=FLING_LAND-fl.landing;dizzy(c,h.x,h.y+FOOT_OFFSET-44,s.time,age>.12?Math.min(1,(age-.12)/.1)*Math.min(1,fl.landing/.2):0,15,5);}
   // 두 개 나르기: 둘째 짐은 머리 위에 하나 더 얹어 보인다
@@ -217,7 +222,8 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  }
  for(const e of s.events){
   const age=s.time-e.time;
-  if(e.type==='grasp')continue;
+  gloryEvent(c,s,e,reducedMotion);
+  if(e.type==='grasp'||e.type==='slam')continue;
   if(e.type==='land'){
    if(age<.28){c.save();c.globalAlpha=(1-age/.28)*.3;c.fillStyle='#ecd3a7';for(let i=0;i<3;i++){c.beginPath();c.ellipse(e.x+(i-1)*(6+age*20),e.y+5-age*9,3+age*8,1.4+age*3,0,0,Math.PI*2);c.fill();}c.restore();}continue;
   }
@@ -273,6 +279,7 @@ export function drawScene(c,s,{res,terrainCache=null,reducedMotion=false,showRes
  drawRockHp(c,s,{reducedMotion});
  drawHoleMarker(c,marker,s.time,s.holeAt);drawAim(c,s);
  c.restore();   // 여기부터는 화면에 고정된 정보(카메라와 무관)
+ gloryVignette(c,s,reducedMotion);
  frame(c,res.rig,'panel_brown',13,16,108,42);text(c,`지하 ${s.depth??1}층`,67,44);
  frame(c,res.rig,'panel_brown',342,16,95,42);res.draw(c,'seed',364,37,14,21);text(c,String(ball.seeds??0),402,44,17);
  if(s.crew?.length)drawTeamEnergy(c,s,{frame,rig:res.rig,text});

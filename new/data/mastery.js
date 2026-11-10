@@ -30,6 +30,8 @@ const cache=new Map();
 // 뉴 햄찌 광산이 자기 마스터리 지도를 끼우는 자리(기존판은 쓰지 않아 null). 효과 이름·갈래는 화면 표시용으로 바꿔 둔다.
 let tree=null;
 export function useMasteryTree(t){tree=t;Object.assign(EFFECTS,t.effects);BRANCHES.splice(0,BRANCHES.length,...t.branches);}
+// 끼운 지도가 바뀌었을 때 예전 저장의 배움을 새 지도에 맞게 옮긴다(지도가 정한 규칙, 없으면 그대로)
+export function migrateMasteryLevels(levels){tree?.migrate?.(levels);}
 export function masteryNodes(page=1){
  if(tree)return tree.nodes(page);
  const key=page===1?1:2;if(cache.has(key))return cache.get(key);

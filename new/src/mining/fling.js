@@ -116,6 +116,8 @@ export function updateFlight(s,h,dt,strike){
   // 쾅! 부딪힌 힘으로 한 번 친다(부딪힘 피해 마스터리만큼 세게)
   // 멀리 날수록 세게(마스터리 farHit): 날아간 100px마다 더한다
   h.contact=f.contact;const p=h.power;h.power=(p??1)*(1+(s.mods?.impact??0)+(s.mods?.farHit??0)*(f.length??0)/100);strike(s,f.cell,h);h.power=p;
+  // 쾅 연출(황금 기운이 높을수록 크게, renderer → glory-fx.js)
+  const at=f.contact??{x:cx,y:cy};s.events.push({type:'slam',time:s.time,x:at.x,y:at.y,worker:h.id});
   const broke=!isMineable(s.cells[f.cell]),v=f.vEnd??{vx:0,vy:0};
   // 관통: 깨뜨리면 같은 방향으로 계속 날아간다
   if(broke&&chain.pierce>0&&speed(v)>FLING.hamster.stop&&startFlight(s,h,v.vx*.8,v.vy*.8,{...chain,pierce:chain.pierce-1}))return true;

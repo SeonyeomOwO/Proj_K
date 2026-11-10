@@ -3,10 +3,10 @@ import {THEMES} from './mineral-themes.js';
 import {MAPS as LAYOUTS,CAVE} from './map-layouts.js';
 import {TRAITS} from './mining-rules.js';
 import {CONFIG,TIERS} from '../../data/config.js';
-import {masteryBonus,nodes,buyNode,absorbPage} from '../mastery-state.js';
+import {masteryBonus,nodes,nodeLevel,buyNode,absorbPage} from '../mastery-state.js';
 import {recordSeason} from '../season-state.js';
 import {useMasteryTree} from '../../data/mastery.js';
-import {MINE_TREE,MINE_EFFECTS,miningMods} from './mining-mastery.js';
+import {MINE_TREE,MINE_EFFECTS,miningMods,GLORY,gloryTier} from './mining-mastery.js';
 
 // First integrated playtest economy. Centralized so review values can change.
 // 황금 해바라기씨(마스터리·가챠 재화)는 층마다 있는 상자에서만 나온다: 상자를 캐서 연 뒤 수레에 담은 만큼 정산된다
@@ -21,16 +21,18 @@ export const GOLDEN_PURSE={get:s=>s.renewal.golden,spend:(s,n)=>{s.renewal.golde
 // 뉴 햄찌 광산 전용 마스터리 지도를 끼운다(효과 31종, mining-mastery.js). 지도의 노드는 모두 배울 수 있다.
 useMasteryTree(MINE_TREE);
 export const miningMasteryAvailable=node=>!!node&&!!MINE_EFFECTS[node.effect];
-// 나무마다 재화가 다르다: 햄찌 능력(햄찌의 집·쉼터)은 해바라기씨, 특별한 힘(마스터리·도구 놀이터)은 황금 해바라기씨
+// 나무마다 재화가 다르다: 햄찌 능력(마스터리)은 해바라기씨, 특별한 힘(도구 놀이터)은 황금 해바라기씨
 // 대장 햄찌 기본 보너스(검토용 값)
 export const LEADER={power:.25};
 export const SEED_PURSE={get:s=>s.renewal.seeds,spend:(s,n)=>{s.renewal.seeds-=n;}};
 export const purseFor=node=>node?.currency==='seeds'?SEED_PURSE:GOLDEN_PURSE;
 export const buyMiningMastery=(s,id)=>{const n=nodes(s).find(x=>x.id===id);return miningMasteryAvailable(n)&&buyNode(s,id,purseFor(n));};
 export const absorbMiningMastery=s=>absorbPage(s,GOLDEN_PURSE);
+// 황금 기운: 도구 놀이터(황금 해바라기씨)에서 배운 단계 합. 단계마다 채굴력·속도가 크게 오른다(GLORY).
+export const goldenLevels=s=>nodes(s).reduce((a,n)=>a+(n.currency==='golden'?nodeLevel(s,n.id):0),0);
 export function miningGrowth(s){
- const {tier,level}=s.renewal.pick;
- return {power:(1+(tier*6+level)*.08)*(1+masteryBonus(s,'damage')),speed:1+masteryBonus(s,'speed'),reward:1+masteryBonus(s,'stones')};
+ const {tier,level}=s.renewal.pick,g=goldenLevels(s);
+ return {power:(1+(tier*6+level)*.08)*(1+masteryBonus(s,'damage'))*(1+GLORY.power*g),speed:(1+masteryBonus(s,'speed'))*(1+GLORY.speed*g),reward:1+masteryBonus(s,'stones'),glory:g};
 }
 const whole=(v,max=1e12)=>Number.isSafeInteger(v)&&v>=0&&v<=max;
 const validId=(list,id)=>list.some(x=>x.id===id);
@@ -86,7 +88,9 @@ export function startMining(s,{seeds=ballCapacity(s),themeId,layoutId,traits}={}
  const mods=miningMods(k=>masteryBonus(s,k));
  const m=createState(r.runId%1e6,{themeId:r.themeId,layoutId:r.layoutId,traits:r.traits,traits2:mods.traitSlot?r.traits2:[],depth:s.floor,mods});m.depth=s.floor;m.startDepth=s.floor;m.ball.seeds=packed;
  // Snapshot growth on departure; changing menus never resets an active swing.
- const {power,speed,reward}=miningGrowth(s);
+ const {power,speed,reward,glory}=miningGrowth(s);
+ // 황금 기운 단계(연출용): 높을수록 햄찌 둘레 금빛·던지기 꼬리·타격 불꽃이 화려해진다
+ m.glory={levels:glory,tier:gloryTier(glory)};
  // 대장 햄찌는 기본 +25%에 '대장의 힘'을 더해 더 세게 캔다
  for(const h of m.crew){h.power=power*(h.leader?1+LEADER.power+mods.leaderPower:1);h.period/=speed;h.speed*=1+mods.walk;}
  m.rewardMultiplier=reward;r.run=m;return true;

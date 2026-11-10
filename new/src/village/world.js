@@ -4,6 +4,7 @@ import {fatigueState,canDepart,equipVillageTrait,villageCrew,GENERATORS,collectG
 import {enhancementQuote,ballCapacity,GOLDEN_NAME} from '../mining/game-state.js';
 import {TRAITS} from '../mining/mining-rules.js';
 import {TIERS} from '../../data/config.js';
+import {nodes as Mnodes,nodeLevel} from '../mastery-state.js';
 import {HOME,ZOOM,WORLD,worldPoint,pan,zoomAt,pinch} from './camera.js';
 import {HOLE,ZONES,ZONE,GATE,GATES,BALL_HOME,FENCE,zoneById,zoneAt,gateBetween,gateCenter,freshBall,aimVelocity,stepBall,trajectory,fenceCollide,solidCollide,insideFence} from './plaza.js';
 import {VillageArt,artPanel,wellOpening} from './art.js';
@@ -27,7 +28,8 @@ export const BUILDINGS=[
  // 성장 나무(2026-11-04): 마스터리 = 특별한 힘(황금), 햄찌의 집 = 햄찌 능력(해바라기씨), 쉼터 = 피곤함 + 돌봄 나무(해바라기씨),
  // 놀이터 = 층 도구(황금). 대장간은 곡괭이 강화 그대로. 모두 1구역(광산 입구)에 모은다.
  // sign = 이름 팻말 자리(건물 바닥 기준 dx,dy): 문을 가리지 않게 앞쪽 모서리 길가에 박아 둔다(건물보다 앞에 그려짐)
- {id:'home',x:860,y:440,w:235,h:230,label:'햄찌의 집',action:'tree-home',sign:[98,24]},
+ // 성장은 두 건물(2026-11-10): 마스터리 = 해바라기씨(햄찌 능력), 도구 놀이터 = 황금 해바라기씨(황금 마스터리). 햄찌의 집 = 햄찌들 소개.
+ {id:'home',x:860,y:440,w:235,h:230,label:'햄찌의 집',action:'village-crew',sign:[98,24]},
  {id:'playground',x:1080,y:365,w:215,h:195,label:'도구 놀이터',action:'tree-tools',sign:[72,92]},
  {id:'mastery',x:1300,y:440,w:235,h:230,label:'마스터리',action:'tree-mastery',sign:[80,24]},
  {id:'forge',x:850,y:1085,w:235,h:235,label:'대장간',action:'mine-forge',sign:[92,8]},
@@ -330,9 +332,9 @@ export class VillageWorld{
  }
  // 마을 건물의 '단계': 바뀌면 공사 연출(먼지·통통 튐)이 한 번 나온다. 아직 단계별 건물 그림은 없어 깃발 글씨로 보여 준다.
  levels(s){
-  // 나무마다 배운 단계 합(노드 id 앞머리 = 나무, 마스터리 뿌리는 'root')
-  const pick=s.renewal.pick,levels=Object.entries(s.masteryBook?.levels??{}),sum=pre=>levels.filter(([id])=>id.startsWith(pre)||pre==='mastery_'&&id==='root').reduce((a,[,v])=>a+v,0);
-  return{forge:pick?`${TIERS[pick.tier]}+${pick.level}`:'',mastery:`Lv ${sum('mastery_')}`,home:`Lv ${sum('home_')}`,'care-house':`Lv ${sum('care_')}`,playground:`Lv ${sum('tools_')}`};
+  // 나무마다 배운 단계 합: 마스터리 = 해바라기씨 노드, 도구 놀이터 = 황금 해바라기씨 노드(황금 기운)
+  const pick=s.renewal.pick,sum=cur=>Mnodes(s).reduce((a,n)=>a+(n.currency===cur?nodeLevel(s,n.id):0),0);
+  return{forge:pick?`${TIERS[pick.tier]}+${pick.level}`:'',mastery:`Lv ${sum('seeds')}`,playground:`Lv ${sum('golden')}`};
  }
  // '중앙' 버튼: 지금 구역 전체가 보이게
  home(){this.cancel();this.camera=zoneView(zoneById(this.zone));}

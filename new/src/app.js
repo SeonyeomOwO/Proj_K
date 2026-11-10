@@ -433,7 +433,7 @@ function renderModal() {
   }
   let title = '', body = '', bare = false;
   switch (modal) {
-    case 'village-rest':case 'village-travel':
+    case 'village-rest':case 'village-travel':case 'village-crew':
       ({title,body}=villageModal(modal,s,{B}));break;
     case 'mine-menu':case 'mine-prepare':case 'mine-result':case 'mine-forge':
       ({title,body}=miningModal(modal,s,{B,I,fmt}));break;
@@ -454,7 +454,7 @@ function renderModal() {
       // 연출(말풍선 또잉·구매 반동)은 이번 그리기 한 번에만 쓴다
       // 뉴 햄찌 광산: 건물 나무 하나만, 그 나무의 재화(해바라기씨/황금 해바라기씨)로 표시
       if (renewalMode) { const t = treeOf(masteryTree) ?? treeOf('mastery'); title = t.name; }
-      body = MU.masteryBody(s,chosenNode,mapOverview,s.settings.motion?mapFx:{},renewalMode?{canLearn:Mining.miningMasteryAvailable,effectLabels:{stones:'정산 씨앗'},currency:(treeOf(masteryTree)?.currency==='seeds'?SEED_UI:GOLDEN_UI),tree:masteryTree,treeName:treeOf(masteryTree)?.title,treeTitle:treeOf(masteryTree)?.name}:{});
+      body = MU.masteryBody(s,chosenNode,mapOverview,s.settings.motion?mapFx:{},renewalMode?{canLearn:Mining.miningMasteryAvailable,effectLabels:{stones:'정산 씨앗'},currency:(treeOf(masteryTree)?.currency==='seeds'?SEED_UI:GOLDEN_UI),tree:masteryTree,treeName:treeOf(masteryTree)?.currency==='golden'?`${treeOf(masteryTree).title} · 황금 기운 ${Mining.goldenLevels(s)}`:treeOf(masteryTree)?.title,treeTitle:treeOf(masteryTree)?.name}:{});
       mapFx = {};
       break;
     case 'profile':
@@ -621,7 +621,7 @@ function handle(e) {
   if(renewalMode){
     if(sceneChanging)return;
     mine?.gesture();
-    if(['village-rest','village-travel'].includes(act)){open(act);return;}
+    if(['village-rest','village-travel','village-crew'].includes(act)){open(act);return;}
     if(act==='village-close'){close(true);return;}
     if(act==='village-entrance'){close(true);village.focusEntrance();return;}
     if(act==='village-home'){village.home();return;}

@@ -23,6 +23,10 @@
 .name-bubble input{width:260px;font-size:34px}
 .name-bubble .pack-max{white-space:nowrap;min-width:120px}
 .name-bubble small{order:-1}
+.crew-list{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:8px}
+.crew-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;background:#fffaf0;border:3px solid #e2c9a0;border-radius:16px}
+.crew-list b{font-size:1.1em;color:#4a3122}
+.crew-list span{color:#8a6a4a;text-align:right}
 .floor-bubble{grid-template-columns:auto auto auto auto}
 .floor-bubble output{min-width:190px;font:900 40px Game,sans-serif;text-align:center;color:#4a3122;white-space:nowrap}
 .floor-bubble small[data-floor-title]{color:#4a3122;font-size:24px}

@@ -1,5 +1,5 @@
 import {MASTERY as LEGACY} from '../data/config.js';
-import {masteryNodes,masteryPrice,sealPrice,UNLOCK_SKILLS,EFFECTS} from '../data/mastery.js';
+import {masteryNodes,masteryPrice,sealPrice,UNLOCK_SKILLS,EFFECTS,migrateMasteryLevels} from '../data/mastery.js';
 export const newMasteryBook=()=>({version:2,page:1,levels:{},permanent:{},unlocked:[],active:[]});
 export const book=s=>s.masteryBook;
 export const nodes=s=>masteryNodes(book(s).page);
@@ -22,6 +22,7 @@ export function absorbPage(s,purse=RUBY_PURSE){if(!progress(s).ready)return fals
 // 지금 지도에 없는 노드·끊긴 노드·최대치를 넘은 기록을 정리한다(지도 교체 뒤 예전 저장을 읽을 때)
 export function pruneBook(s){
  const b=book(s);if(!b?.levels||typeof b.levels!=='object')return;
+ migrateMasteryLevels(b.levels);
  const ns=nodes(s);let changed=true;
  while(changed){changed=false;for(const [id,lv] of Object.entries(b.levels)){const n=ns.find(x=>x.id===id);
   if(!n||!Number.isInteger(lv)||lv<1||!n.parents.every(p=>(b.levels[p]||0)>=1)){delete b.levels[id];changed=true;}else if(lv>n.max){b.levels[id]=n.max;changed=true;}}}
