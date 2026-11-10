@@ -137,7 +137,8 @@ function chooseWork(s,h){
  const tree=routesFrom(s,h),focus=h.anchor?[h.anchor.x,h.anchor.y]:s.focus===null?null:center(s.focus);let best=null,score=Infinity;
  for(const n of tree.graph.nodes){if(!tree.distance.has(n.id))continue;
   if(!restingSpotClear(s,h,n))continue;
-  if(s.crew.some(o=>o!==h&&o.stand&&Math.hypot(o.stand.x-n.x,o.stand.y-n.y)<BODY_GAP+12))continue;
+  // 캘 자리 간격: 나란히 붙어 함께 캐도 되게(예전 64px은 자리가 금방 차서 늦게 온 햄찌가 멍하니 서 있었다)
+  if(s.crew.some(o=>o!==h&&o.stand&&Math.hypot(o.stand.x-n.x,o.stand.y-n.y)<STAND_GAP))continue;
   for(const job of n.jobs){
    const [x,y]=center(job.work),cost=tree.distance.get(n.id)*10+(focus?Math.hypot(x-focus[0],y-focus[1])*5:0)+noise(h.id,job.work,s.seed)*12;
    if(cost<score){score=cost;best={node:n,...job};}
@@ -147,6 +148,8 @@ function chooseWork(s,h){
  h.work=best.work;h.contact=best.contact;h.workFace=best.face;h.stand={x:best.node.x,y:best.node.y};h.command=s.commandRevision;
  setDestination(h,best.node,tree);
 }
+// 시뮬레이션(8개 맵 45초): 64px → 44px로 줄이자 일거리를 못 찾고 서 있는 시간 7.7% → 2.6%, 캐낸 광석 109 → 114
+const STAND_GAP=44;
 // 날려서 맞힌 바위(h.order)를 캘 자리. 못 찾으면 false(→ 주변 아무 바위).
 function standFor(s,h,cell){
  const tree=routesFrom(s,h,{traffic:false});let best=null,score=Infinity;
@@ -166,6 +169,24 @@ function claimGolden(s,h){
  const d=s.drops.filter(d=>d.golden&&!d.confined&&(d.owner==null||d.owner===h.id||idle(d.owner))).sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y))[0];
  if(!d)return;
  d.owner=h.id;h.pickup=d.id;h.pickupPosition=null;h.goal=null;h.route=[];h.work=null;h.stand=null;
+}
+// 바닥 광석은 누구든 줍는다(캐기보다 먼저): 주인이 없거나(충격파·폭탄·수레 박치기로 깨진 것) 주인이 지금 주우러 오지 않는
+// (날아가는 중·맞힌 바위를 캐는 중·잠듦·다른 짐을 나르는 중) 광석은 손 빈 햄찌 중 가장 가까운 아이가 맡는다.
+const fetching=(s,d)=>{const o=s.crew.find(x=>x.id===d.owner);return !!o&&o.pickup===d.id&&!o.sleeping&&o.blastTime==null&&!o.fling&&o.order==null&&!o.cargo;};
+// 손이 빈 햄찌. 바위를 치던 중이어도 가까운(MINER_REACH) 광석이면 곡괭이를 멈추고 먼저 줍는다(바위 남은 체력은 그대로).
+const canFetch=o=>!o.sleeping&&o.blastTime==null&&!o.fling&&!o.cargo&&!o.action&&o.order==null&&o.pickup==null;
+const MINER_REACH=170;
+const fetchReach=(o,dist)=>o.work==null||!!o.goal||dist<=MINER_REACH;
+function claimOre(s,h){
+ let best=null,bd=Infinity;
+ for(const d of s.drops){if(d.golden||d.confined||d.owner===h.id||fetching(s,d))continue;
+  const dist=Math.hypot(d.x-h.x,d.y-h.y);if(dist>=bd||!fetchReach(h,dist))continue;
+  // 더 가까운 손 빈 햄찌가 있으면 그 아이에게 양보(한 조각에 여럿이 몰리지 않게)
+  if(s.crew.some(o=>{if(o===h||!canFetch(o))return false;const od=Math.hypot(d.x-o.x,d.y-o.y);return od<dist-24&&fetchReach(o,od);}))continue;
+  best=d;bd=dist;
+ }
+ if(!best)return;
+ best.owner=h.id;h.pickup=best.id;h.pickupPosition=null;h.goal=null;h.route=[];h.work=null;h.stand=null;
 }
 function goToDrop(s,h,d,traffic=true){
  const tree=routesFrom(s,h,{traffic});let best=null,score=Infinity;
@@ -244,6 +265,7 @@ function updateWorker(s,h,dt){
  if(h.order!=null&&(!isMineable(s.cells[h.order])||h.work!==h.order&&!standFor(s,h,h.order)))h.order=null;
  if(h.order==null)claimGolden(s,h);
  if(h.order==null&&h.pickup==null){const owned=s.drops.filter(d=>d.owner===h.id).sort((a,b)=>(b.golden?1:0)-(a.golden?1:0)||Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y))[0];if(owned)h.pickup=owned.id;}
+ if(canFetch(h))claimOre(s,h);
  if(h.order==null&&h.pickup!=null){
   h.stand=null;const d=s.drops.find(d=>d.id===h.pickup&&d.owner===h.id);
   if(!d){h.pickup=null;h.goal=null;h.route=[];return;}
