@@ -18,6 +18,7 @@ const SRC_SKIP = [/\.test\.mjs$/, /(^|\/)(rig-preview|shop-resources|mastery-pre
 const ASSET_SKIP = [
   /\.(ttf|zip|md|txt|py)$/i,
   /^assets\/intro\/(?!web\/)/,                         // 인트로는 웹용 WebP만
+  /^assets\/village\/art-v2\/(source\/|(?:environment-|entrance-)?prompts\.json$|frames\.source\.json$)/,
   /^assets\/gacha\/v1\//, /^assets\/season-pass\/(download-package|resource-map)\.json$/,
   /^assets\/shop\/exported\/resources\.json$/, /^assets\/shop\/parts\.json$/
 ];
@@ -41,6 +42,8 @@ for (const f of walk(path.join(root, 'assets')).map(rel)) {
   files.push(f);
 }
 
+// Keep the generated replica deletion inside this checkout; never follow a junction.
+if(path.resolve(out)!==path.join(fs.realpathSync(root),'new')||(fs.existsSync(out)&&fs.lstatSync(out).isSymbolicLink()))throw Error('Unsafe new/ output path');
 fs.rmSync(out, { recursive: true, force: true });
 for (const f of files) {
   const to = path.join(out, f);
@@ -74,6 +77,8 @@ for (const dir of ['assets/mining', 'assets/village']) {
 }
 
 const bytes = files.reduce((n, f) => n + fs.statSync(path.join(out, f)).size, 0);
+const art=JSON.parse(fs.readFileSync(path.join(out,'assets/village/art-v2/manifest.json'),'utf8'));
+for(const sheet of Object.values(art.sheets))if(!fs.existsSync(path.join(out,'assets/village/art-v2',sheet.path)))missing.push(`village art atlas → ${sheet.path}`);
 console.log(`new/ 파일 ${files.length}개, ${(bytes / 1048576).toFixed(1)}MB`);
 if (missing.length) {
   console.log('new/에 없는 참조 ' + missing.length + '개:\n' + [...new Set(missing)].join('\n'));

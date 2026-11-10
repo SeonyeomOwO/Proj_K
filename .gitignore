@@ -30,8 +30,13 @@ tools/build-intro-assets.mjs
 /src/mining/
 /src/village/
 /src/renewal-session.js
+/src/renewal-tutorial.js
+/data/renewal-tutorial.js
 /assets/mining/
 /assets/village/
 /launcher/
 /start-*.cmd
 /tools/build-renewal-assets.mjs
+/tools/build-village-art.mjs
+# Claude Code 로컬 설정·화면 확인 도구
+/.claude/
